@@ -1,0 +1,94 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Data.SQLite;
+
+namespace Pixiv_Background
+{
+    internal class dbPatcher
+    {
+        private static void _updateDatabase_100_to_101(SQLiteConnection connection)
+        {
+            var trans = connection.BeginTransaction();
+            var cmd = new SQLiteCommand(connection);
+            var insert_col = "ALTER TABLE Illust ADD COLUMN Tool VARCHAR";
+            var clear_all_http = "UPDATE Illust SET HTTP_Status=0";
+            cmd.CommandText = insert_col;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = clear_all_http;
+            cmd.ExecuteNonQuery();
+
+            var edit_version = "UPDATE DbVars SET Value='1.0.1' WHERE Key='Version'";
+            cmd.CommandText = edit_version;
+            cmd.ExecuteNonQuery();
+            trans.Commit();
+        }
+        private static void _updateDatabase_101_to_102(SQLiteConnection connection)
+        {
+            var trans = connection.BeginTransaction();
+            var cmd = new SQLiteCommand(connection);
+            var insert_col1 = "ALTER TABLE User ADD COLUMN Home_Page VARCHAR";
+            var insert_col2 = "ALTER TABLE User ADD COLUMN Gender VARCHAR";
+            var insert_col3 = "ALTER TABLE User ADD COLUMN Personal_Tags VARCHAR";
+            var insert_col4 = "ALTER TABLE User ADD COLUMN Address VARCHAR";
+            var insert_col5 = "ALTER TABLE User ADD COLUMN Birthday VARCHAR";
+            cmd.CommandText = insert_col1;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = insert_col2;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = insert_col3;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = insert_col4;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = insert_col5;
+            cmd.ExecuteNonQuery();
+
+            //deleting Favor in Illust
+            var create_tmp_table = "CREATE TEMPORARY TABLE Temp_Illust (ID INT, Author_ID INT, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT, Submit_Time BIGINT, HTTP_Status INT, Last_Update BIGINT)";
+            cmd.CommandText = create_tmp_table;
+            cmd.ExecuteNonQuery();
+            var trans_tmp_table = "INSERT INTO Temp_Illust SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Submit_Time, HTTP_Status, Last_Update FROM Illust";
+            cmd.CommandText = trans_tmp_table;
+            cmd.ExecuteNonQuery();
+            var drop_origin_table = "DROP TABLE Illust";
+            cmd.CommandText = drop_origin_table;
+            cmd.ExecuteNonQuery();
+            var create_origin_Table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL)";
+            cmd.CommandText = create_origin_Table;
+            cmd.ExecuteNonQuery();
+            var trans_origin_table = "INSERT INTO Illust(ID, Author_ID, Title, Description, Tag, Tool, Click, Submit_Time, HTTP_Status, Last_Update) SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Submit_Time, HTTP_Status, Last_Update FROM Temp_Illust";
+            cmd.CommandText = trans_origin_table;
+            cmd.ExecuteNonQuery();
+            var drop_temp_table = "DROP TABLE Temp_Illust";
+            cmd.CommandText = drop_temp_table;
+            cmd.ExecuteNonQuery();
+
+            //setting all values to un-init status
+            var set_user = "UPDATE User SET HTTP_Status=0";
+            var set_illust = "UPDATE Illust SET HTTP_Status=0";
+            cmd.CommandText = set_user;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = set_illust;
+            cmd.ExecuteNonQuery();
+
+            var update_version = "UPDATE DbVars SET Value='1.0.2' WHERE Key='Version'";
+            cmd.CommandText = update_version;
+            cmd.ExecuteNonQuery();
+            trans.Commit();
+        }
+        public static void Patch(string from_version, string to_version, SQLiteConnection connection)
+        {
+            if (from_version == "1.0.0")
+            {
+                _updateDatabase_100_to_101(connection);
+                from_version = "1.0.1";
+            }
+            if (from_version == "1.0.1")
+            {
+                _updateDatabase_101_to_102(connection);
+                from_version = "1.0.2";
+            }
+        }
+    }
+}
