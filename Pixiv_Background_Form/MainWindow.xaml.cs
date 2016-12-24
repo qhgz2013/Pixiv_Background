@@ -246,7 +246,7 @@ namespace Pixiv_Background_Form
 
                         _illust_info = _database.GetIllustInfo(illust_id);
                         var user_id = _illust_info.Author_ID;
-                        _user_info = _database.GetUserInfo(_illust_info.Author_ID);
+                        _user_info = new User(); // _database.GetUserInfo(_illust_info.Author_ID);
 
                         _save_background_info();
                         _show_current_msg();

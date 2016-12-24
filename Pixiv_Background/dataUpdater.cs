@@ -21,8 +21,8 @@ using System.Diagnostics;
 *       用于存放数据库相关信息，如版本，路径等。 Key:数值名称 Value:数值内容
 * TABLE User(uint ID [PRIMARY KEY], string Name, string Description, Byte[] User_Face, string User_Face_Url, string Home_Page,
 *       用于存放画师信息，ID:画师ID，      Name:画师名称，Description:画师描述（html代码）, User_Face:画师头像（二进制图片）,User_Face_Url:画师头像的url 下载失败可以从这里直接下载, Home_Page: 画师的个人主页
-*            string Gender, string Personal_Tags, string Address, ulong Birthday, string Twitter, int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL])
-*            Gender:性别，男/女,   Personal_Tags:个人的标签, Address:地址, Birthday:生日, Twitter:推, HTTP_Status:http状态,         Last_Update:最后更新的时间
+*            string Gender, string Personal_Tag, string Address, ulong Birthday, string Twitter, int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL])
+*            Gender:性别，男/女,   Personal_Tag:个人的标签, Address:地址, Birthday:生日, Twitter:推, HTTP_Status:http状态,         Last_Update:最后更新的时间
 * 
 * TABLE Illust(uint ID [PRIMARY KEY], uint Author_ID [NOT NULL], string Title, string Description, string Tag, string Tool,
 *       用于存放投稿信息，ID:作品ID，      Author_ID:画师ID，           Title:投稿标题，Description:投稿的描述,Tag:投稿标签，Tool:绘图工具
@@ -58,7 +58,7 @@ namespace Pixiv_Background
         //性别
         public string Gender;
         //个人标签
-        public string Personal_Tags;
+        public string Personal_Tag;
         //地址
         public string Address;
         //生日
@@ -157,8 +157,8 @@ namespace Pixiv_Background
 
         //常量定义：当前版本和最大获取投稿信息的线程数
         private const string M_CURRENT_DBVERSION = "1.0.2";
-        private const int M_MAX_ILLUST_SYNC_THREAD = 1;
-        private const int M_MAX_USER_SYNC_THREAD = 0;
+        private const int M_MAX_ILLUST_SYNC_THREAD = 4;
+        private const int M_MAX_USER_SYNC_THREAD = 4;
         const string multi_data_split_string = ",";
         #endregion
 
@@ -190,7 +190,7 @@ namespace Pixiv_Background
             m_user_thd = new Thread[M_MAX_USER_SYNC_THREAD];
 
             m_monitor_thd = new Thread(_monitor_callback);
-            m_monitor_thd.IsBackground = true;
+            m_monitor_thd.IsBackground = false;
             m_monitor_thd.Name = "Pixiv Data Monitor Thread";
 
             m_illust_query_list = new List<uint>();
@@ -387,7 +387,7 @@ namespace Pixiv_Background
         #region Data Import
 
         #region From Path
-        //从path的本地目录中跟新文件列表 [MTA]
+        //从path的本地目录中跟新文件列表 [STA]
         private void _update_file_list(string path = null)
         {
             if (string.IsNullOrEmpty(path)) path = m_path;
@@ -405,24 +405,17 @@ namespace Pixiv_Background
                 {
                     uint id = uint.Parse(match.Result("${id}"));
                     uint page = uint.Parse(match.Result("${page}"));
-
-                    //从互斥资源中读取（统一用写锁来保证同步算了）
-                    m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    
                     var exist_id = m_illust_list.ContainsKey(id);
-                    m_sqlThreadLock.ReleaseWriterLock();
 
                     //在sql中不存在该作品，应该就是新增的了，加入到sql和内存列表中
                     if (!exist_id)
                     {
-                        //请求写入权限
-                        m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
                         //写入数据
                         Illust illust = new Illust();
                         illust.ID = id;
                         __auto_insert_illust(illust);
                         System.Diagnostics.Debug.Print("Fetching: Illust " + id);
-                        //释放写入权限
-                        m_sqlThreadLock.ReleaseWriterLock();
                     }
                 }
             }
@@ -445,13 +438,12 @@ namespace Pixiv_Background
                     UpdateLocalFileListStarted?.Invoke();
 
                     m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                     if (m_dbTransaction == null)
                         m_dbTransaction = m_dbConnection.BeginTransaction();
-                    m_sqlThreadLock.ReleaseWriterLock();
 
                     _update_file_list();
-
-                    m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    
                     if (m_dbTransaction != null)
                     {
                         m_dbTransaction.Commit();
@@ -460,7 +452,6 @@ namespace Pixiv_Background
                     m_sqlThreadLock.ReleaseWriterLock();
 
                     //making it to a list!~
-                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                     m_illust_query_list.Clear();
                     foreach (var item in m_illust_list)
                     {
@@ -515,24 +506,27 @@ namespace Pixiv_Background
 
                     m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
                     __auto_insert_illust(illust);
-                    //是否存在该用户，若不存在则写入
-                    bool exist_user = m_user_list.ContainsKey(illust.Author_ID);
-                    if (!exist_user)
+                    if (illust.Author_ID != 0)
                     {
-                        User user = new User();
-                        user.ID = illust.Author_ID;
-                        __auto_insert_user(user);
+                        //是否存在该用户，若不存在则写入
+                        bool exist_user = m_user_list.ContainsKey(illust.Author_ID);
+                        if (!exist_user)
+                        {
+                            User user = new User();
+                            user.ID = illust.Author_ID;
+                            __auto_insert_user(user);
 
+                        }
+                        if (!exist_user)
+                        {
+                            m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                            //加入到查询列表
+                            m_user_query_list.Add(illust.Author_ID);
+                            m_query_count++;
+                            m_dataThreadLock.ReleaseWriterLock();
+                        }
                     }
                     m_sqlThreadLock.ReleaseWriterLock();
-                    if (!exist_user)
-                    {
-                        m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
-                        //加入到查询列表
-                        m_user_query_list.Add(illust.Author_ID);
-                        m_query_count++;
-                        m_dataThreadLock.ReleaseWriterLock();
-                    }
 
                     FetchIllustSucceeded?.Invoke(id, (uint)m_query_finished, (uint)m_query_count, illust);
                 }
@@ -660,7 +654,7 @@ namespace Pixiv_Background
 
                         for (int i = 0; i < M_MAX_USER_SYNC_THREAD; i++)
                         {
-                            m_user_thd[i] = new Thread(_sync_illust_callback);
+                            m_user_thd[i] = new Thread(_sync_user_callback);
                             m_user_thd[i].Name = "User Work Thread (#" + i + ")";
                             m_user_thd[i].IsBackground = false;
                             m_user_thd[i].Start();
@@ -692,17 +686,36 @@ namespace Pixiv_Background
                     }
                 }
 
-                //更新列表为空，线程空闲，用sleep进行下一次列表检测
-                //m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
-                //int ic = m_illust_query_list.Count, uc = m_user_query_list.Count;
-                //m_dataThreadLock.ReleaseLock();
-                //if (ic == 0 && uc == 0)
-                //{
-                    Thread.Sleep(1000);
-                //}
+                //更新列表为空，线程空闲，清空队列数量缓存
+                m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                int ic = m_illust_query_list.Count, uc = m_user_query_list.Count;
+                if (ic != 0 && uc != 0 && m_illust_working_thd_count == 0 && m_user_working_thd_count == 0)
+                {
+                    Debug.Print("Query completed, resetting query list size");
+                    m_query_count = 0;
+                    m_query_finished = 0;
+                }
+                m_dataThreadLock.ReleaseLock();
+
+                Thread.Sleep(1000);
             } while (!m_abort_flag);
 
+            Debug.Print("Abort signal received, waiting all thread to be aborted...");
+            for (int i = 0; i < m_illust_thd.Length; i++)
+                m_illust_thd[i]?.Join();
+            for (int i = 0; i < m_user_thd.Length; i++)
+                m_user_thd[i]?.Join();
+
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            if (m_dbTransaction != null)
+            {
+                Debug.Print("Commiting data");
+                m_dbTransaction.Commit();
+                m_dbTransaction = null;
+            }
+            m_sqlThreadLock.ReleaseWriterLock();
             //线程安全退出，取消终止标识
+            Debug.Print("Monitor Thread exited");
             m_abort_flag = false;
         }
         #endregion
@@ -902,7 +915,7 @@ namespace Pixiv_Background
         //插入用户信息到sql和内存列表中（自动跳过null参数） [STA]
         private bool __insert_user(User user)
         {
-            var insert_user_data = "INSERT INTO User(ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tags, Address, Birthday, Twitter, HTTP_Status, Last_Update) VALUES(@ID";
+            var insert_user_data = "INSERT INTO User(ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update) VALUES(@ID";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = user.ID;
             if (!string.IsNullOrEmpty(user.Name))
@@ -961,6 +974,15 @@ namespace Pixiv_Background
                 insert_user_data += ",@Gender";
                 m_dbCommand.Parameters.Add("@Gender", DbType.String);
                 m_dbCommand.Parameters["@Gender"].Value = user.Gender;
+            }
+            else
+                insert_user_data += ",NULL";
+
+            if (!string.IsNullOrEmpty(user.Personal_Tag))
+            {
+                insert_user_data += ",@Personal_Tag";
+                m_dbCommand.Parameters.Add("@Personal_Tag", DbType.String);
+                m_dbCommand.Parameters["@Personal_Tag"].Value = user.Personal_Tag;
             }
             else
                 insert_user_data += ",NULL";
@@ -1244,9 +1266,33 @@ namespace Pixiv_Background
                 //在html代码里匹配每一个数据
                 string failed_section = "";
 
+                //获取失败匹配
+                //投稿被删除
+                var str_ptr_illust_deleted = "<div\\sclass=\"layout-body\">.*?<span.*?>这幅作品已经被删除了</span>.*?</div>";
+                var match = Regex.Match(http_str, str_ptr_illust_deleted);
+                if (match.Success)
+                {
+                    illust.HTTP_Status = (int)HttpStatusCode.NotFound;
+                    return;
+                }
+                //仅好p友可见
+                var str_ptr_illust_hidden = "<div\\sclass=\"layout-body\">.*?只有在.*?的好P友表里的用户才可以阅览这作品。";
+                match = Regex.Match(http_str, str_ptr_illust_hidden);
+                if (match.Success)
+                {
+                    var str_ptr_author_info = "只有在<a\\shref=\".*?id=(?<user_id>\\d+)\">(?<user>.*?)</a>";
+                    match = Regex.Match(match.Value, str_ptr_author_info);
+                    string tuser_name = match.Result("${user}");
+                    uint tuser_id = uint.Parse(match.Result("${user_id}"));
+
+                    illust.Author_ID = tuser_id;
+                    illust.HTTP_Status = (int)HttpStatusCode.Forbidden;
+                    return;
+                }
+
                 //头像url user_face_url
                 var str_ptr_user_face_url = "<img\\ssrc=\"(?<url>[^\"]*?)\"\\salt=\"\"\\sclass=\"user-image\">";
-                var match = Regex.Match(http_str, str_ptr_user_face_url);
+                match = Regex.Match(http_str, str_ptr_user_face_url);
                 string user_face_url = match.Success ? match.Result("${url}") : "";
                 failed_section += match.Success ? "" : "user_face_url ";
 
@@ -1281,12 +1327,12 @@ namespace Pixiv_Background
                 DateTime submit_time = new DateTime(year, month, day, hour, minute, 0);
                 ulong submit_unix_timestamp = (ulong)VBUtil.Utils.Others.ToUnixTimestamp(submit_time);
 
-                //作品分辨率 illust_size [illust_size_str]
+                //作品分辨率 illust_size [illust_size_str] (注：多p投稿没有该属性)
                 string illust_size_str = match.Result("${info}");
                 match = match.NextMatch();
                 var str_ptr_split_image_size = "(?<width>\\d+)×(?<height>\\d+)";
                 tmpMatch = Regex.Match(illust_size_str, str_ptr_split_image_size);
-                Size illust_size = new Size(int.Parse(tmpMatch.Result("${width}")), int.Parse(tmpMatch.Result("${height}")));
+                Size illust_size = tmpMatch.Success ? new Size(int.Parse(tmpMatch.Result("${width}")), int.Parse(tmpMatch.Result("${height}"))) : new Size();
 
                 //工具（如果可能有的话） tools
                 var str_ptr_tool_info = "<ul\\sclass=\"tools\">(?<subtool>.*?)</ul>";
@@ -1348,7 +1394,7 @@ namespace Pixiv_Background
                 //failed_section += match.Success ? "" : "tags ";
 
                 //标题 title
-                var str_ptr_title = "</ul><h1\\sclass=\"title\">(?<title>.*?)</h1><p\\sclass=\"caption\">";
+                var str_ptr_title = "<div\\sclass=\"_unit\\s_work-detail-unit\">.*?<h1\\sclass=\"title\">(?<title>.*?)</h1>";
                 match = Regex.Match(http_str, str_ptr_title);
                 string title = match.Success ? match.Result("${title}") : "";
                 failed_section += match.Success ? "" : "title ";
@@ -1384,10 +1430,10 @@ namespace Pixiv_Background
                 }
                 throw;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 illust.HTTP_Status = -2;
-                throw;
+                throw ex;
             }
             finally
             {
@@ -1414,7 +1460,7 @@ namespace Pixiv_Background
                 #region Parsing
 
                 //用户头像 [user_face_url]
-                var str_ptr_user_face_url = "<img\\ssrc=\"(?<user_face_url>.*?)\"\\salt=\"\"\\sclass=\"user-image\">";
+                var str_ptr_user_face_url = "<img\\ssrc=\"(?<user_face_url>[^\"]*?)\"\\salt=\"\"\\sclass=\"user-image\">";
                 var match = Regex.Match(http_str, str_ptr_user_face_url);
                 string user_face_url = match.Success ? match.Result("${user_face_url}") : "";
 
@@ -1443,7 +1489,7 @@ namespace Pixiv_Background
                 string gender = match.Success ? match.Result("${gender}") : "";
 
                 //地址 [address]
-                var str_ptr_address = "<tr><td\\sclass=\"td1\">地址</td><td\\sclass=\"td2\">(?<address>.*?)</td></tr>";
+                var str_ptr_address = "<tr><td\\sclass=\"td1\">地址</td><td\\sclass=\"td2\">(?<address>.*?)</tr>";
                 match = Regex.Match(http_str, str_ptr_address);
                 string address = match.Success ? match.Result("${address}") : "";
 
@@ -1484,7 +1530,7 @@ namespace Pixiv_Background
                 user.Address = address;
                 user.Birthday = birthday;
                 user.Twitter = twitter;
-                user.Personal_Tags = tag;
+                user.Personal_Tag = tag;
             }
             catch (WebException ex)
             {

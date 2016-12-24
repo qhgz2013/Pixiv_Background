@@ -33,6 +33,7 @@ namespace Pixiv_Background
             var insert_col3 = "ALTER TABLE User ADD COLUMN Personal_Tags VARCHAR";
             var insert_col4 = "ALTER TABLE User ADD COLUMN Address VARCHAR";
             var insert_col5 = "ALTER TABLE User ADD COLUMN Birthday VARCHAR";
+            var insert_col6 = "ALTER TABLE User ADD COLUMN Twitter VARCHAR";
             cmd.CommandText = insert_col1;
             cmd.ExecuteNonQuery();
             cmd.CommandText = insert_col2;
@@ -42,6 +43,8 @@ namespace Pixiv_Background
             cmd.CommandText = insert_col4;
             cmd.ExecuteNonQuery();
             cmd.CommandText = insert_col5;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = insert_col6;
             cmd.ExecuteNonQuery();
 
             //deleting Favor in Illust
