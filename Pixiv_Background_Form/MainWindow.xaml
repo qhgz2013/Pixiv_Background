@@ -179,6 +179,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="70"/>
                 <ColumnDefinition Width="70"/>
+                <ColumnDefinition Width="70"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
 
@@ -221,6 +222,28 @@
                         <BeginStoryboard>
                             <Storyboard>
                                 <ColorAnimation To="{StaticResource HighlightColor}" Duration="0:0:0.3" Storyboard.TargetName="Refresh_Background" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Label.Triggers>
+            </Label>
+
+            <Label x:Name="Update_From_Path_lbl" Grid.Column="2" Grid.Row="0" HorizontalAlignment="Center">
+                <Label.Content>
+                    <Hyperlink Foreground="{StaticResource HighlightBrush}" x:Name="Update_From_Path" TextDecorations="" Click="Update_From_Path_Click">背景目录</Hyperlink>
+                </Label.Content>
+                <Label.Triggers>
+                    <EventTrigger RoutedEvent="MouseEnter">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <ColorAnimation To="Orange" Duration="0:0:0.3" Storyboard.TargetName="Update_From_Path" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                    <EventTrigger RoutedEvent="MouseLeave">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <ColorAnimation To="{StaticResource HighlightColor}" Duration="0:0:0.3" Storyboard.TargetName="Update_From_Path" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
                             </Storyboard>
                         </BeginStoryboard>
                     </EventTrigger>
@@ -275,11 +298,11 @@
                     <RowDefinition/>
                 </Grid.RowDefinitions>
                 <!--Clicks-->
-                <Label x:Name="Click" Grid.Row="0" Grid.Column="1" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Clicks here</Label>
+                <Label x:Name="Click" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Clicks here</Label>
                 <Image Source="pack://application:,,,/Resources/Click.png" Grid.Column="0" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
                 <!--Favors-->
-                <Label x:Name="Favor" Grid.Row="0" Grid.Column="5" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Favors here</Label>
-                <Image Source="pack://application:,,,/Resources/Favor.png" Grid.Column="4" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                <Label x:Name="Favor" Grid.Row="0" Grid.Column="5" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Ranks here</Label>
+                <Image Source="pack://application:,,,/Resources/Star.png" Grid.Column="4" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
                 <!--Others-->
             </Grid>
             <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Foreground="{StaticResource MyGrayBrush}">用户描述</Label>

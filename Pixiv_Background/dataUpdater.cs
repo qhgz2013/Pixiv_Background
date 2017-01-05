@@ -15,21 +15,21 @@ using System.Net;
 using System.Diagnostics;
 
 /*
-* 目前数据库的表格变量定义 [v1.0.2]
+* 目前数据库的表格变量定义 [v1.0.3]
 * 
 * TABLE DbVars(string Key [PRIMARY KEY], string Value)
 *       用于存放数据库相关信息，如版本，路径等。 Key:数值名称 Value:数值内容
 * TABLE User(uint ID [PRIMARY KEY], string Name, string Description, Byte[] User_Face, string User_Face_Url, string Home_Page,
 *       用于存放画师信息，ID:画师ID，      Name:画师名称，Description:画师描述（html代码）, User_Face:画师头像（二进制图片）,User_Face_Url:画师头像的url 下载失败可以从这里直接下载, Home_Page: 画师的个人主页
-*            string Gender, string Personal_Tag, string Address, ulong Birthday, string Twitter, int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL])
-*            Gender:性别，男/女,   Personal_Tag:个人的标签, Address:地址, Birthday:生日, Twitter:推, HTTP_Status:http状态,         Last_Update:最后更新的时间
+*            string Gender, string Personal_Tag, string Address, string Birthday, string Twitter, int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL], ulong Last_Success_Update[NOT NULL])
+*            Gender:性别，男/女,   Personal_Tag:个人的标签, Address:地址, Birthday:生日, Twitter:推,  HTTP_Status:http状态,         Last_Update:最后更新的时间    Last_Success_Update:最后成功更新的时间
 * 
 * TABLE Illust(uint ID [PRIMARY KEY], uint Author_ID [NOT NULL], string Title, string Description, string Tag, string Tool,
 *       用于存放投稿信息，ID:作品ID，      Author_ID:画师ID，           Title:投稿标题，Description:投稿的描述,Tag:投稿标签，Tool:绘图工具
 *              int Click [NOT NULL [0]], int Width [NOT NULL [0]], int Height [NOT NULL [0]] int Rate_Count [NOT NULL [0]], int Score [NOT NULL [0]],
 *                   Click:点击数，           Width:作品宽度像素,       Height:作品高度像素,      Rate_Count:用户评分数，        Score:用户评分
-*              ulong Submit_Time [NOT NULL], int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL])
-*                    Submit_Time:投稿时间，      HTTP_Status:获取投稿信息时的http状态码，Last_Update:最后更新投稿信息的时间
+*              ulong Submit_Time [NOT NULL [0]], int HTTP_Status [NOT NULL [0]], ulong Last_Update [NOT NULL [0]], ulong Last_Success_Update [NOT NULL [0]])
+*                    Submit_Time:投稿时间，          HTTP_Status:获取投稿信息时的http状态码，Last_Update:最后更新投稿信息的时间, Last_Success_Update:最后成功更新的时间
 * 
 * 状态附加定义：-1代表该内容正在下载中（多线程时的占用标识）
 * */
@@ -69,6 +69,8 @@ namespace Pixiv_Background
         public int HTTP_Status;
         //最后更新的时间
         public ulong Last_Update;
+        //最后成功更新的时间
+        public ulong Last_Success_Update;
     }
     //投稿信息
     [Serializable]
@@ -100,6 +102,18 @@ namespace Pixiv_Background
         public int HTTP_Status;
         //最后更新投稿信息的时间
         public ulong Last_Update;
+        //最后成功更新的时间
+        public ulong Last_Success_Update;
+    }
+
+    public enum DataOrigin
+    {
+        Pixiv_Html, SauceNao_API
+    }
+
+    public enum DataUpdateMode
+    {
+        No_Update, Async_Update, Sync_Update, Force_Update
     }
 
     #endregion
@@ -111,7 +125,7 @@ namespace Pixiv_Background
         #region Member Definations
 
         //p站图片路径
-        private string m_path;
+        //private string m_path;
         //是否包含子文件夹
         private bool m_include_subdir;
 
@@ -150,17 +164,18 @@ namespace Pixiv_Background
         private int m_illust_working_thd_count;
         private int m_user_working_thd_count;
 
-        #endregion
+        #endregion //Member Definations
 
         //类常量定义
         #region Constant Definations
 
         //常量定义：当前版本和最大获取投稿信息的线程数
-        private const string M_CURRENT_DBVERSION = "1.0.2";
+        private const string M_CURRENT_DBVERSION = "1.0.3";
         private const int M_MAX_ILLUST_SYNC_THREAD = 4;
         private const int M_MAX_USER_SYNC_THREAD = 4;
-        const string multi_data_split_string = ",";
-        #endregion
+        private const string multi_data_split_string = ",";
+        private const int M_MIN_AUTOUPDATE_INTERVAL = 15 * 24 * 60 * 60; //15 days
+        #endregion //Constant Definations
 
         //构造函数及初始化
         #region Constructor
@@ -172,15 +187,10 @@ namespace Pixiv_Background
         /// <param name="include_sub_dir">是否包含子文件夹</param>
         /// <param name="ignore_non_200">是否忽略未成功获取的投稿信息</param>
         /// <remarks>STA</remarks>
-        public dataUpdater(string path, bool include_sub_dir = true, bool ignore_non_200 = false)
+        public dataUpdater(bool include_sub_dir = true, bool ignore_non_200 = false)
         {
             Debug.Print("Hello! Welcome using my pixiv class!\r\nHope you enjoy it!");
-            //验证路径合法
-            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException("path should not be NULL or Empty!");
-            if (!Directory.Exists(path)) throw new ArgumentException("path does not exist in your computer!");
             //初始化成员变量
-            Debug.Print("Validate initialial argument: [path] succeeded. :" + path);
-            m_path = path;
             m_include_subdir = include_sub_dir;
             m_ignore_non_200_status = ignore_non_200;
             m_sqlThreadLock = new ReaderWriterLock();
@@ -189,9 +199,7 @@ namespace Pixiv_Background
             m_illust_thd = new Thread[M_MAX_ILLUST_SYNC_THREAD];
             m_user_thd = new Thread[M_MAX_USER_SYNC_THREAD];
 
-            m_monitor_thd = new Thread(_monitor_callback);
-            m_monitor_thd.IsBackground = false;
-            m_monitor_thd.Name = "Pixiv Data Monitor Thread";
+            _create_monitor_thread();
 
             m_illust_query_list = new List<uint>();
             m_user_query_list = new List<uint>();
@@ -233,15 +241,12 @@ namespace Pixiv_Background
                 Debug.Print("Creating basic table and inserting variables into database.");
 
                 string create_var_table = "CREATE TABLE DbVars(Key VARCHAR PRIMARY KEY, Value VARCHAR)";
-                string create_user_table = "CREATE TABLE User(ID INT PRIMARY KEY, Name VARCHAR, Description TEXT, User_Face IMAGE, User_Face_Url VARCHAR, Home_Page VARCHAR, Gender VARCHAR, Personal_Tag VARCHAR, Address VARCHAR, Birthday VARCHAR, Twitter VARCHAR, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL)";
-                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL)";
+                string create_user_table = "CREATE TABLE User(ID INT PRIMARY KEY, Name VARCHAR, Description TEXT, User_Face IMAGE, User_Face_Url VARCHAR, Home_Page VARCHAR, Gender VARCHAR, Personal_Tag VARCHAR, Address VARCHAR, Birthday VARCHAR, Twitter VARCHAR, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
+                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL DEFAULT 0, HTTP_Status INT NOT NULL DEFAULT 0, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
                 string write_version_info = "INSERT INTO DbVars VALUES('Version', '" + M_CURRENT_DBVERSION + "')";
-                string write_path_info = "INSERT INTO DbVars VALUES('Path', '" + m_path + "')";
                 m_dbCommand.CommandText = create_var_table;
                 m_dbCommand.ExecuteNonQuery();
                 m_dbCommand.CommandText = write_version_info;
-                m_dbCommand.ExecuteNonQuery();
-                m_dbCommand.CommandText = write_path_info;
                 m_dbCommand.ExecuteNonQuery();
                 m_dbCommand.CommandText = create_user_table;
                 m_dbCommand.ExecuteNonQuery();
@@ -289,17 +294,6 @@ namespace Pixiv_Background
                 dr0.Close();
 
                 Debug.Print("Database version:" + db_version + " (Current:" + M_CURRENT_DBVERSION + ")");
-                Debug.Print("Database path:" + db_path + " (Current:" + m_path + ")");
-
-                if (db_path != m_path)
-                {
-                    Debug.Print("System found the path does not match, overwriting data.");
-
-                    var update_path = "UPDATE DbVars SET Value='" + m_path + "' WHERE KEY='Path'";
-                    m_dbCommand.CommandText = update_path;
-                    m_dbCommand.ExecuteNonQuery();
-                }
-
                 //更新数据库
                 if (db_version != M_CURRENT_DBVERSION)
                 {
@@ -342,7 +336,7 @@ namespace Pixiv_Background
             }
         }
 
-        #endregion
+        #endregion //Constructor
 
         //事件定义
         #region Event Definations
@@ -381,21 +375,21 @@ namespace Pixiv_Background
         //需要登陆后才能操作
         public event NoArgEventHandler LoginRequired;
 
-        #endregion
+        #endregion //Event Definations
 
         //数据导入
         #region Data Import
 
         #region From Path
         //从path的本地目录中跟新文件列表 [STA]
-        private void _update_file_list(string path = null)
+        private void _update_file_list(string path)
         {
-            if (string.IsNullOrEmpty(path)) path = m_path;
             Debug.Print("Updating file from directory: " + path);
 
             var dir_info = new DirectoryInfo(path);
             //在pixiv默认保存的文件名中，会符合以下的正则匹配的表达式： (\d+)_p(\d+).(jpg|png|gif) 如233333_p0.jpg
             //开启sql的transaction，这样不会在执行修改指令时就立刻执行，效率+++
+            if (!dir_info.Exists) return;
 
             foreach (var item in dir_info.GetFiles())
             {
@@ -430,11 +424,12 @@ namespace Pixiv_Background
         }
 
         //update local database from the current directory.
-        public void UpdateFileList()
+        public void UpdateFileList(string path)
         {
             ThreadPool.QueueUserWorkItem(
                 (object obj) =>
                 {
+
                     UpdateLocalFileListStarted?.Invoke();
 
                     m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -442,7 +437,16 @@ namespace Pixiv_Background
                     if (m_dbTransaction == null)
                         m_dbTransaction = m_dbConnection.BeginTransaction();
 
-                    _update_file_list();
+                    try
+                    {
+                        _update_file_list(path);
+                    }
+                    catch (Exception ex)
+                    {
+                        
+Debug.Print("Error occurred while updating local file list: " + ex.ToString());
+                        throw;
+                    }
                     
                     if (m_dbTransaction != null)
                     {
@@ -452,23 +456,19 @@ namespace Pixiv_Background
                     m_sqlThreadLock.ReleaseWriterLock();
 
                     //making it to a list!~
-                    m_illust_query_list.Clear();
-                    foreach (var item in m_illust_list)
-                    {
-                        if (item.Value == 0 || item.Value == -2 || (item.Value > 0 && item.Value != (int)HttpStatusCode.OK && !m_ignore_non_200_status))
-                            m_illust_query_list.Add(item.Key);
-                    }
-                    m_query_count = m_illust_query_list.Count;
-                    m_query_finished = 0;
+                    _update_query_list();
                     m_dataThreadLock.ReleaseWriterLock();
 
                     UpdateLocalFileListEnded?.Invoke();
+
+                    //syncing data
+                    _create_monitor_thread();
                 });
         }
-        #endregion
+        #endregion //From Path
 
 
-        #endregion
+        #endregion //Data Import
 
         //多线程调度控制
         #region Multi-Thread Access Control
@@ -585,6 +585,8 @@ namespace Pixiv_Background
                     m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
                     __auto_insert_user(user);
                     m_sqlThreadLock.ReleaseWriterLock();
+
+                    FetchUserSucceeded?.Invoke(id, (uint)m_query_finished + 1, (uint)m_query_count, user);
                 }
                 catch (Exception ex) //获取投稿时出错
                 {
@@ -716,9 +718,40 @@ namespace Pixiv_Background
             m_sqlThreadLock.ReleaseWriterLock();
             //线程安全退出，取消终止标识
             Debug.Print("Monitor Thread exited");
+            m_monitor_thd = null;
             m_abort_flag = false;
         }
-        #endregion
+
+        private void _create_monitor_thread()
+        {
+            if (m_monitor_thd == null)
+            {
+                m_monitor_thd = new Thread(_monitor_callback);
+                m_monitor_thd.IsBackground = false;
+                m_monitor_thd.Name = "Pixiv Data Monitor Thread";
+            }
+        }
+        //从list中更新数据到query list [STA]
+        private void _update_query_list()
+        {
+            //m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+            m_illust_query_list.Clear();
+            m_user_query_list.Clear();
+            foreach (var item in m_illust_list)
+            {
+                if (item.Value == 0 || item.Value == -2 || (item.Value > 0 && item.Value != (int)HttpStatusCode.OK && !m_ignore_non_200_status))
+                    m_illust_query_list.Add(item.Key);
+            }
+            foreach (var item in m_user_list)
+            {
+                if (item.Value == 0 || item.Value == -2 || (item.Value > 0 && item.Value != (int)HttpStatusCode.OK && !m_ignore_non_200_status))
+                    m_user_query_list.Add(item.Key);
+            }
+            m_query_count = m_illust_query_list.Count + m_user_query_list.Count;
+            m_query_finished = 0;
+            //m_dataThreadLock.ReleaseWriterLock();
+        }
+        #endregion //Multi-Thread Access Control
 
         //sql读写操作
         #region SQL Operations
@@ -728,7 +761,7 @@ namespace Pixiv_Background
         //向sql中自动插入投稿数据 [STA]
         private bool __insert_illust(Illust illust)
         {
-            var insert_str = "INSERT INTO Illust(ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update) VALUES(@ID, @Author_ID";
+            var insert_str = "INSERT INTO Illust(ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = illust.ID;
             m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
@@ -768,7 +801,7 @@ namespace Pixiv_Background
             else
                 insert_str += ", NULL";
 
-            insert_str += ", @Click, @Width, @Height, @Rate_Count, @Score, @Submit_Time, @HTTP_Status, @Last_Update)";
+            insert_str += ", @Click, @Width, @Height, @Rate_Count, @Score, @Submit_Time, @HTTP_Status, @Last_Update, @Last_Success_Update)";
 
             m_dbCommand.Parameters.Add("@Click", DbType.Int32);
             m_dbCommand.Parameters["@Click"].Value = illust.Click;
@@ -786,6 +819,8 @@ namespace Pixiv_Background
             m_dbCommand.Parameters["@HTTP_Status"].Value = illust.HTTP_Status;
             m_dbCommand.Parameters.Add("@Last_Update", DbType.Int64);
             m_dbCommand.Parameters["@Last_Update"].Value = illust.Last_Update;
+            m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
+            m_dbCommand.Parameters["@Last_Success_Update"].Value = illust.Last_Success_Update;
 
             m_dbCommand.CommandText = insert_str;
             try
@@ -804,7 +839,7 @@ namespace Pixiv_Background
                 m_dbCommand.Parameters.Clear();
             }
         }
-        private bool __update_illust(Illust illust)
+        private bool __update_illust(Illust illust, bool force_mode = false)
         {
             var update_str = "UPDATE Illust SET HTTP_Status=@HTTP_Status, Last_Update=@Last_Update";
             m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
@@ -813,13 +848,15 @@ namespace Pixiv_Background
             m_dbCommand.Parameters["@Last_Update"].Value = illust.Last_Update;
 
             //数据保护：非200时不覆盖写入已存数据
-            if (illust.HTTP_Status == (int)HttpStatusCode.OK)
+            if (force_mode || illust.HTTP_Status == (int)HttpStatusCode.OK)
             {
-                update_str += ", Author_ID=@Author_ID, Submit_Time=@Submit_Time";
+                update_str += ", Author_ID=@Author_ID, Submit_Time=@Submit_Time, Last_Success_Update=@Last_Success_Update";
                 m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
                 m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
                 m_dbCommand.Parameters.Add("@Submit_Time", DbType.Int64);
                 m_dbCommand.Parameters["@Submit_Time"].Value = illust.Submit_Time;
+                m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
+                m_dbCommand.Parameters["@Last_Success_Update"].Value = illust.Last_Success_Update;
 
                 if (illust.Click >= 0)
                 {
@@ -907,7 +944,7 @@ namespace Pixiv_Background
                 return __insert_illust(illust);
         }
 
-        #endregion
+        #endregion //SQL Operations For Illust
 
 
         #region SQL Operations For User
@@ -915,7 +952,7 @@ namespace Pixiv_Background
         //插入用户信息到sql和内存列表中（自动跳过null参数） [STA]
         private bool __insert_user(User user)
         {
-            var insert_user_data = "INSERT INTO User(ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update) VALUES(@ID";
+            var insert_user_data = "INSERT INTO User(ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = user.ID;
             if (!string.IsNullOrEmpty(user.Name))
@@ -1014,11 +1051,13 @@ namespace Pixiv_Background
             else
                 insert_user_data += ",NULL";
 
-            insert_user_data += ",@HTTP_Status,@Last_Update)";
+            insert_user_data += ",@HTTP_Status,@Last_Update,@Last_Success_Update)";
             m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
             m_dbCommand.Parameters["@HTTP_Status"].Value = user.HTTP_Status;
             m_dbCommand.Parameters.Add("@Last_Update", DbType.Int64);
             m_dbCommand.Parameters["@Last_Update"].Value = user.Last_Update;
+            m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
+            m_dbCommand.Parameters["@Last_Success_Update"].Value = user.Last_Success_Update;
 
             m_dbCommand.CommandText = insert_user_data;
             try
@@ -1038,7 +1077,7 @@ namespace Pixiv_Background
             }
         }
         //更新用户信息到sql和内存中（自动跳过null参数） [STA]
-        private bool __update_user(User user)
+        private bool __update_user(User user, bool force_mode = false)
         {
             var update_user_data = "UPDATE User SET HTTP_Status=@HTTP_Status, Last_Update=@Last_Update";
             m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
@@ -1047,8 +1086,12 @@ namespace Pixiv_Background
             m_dbCommand.Parameters["@Last_Update"].Value = user.Last_Update;
 
             //数据保护：非200时不覆盖写入已存数据
-            if (user.HTTP_Status == (int)HttpStatusCode.OK)
+            if (force_mode || user.HTTP_Status == (int)HttpStatusCode.OK)
             {
+                update_user_data += ", Last_Success_Update=@Last_Success_Update";
+                m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
+                m_dbCommand.Parameters["@Last_Success_Update"].Value = user.Last_Success_Update;
+
                 if (user.Name != null)
                 {
                     update_user_data += ",Name=@Name";
@@ -1148,95 +1191,13 @@ namespace Pixiv_Background
                 return __insert_user(user);
         }
 
-        #endregion
+        #endregion //SQL Operations For User
 
-        #endregion
+        #endregion //SQL Operations
 
-        //数据解析
+        //数据解析 todo:修复<li>匹配bug
         #region Data Parser
-
-        //单独获取未成功的用户头像，不建议调用额 [STA]
-        private void _fetch_user_face_callback()
-        {
-            int current_index = -1;
-            do
-            {
-                m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-                //scanning to find an unsuccessful data
-                int i;
-                uint id;
-                int count = m_user_list.Count;
-                for (i = current_index + 1, current_index = -1; i < count && current_index == -1; i++)
-                {
-                    switch (m_user_list.ElementAt(i).Value)
-                    {
-                        case -1:
-                        case 200:
-                            continue;
-                        case 0:
-                            current_index = i;
-                            break;
-                        default:
-                            if (!m_ignore_non_200_status) current_index = i;
-                            break;
-                    }
-                }
-                id = (current_index != -1) ? m_user_list.ElementAt(current_index).Key : 0;
-                if (current_index != -1) m_user_list[id] = -1; //set used
-                m_sqlThreadLock.ReleaseWriterLock();
-                if (current_index == -1) break;
-
-                //fetch start
-                var info = GetUserInfo(id);
-                try
-                {
-                    var img = _util_download_image_from_url(info.User_Face_Url, info.ID, out info.HTTP_Status);
-
-                    var mm = new MemoryStream();
-                    img.Save(mm, img.RawFormat);
-                    mm.Position = 0;
-
-                    byte[] buf = new byte[mm.Length];
-                    mm.Read(buf, 0, (int)mm.Length);
-                    mm.Close();
-                    //succeeded fetch user image
-                    var update_user = "UPDATE User SET User_Face=@User_Face, HTTP_Status=@HTTP_Status, Last_Update=@Last_Update WHERE ID=@ID";
-                    m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-                    m_dbCommand.CommandText = update_user;
-                    m_dbCommand.Parameters.Add("@User_Face", DbType.Binary);
-                    m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
-                    m_dbCommand.Parameters.Add("@Last_Update", DbType.Int64);
-                    m_dbCommand.Parameters.Add("@ID", DbType.Int32);
-                    m_dbCommand.Parameters["@User_Face"].Value = buf;
-                    m_dbCommand.Parameters["@HTTP_Status"].Value = info.HTTP_Status;
-                    m_dbCommand.Parameters["@Last_Update"].Value = info.Last_Update;
-                    m_dbCommand.Parameters["@ID"].Value = info.ID;
-                    m_dbCommand.ExecuteNonQuery();
-                    m_dbCommand.Parameters.Clear();
-
-                    m_sqlThreadLock.ReleaseWriterLock();
-                }
-                catch (Exception)
-                {
-
-                    //failed fetch user image
-                    var update_user = "UPDATE User SET User_Face=NULL, HTTP_Status=@HTTP_Status, Last_Update=@Last_Update WHERE ID=@ID";
-                    m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-                    m_dbCommand.CommandText = update_user;
-                    m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
-                    m_dbCommand.Parameters.Add("@Last_Update", DbType.Int64);
-                    m_dbCommand.Parameters.Add("@ID", DbType.Int32);
-                    m_dbCommand.Parameters["@HTTP_Status"].Value = info.HTTP_Status;
-                    m_dbCommand.Parameters["@Last_Update"].Value = info.Last_Update;
-                    m_dbCommand.Parameters["@ID"].Value = info.ID;
-                    m_dbCommand.ExecuteNonQuery();
-                    m_dbCommand.Parameters.Clear();
-
-                    m_sqlThreadLock.ReleaseWriterLock();
-                    //throw;
-                }
-            } while (current_index != -1);
-        }
+            
         /// <summary>
         /// 从网页上获取投稿信息 [MTA]
         /// </summary>
@@ -1404,7 +1365,8 @@ namespace Pixiv_Background
                 match = Regex.Match(http_str, str_ptr_description);
                 string description = match.Success ? match.Result("${description}") : "";
                 //failed_section += match.Success ? "" : "description "; //optional
-                #endregion
+
+                #endregion //Parsing
 
                 if (failed_section.Length > 0) throw new Exception("Failed to get the following data: " + failed_section);
                 //making it a full structure
@@ -1419,6 +1381,7 @@ namespace Pixiv_Background
                 illust.Size = illust_size;
                 illust.Rate_Count = rate_count;
                 illust.Score = score;
+                illust.Last_Success_Update = illust.Last_Update;
             }
             catch (WebException ex)
             {
@@ -1518,7 +1481,7 @@ namespace Pixiv_Background
                     }
                     if (tag.Length > multi_data_split_string.Length) tag = tag.Substring(0, tag.Length - multi_data_split_string.Length);
                 }
-                #endregion
+                #endregion //Parsing
 
 
                 user.Name = name;
@@ -1531,6 +1494,7 @@ namespace Pixiv_Background
                 user.Birthday = birthday;
                 user.Twitter = twitter;
                 user.Personal_Tag = tag;
+                user.Last_Success_Update = user.Last_Update;
             }
             catch (WebException ex)
             {
@@ -1591,7 +1555,7 @@ namespace Pixiv_Background
             }
         }
 
-        #endregion
+        #endregion //Data Parser
 
         //静态函数（登陆接口）
         #region Static Functions
@@ -1671,7 +1635,7 @@ namespace Pixiv_Background
                 LoginFailed?.Invoke(ex.ToString());
             }
         }
-        #endregion
+        #endregion //Static Functions
 
 
         #region Public Functions
@@ -1680,7 +1644,7 @@ namespace Pixiv_Background
         //获取投稿信息 [MTA] [throwable]
         public Illust GetIllustInfo(uint id)
         {
-            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update FROM Illust WHERE ID=" + id;
+            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update FROM Illust WHERE ID=" + id;
             var ret = new Illust();
             if (id == 0) return ret;
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -1707,6 +1671,7 @@ namespace Pixiv_Background
                 ret.Submit_Time = (ulong)dr.GetInt64(11);
                 ret.HTTP_Status = dr.GetInt32(12);
                 ret.Last_Update = (ulong)dr.GetInt64(13);
+                ret.Last_Success_Update = (ulong)dr.GetInt64(14);
                 dr.Close();
             }
             catch (Exception)
@@ -1714,13 +1679,16 @@ namespace Pixiv_Background
 
                 throw;
             }
-            m_sqlThreadLock.ReleaseWriterLock();
+            finally
+            {
+                m_sqlThreadLock.ReleaseWriterLock();
+            }
             return ret;
         }
         //获取用户信息 [MTA] [throwable] todo: fixed table section
         public User GetUserInfo(uint userID)
         {
-            var get_user_str = "SELECT * FROM User WHERE ID=" + userID;
+            var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE ID=" + userID;
             var ret = new User();
             if (userID == 0) return ret;
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -1745,9 +1713,16 @@ namespace Pixiv_Background
                     mm.Position = 0;
                     ret.User_Face = Image.FromStream(mm);
                 }
-                ret.HTTP_Status = dr.GetInt32(5);
-                ret.Last_Update = (ulong)dr.GetInt64(6);
                 ret.User_Face_Url = dr.IsDBNull(4) ? "" : dr.GetString(4);
+                ret.Home_Page = dr.IsDBNull(5) ? "" : dr.GetString(5);
+                ret.Gender = dr.IsDBNull(6) ? "" : dr.GetString(6);
+                ret.Personal_Tag = dr.IsDBNull(7) ? "" : dr.GetString(7);
+                ret.Address = dr.IsDBNull(8) ? "" : dr.GetString(8);
+                ret.Birthday = dr.IsDBNull(9) ? "" : dr.GetString(9);
+                ret.Twitter = dr.IsDBNull(10) ? "" : dr.GetString(10);
+                ret.HTTP_Status = dr.GetInt32(11);
+                ret.Last_Update = (ulong)dr.GetInt64(12);
+                ret.Last_Success_Update = (ulong)dr.GetInt64(13);
 
                 dr.Close();
             }
@@ -1756,15 +1731,65 @@ namespace Pixiv_Background
 
                 throw;
             }
-            m_sqlThreadLock.ReleaseWriterLock();
+            finally
+            {
+                m_sqlThreadLock.ReleaseWriterLock();
+            }
             return ret;
         }
         //中止工作线程
-        public void AbortWorkingThread()
+        public void AbortWorkingThread(bool wait = false)
         {
+            if (m_monitor_thd == null) return;
             m_abort_flag = true;
+            if (wait) m_monitor_thd.Join();
         }
+        //强制重新更新数据
+        public void ForceUpdateAllData()
+        {
+            ThreadPool.QueueUserWorkItem((object obj) =>
+            {
+                AbortWorkingThread(true);
+                m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
 
-        #endregion
+                if (m_dbTransaction == null)
+                    m_dbTransaction = m_dbConnection.BeginTransaction();
+
+                var set_illust_status = "UPDATE Illust SET HTTP_Status = 0";
+                var set_user_status = "UPDATE User SET HTTP_Status = 0";
+                m_dbCommand.CommandText = set_illust_status;
+                m_dbCommand.ExecuteNonQuery();
+                m_dbCommand.CommandText = set_user_status;
+                m_dbCommand.ExecuteNonQuery();
+
+                m_illust_query_list.Clear();
+
+                for (int i = 0; i < m_illust_list.Count; i++)
+                {
+                    m_illust_list[m_illust_list.ElementAt(i).Key] = 0;
+                }
+                for (int i = 0; i < m_user_list.Count; i++)
+                {
+                    m_user_list[m_user_list.ElementAt(i).Key] = 0;
+                }
+
+                _update_query_list();
+
+                m_dbTransaction.Commit();
+                m_dbTransaction = null;
+
+                m_dataThreadLock.ReleaseWriterLock();
+                m_sqlThreadLock.ReleaseWriterLock();
+
+                _create_monitor_thread();
+            });
+        }
+        #endregion //Public Functions
+
+        #region Public Properties
+        public int Illust_Count { get { return m_illust_list.Count; } }
+        public int User_Count { get { return m_user_list.Count; } }
+        #endregion //Public Properties
     }
 }

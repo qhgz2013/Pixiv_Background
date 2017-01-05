@@ -6,6 +6,7 @@ using System.Data.SQLite;
 
 namespace Pixiv_Background
 {
+    //数据库的版本升级代码 用于旧版数据库内容升级成新版的数据库
     internal class dbPatcher
     {
         private static void _updateDatabase_100_to_101(SQLiteConnection connection)
@@ -80,6 +81,31 @@ namespace Pixiv_Background
             cmd.ExecuteNonQuery();
             trans.Commit();
         }
+        private static void _updateDatabase_102_to_103(SQLiteConnection connection)
+        {
+            var trans = connection.BeginTransaction();
+            var cmd = new SQLiteCommand(connection);
+
+            var illust_add_row = "ALTER TABLE Illust ADD COLUMN Last_Success_Update BIGINT NOT NULL DEFAULT 0";
+            var user_add_row = "ALTER TABLE User ADD COLUMN Last_Success_Update BIGINT NOT NULL DEFAULT 0";
+            cmd.CommandText = illust_add_row;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+
+            var copy_illust_timestamp = "UPDATE Illust SET Last_Success_Update = Last_Update WHERE HTTP_Status = 200";
+            var copy_user_timestamp = "UPDATE User SET Last_Success_Update = Last_Update WHERE HTTP_Status = 200";
+            cmd.CommandText = copy_illust_timestamp;
+            cmd.ExecuteNonQuery();
+            cmd.CommandText = copy_user_timestamp;
+            cmd.ExecuteNonQuery();
+
+            var edit_version = "UPDATE DbVars SET Value='1.0.3' WHERE Key='Version'";
+            cmd.CommandText = edit_version;
+            cmd.ExecuteNonQuery();
+
+            trans.Commit();
+        }
         public static void Patch(string from_version, string to_version, SQLiteConnection connection)
         {
             if (from_version == "1.0.0")
@@ -91,6 +117,11 @@ namespace Pixiv_Background
             {
                 _updateDatabase_101_to_102(connection);
                 from_version = "1.0.2";
+            }
+            if (from_version == "1.0.2")
+            {
+                _updateDatabase_102_to_103(connection);
+                from_version = "1.0.3";
             }
         }
     }

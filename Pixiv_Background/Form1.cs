@@ -18,9 +18,6 @@ namespace Pixiv_Background
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            var du = new dataUpdater("D:\\pixiv", true, true);
-            VBUtil.Utils.NetUtils.Global.LoadCookie();
-            du.UpdateFileList();
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)

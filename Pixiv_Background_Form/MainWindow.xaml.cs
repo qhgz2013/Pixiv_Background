@@ -33,13 +33,53 @@ namespace Pixiv_Background_Form
             ThreadPool.QueueUserWorkItem((object obj) => { _data_initialize(); }); //异步初始化数据
         }
 
-        private const string _image_background_path = @"D:\pixiv\pixiv character";
+        private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            _database.AbortWorkingThread();
+            VBUtil.Utils.NetUtils.Global.SaveCookie();
+            _save_background_info();
+        }
+
+
+        #region Constant Definations
         private const bool _include_sub_dir = false;
         private const int _time_change_minutes = 10; //切换背景的间隔时间
+        //匹配图片并加到列表中
+        private const string _image_ptn = "(?<id>\\d+)_p(?<page>\\d+)\\.(?<ext>[a-zA-Z0-9]+)";
+        #endregion //Constant Definations
 
+        #region Member Definations
+        //背景图片的候选列表
         private List<string> _background_queue;
         private dataUpdater _database;
+        private Thread _bgthread;
+
+        private DateTime _next_update_time;
+        //图片信息
+        private Illust _illust_info;
+        private uint _illust_page;
+        private User _user_info;
+        private System.Drawing.Size _image_solution;
+        private string _background_path;
+
+        [Serializable]
+        private struct _temp_serialize_struct
+        {
+            public Illust illust;
+            public User user;
+            public uint page;
+            public System.Drawing.Size imageSolution;
+            public string backgroundPath;
+        }
+
+        private bool _detailed = false;
+        private ReaderWriterLock _operationLock;
+        private delegate void NoArgSTA();
+        #endregion //Member Definations
+
+
         //异步初始化数据
+        #region Async Initialize
         private void _data_initialize()
         {
             _begin_loading_effect(); //显示loading界面
@@ -52,19 +92,25 @@ namespace Pixiv_Background_Form
             bool ignore_non_200 = true;
             dataUpdater.LoginSucceeded += _loginSucceeded;
             dataUpdater.LoginFailed += _loginFailed;
-            _database = new dataUpdater(@"D:\pixiv", true, ignore_non_200);
+            _database = new dataUpdater(true, ignore_non_200);
 
             _database.LoginRequired += _doLogin;
-            //_database.FetchDataStarted += _database_FetchDataStarted;
             _database.FetchIllustSucceeded += _database_FetchDataEnded;
             _database.FetchIllustFailed += _database_FetchDataEnded;
-            _database.UpdateLocalFileListEnded += _database_FetchDataCompleted;
+            _database.FetchUserSucceeded += _database_FetchDataEnded;
+            _database.FetchUserFailed += _database_FetchDataEnded;
+
+            _load_background_info();
+
+            //test area
+            //_database.ForceUpdateAllData();
 
             //file updating
-            _database.UpdateFileList();
-
-            _add_dir(_image_background_path);
-            //将文件夹的所有图片加载到列表中
+            if (!string.IsNullOrEmpty(_background_path))
+            {
+                _database.UpdateFileList(_background_path);
+                _add_dir(_background_path);
+            }
 
             //新开线程进行背景图操作
             _bgthread = new Thread(_bgthread_callback);
@@ -72,31 +118,37 @@ namespace Pixiv_Background_Form
             _bgthread.IsBackground = true;
             _bgthread.Start();
 
-            _load_background_info();
 
             _stop_loading_effect(); //调用回本界面
         }
+        #endregion //Async Initialize
 
-        private void _database_FetchDataCompleted()
-        {
-            var del = new NoArgSTA(() =>
-              {
-                  ProgressBar.Opacity = 0;
-              });
-            this.Dispatcher.Invoke(del);
-        }
 
+        #region Event Callback
+        
+        //调用结束
         private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, Illust data)
         {
-            _database_FetchDataStarted(id, currentTask, totalTask);
+            _update_progress_bar(currentTask, totalTask);
         }
-        private void _database_FetchDataStarted(uint id, uint currentTask, uint totalTask)
+        private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, User data)
+        {
+            _update_progress_bar(currentTask, totalTask);
+        }
+        private void _update_progress_bar(uint currentTask, uint totalTask)
         {
             var del = new NoArgSTA(() =>
               {
-                  var percent = currentTask * 1.0 / totalTask;
-                  ProgressBar.Opacity = 1;
-                  ProgressBar.Width = percent * (frmMain.ActualWidth - 16);
+                  if (currentTask != totalTask)
+                  {
+                      var percent = currentTask * 1.0 / totalTask;
+                      ProgressBar.Opacity = 1;
+                      ProgressBar.Width = percent * (frmMain.ActualWidth - 16);
+                  }
+                  else
+                  {
+                      ProgressBar.Opacity = 0;
+                  }
               });
             Debug.Print("Task finished: " + currentTask + " / " + totalTask);
             this.Dispatcher.Invoke(del);
@@ -119,7 +171,7 @@ namespace Pixiv_Background_Form
                 {
                     dataUpdater.Login(userName, passWord);
                     //restart init
-                    _database.UpdateFileList();
+                    _database.UpdateFileList(_background_path);
                 }
                 else
                 {
@@ -129,9 +181,9 @@ namespace Pixiv_Background_Form
         }
         private void _loginSucceeded() { }
         private void _loginFailed(string reason) { }
+        #endregion //Event Callback
 
-        //匹配图片并加到列表中
-        private const string _image_ptn = "(?<id>\\d+)_p(?<page>\\d+)\\.(?<ext>[a-zA-Z0-9]+)";
+
         private void _add_dir(string path)
         {
             var dir = new DirectoryInfo(path);
@@ -155,22 +207,6 @@ namespace Pixiv_Background_Form
                 }
             }
         }
-        private Thread _bgthread;
-
-        //图片信息
-        private Illust _illust_info;
-        private uint _illust_page;
-        private User _user_info;
-        private System.Drawing.Size _image_solution;
-        private DateTime _next_update_time;
-        [Serializable]
-        private struct _temp_serialize_struct
-        {
-            public Illust illust;
-            public User user;
-            public uint page;
-            public System.Drawing.Size imageSolution;
-        }
         //load and save current background information [not STA]
         private void _load_background_info()
         {
@@ -187,6 +223,12 @@ namespace Pixiv_Background_Form
                     _illust_page = data.page;
                     _user_info = data.user;
                     _image_solution = data.imageSolution;
+                    _background_path = data.backgroundPath;
+
+                    if (string.IsNullOrEmpty(_background_path))
+                    {
+                        this.Dispatcher.Invoke(new NoArgSTA(() => { Update_From_Path.DoClick(); }));
+                    }
                     _show_current_msg();
                 }
                 catch (Exception)
@@ -203,11 +245,10 @@ namespace Pixiv_Background_Form
             data.user = _user_info;
             data.page = _illust_page;
             data.imageSolution = _image_solution;
+            data.backgroundPath = _background_path;
             bf.Serialize(fi, data);
             fi.Close();
         }
-        //线程回调函数
-        private ReaderWriterLock _operationLock;
         private void _bgthread_callback()
         {
            _next_update_time = DateTime.Now.Date;
@@ -246,7 +287,7 @@ namespace Pixiv_Background_Form
 
                         _illust_info = _database.GetIllustInfo(illust_id);
                         var user_id = _illust_info.Author_ID;
-                        _user_info = new User(); // _database.GetUserInfo(_illust_info.Author_ID);
+                        _user_info = _database.GetUserInfo(_illust_info.Author_ID);
 
                         _save_background_info();
                         _show_current_msg();
@@ -409,8 +450,16 @@ namespace Pixiv_Background_Form
 
                 //click
                 Click.Content = illust.Click;
-                //favor
-                //Favor.Content = illust.Favor;
+                //rating
+                string rating_str;
+                if (illust.Rate_Count > 0)
+                {
+                    rating_str = Math.Round((double)(illust.Score) / illust.Rate_Count, 2).ToString();
+                    rating_str += " (" + illust.Score + "/" + illust.Rate_Count + ")";
+                }
+                else
+                    rating_str = "No Rating Data";
+                Favor.Content = rating_str;
                 //tags
                 if (illust.Tag != null)
                     Tags.Content = _escape_xml_char(illust.Tag);
@@ -429,17 +478,15 @@ namespace Pixiv_Background_Form
               });
             this.Dispatcher.Invoke(del);
         }
-        private string _random_text(string[] origin)
-        {
-            var r = new Random();
-            return origin[r.Next(origin.Length)];
-        }
+
         [DllImport("user32.dll")]
         private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+
+
+        #region Loading Animation
         //用于加载loading界面的几个变量，一个用于保存目前的页面内容
         private loading_animation _uc_loading;
         private object _last_content;
-        private delegate void NoArgSTA();
         private void _begin_loading_effect()
         {
             var del = new NoArgSTA(() =>
@@ -458,8 +505,11 @@ namespace Pixiv_Background_Form
             });
             this.Dispatcher.Invoke(del);
         }
+        #endregion //Loading Animation
+
 
         //界面操作
+        #region UI Functions
         private void illust_open_Click(object sender, RoutedEventArgs e)
         {
             _open_illust();
@@ -502,12 +552,9 @@ namespace Pixiv_Background_Form
                 //verifying async token and update
             });
         }
+        #endregion //UI Functions
 
-        private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            _database.AbortWorkingThread();
-            VBUtil.Utils.NetUtils.Global.SaveCookie();
-        }
+
 
         //显示详细信息
         private void Show_More_Click_click(object sender, RoutedEventArgs e)
@@ -527,11 +574,32 @@ namespace Pixiv_Background_Form
             }
             _detailed = !_detailed;
         }
-        private bool _detailed = false;
+
+        #region Utility Functions
+        //随机显示字符串数组中的任意字符串
+        private string _random_text(string[] origin)
+        {
+            var r = new Random();
+            return origin[r.Next(origin.Length)];
+        }
         private string _escape_xml_char(string str_in)
         {
             return System.Net.WebUtility.HtmlDecode(str_in);
         }
-        
+        #endregion //Utility Functions
+
+        private void Update_From_Path_Click(object sender, RoutedEventArgs e)
+        {
+            var fbd = new System.Windows.Forms.FolderBrowserDialog();
+            if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                if (_database != null)
+                {
+                    _background_path = fbd.SelectedPath;
+                    _database.UpdateFileList(_background_path);
+                }
+            }
+            
+        }
     }
 }
