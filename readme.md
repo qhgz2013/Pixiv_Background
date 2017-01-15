@@ -1,7 +1,8 @@
+<h1>Pixiv Background</h1>
+<h3>嗯，就是用来当一个背景小工具版的软件</h3>
+<h2>Notice</h2>
 <p>
-Information:<br/>
 This project is still developing, all the code may be modified occasionally.<br/>
-And you need to change some code to make it work on your own computer..<br/>
 <br/>
 This is the temporary project and i do not know when it can be released<br/>
 </p>
@@ -14,18 +15,17 @@ This is the temporary project and i do not know when it can be released<br/>
 
 </p>
 
+<h2>目前实现的功能有：</h2>
 <p>
-目前实现的功能有：<br/>
-多线程读写p站投稿数据，不过仅支持初始化读写，后续的数据更新部分还没坑<br/>
-使用坑爹的sql保存数据<br/>
-用学了不到一周的wpf xaml写动态窗体和动态加载页面。。。<br/>
-能用API修改桌面壁纸，实现定时更新。。。<br/>
-已经写完解析html到wpf窗体的代码了。。。<br/>
+有一个专门保存pixiv投稿的数据库以及一系列配套的多线程调用方法<br/>
+数据库管理目前正在逐步减少和背景变换模块的代码交叉/依赖<br/>
+用学了不到一周的wpf xaml写动态窗体<br/>
+能用API修改桌面壁纸，实现定时更新<br/>
 <br/>
-接下来都快期末考了，先放置play一段时间再更新了
+初次使用需要指定背景目录才能自动更换背景:D
 </p>
 
 <p>
 最新更新的图片：<br/>
-<img src="https://raw.githubusercontent.com/qhgz2013/Pixiv_Background/master/history_screenshot/20161129161859.png"/>
+<img src="https://raw.githubusercontent.com/qhgz2013/Pixiv_Background/master/history_screenshot/20170115184910.png"/>
 </p>

@@ -106,6 +106,21 @@ namespace Pixiv_Background
 
             trans.Commit();
         }
+        private static void _updateDatabase_103_to_104(SQLiteConnection connection)
+        {
+            var trans = connection.BeginTransaction();
+            var cmd = new SQLiteCommand(connection);
+
+            var illust_add_row = "ALTER TABLE Illust ADD COLUMN Page INT NOT NULL DEFAULT 1";
+            cmd.CommandText = illust_add_row;
+            cmd.ExecuteNonQuery();
+
+            var edit_version = "UPDATE DbVars SET Value='1.0.4' WHERE Key='Version'";
+            cmd.CommandText = edit_version;
+            cmd.ExecuteNonQuery();
+
+            trans.Commit();
+        }
         public static void Patch(string from_version, string to_version, SQLiteConnection connection)
         {
             if (from_version == "1.0.0")
@@ -122,6 +137,11 @@ namespace Pixiv_Background
             {
                 _updateDatabase_102_to_103(connection);
                 from_version = "1.0.3";
+            }
+            if (from_version == "1.0.3")
+            {
+                _updateDatabase_103_to_104(connection);
+                from_version = "1.0.4";
             }
         }
     }

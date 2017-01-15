@@ -1,4 +1,10 @@
 <p>
+<b>alpha v0.8</b><br/>
+SauceNAO API Ready,准备通过SauceNao获取已经删除的投稿及作者信息<br/>
+修复若干bug<br/>
+更改为非whitecube（旧版）的解析代码<br/>
+<b>alpha v0.7</b><br/>
+准备分离数据管理和背景更换模块<br/>
 <b>alpha v0.6</b><br/>
 修正html解析以及一些超链接跳转的bug<br/>
 <br/>

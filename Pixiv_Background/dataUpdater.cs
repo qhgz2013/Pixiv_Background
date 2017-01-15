@@ -15,7 +15,7 @@ using System.Net;
 using System.Diagnostics;
 
 /*
-* 目前数据库的表格变量定义 [v1.0.3]
+* 目前数据库的表格变量定义 [v1.0.4]
 * 
 * TABLE DbVars(string Key [PRIMARY KEY], string Value)
 *       用于存放数据库相关信息，如版本，路径等。 Key:数值名称 Value:数值内容
@@ -24,8 +24,8 @@ using System.Diagnostics;
 *            string Gender, string Personal_Tag, string Address, string Birthday, string Twitter, int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL], ulong Last_Success_Update[NOT NULL])
 *            Gender:性别，男/女,   Personal_Tag:个人的标签, Address:地址, Birthday:生日, Twitter:推,  HTTP_Status:http状态,         Last_Update:最后更新的时间    Last_Success_Update:最后成功更新的时间
 * 
-* TABLE Illust(uint ID [PRIMARY KEY], uint Author_ID [NOT NULL], string Title, string Description, string Tag, string Tool,
-*       用于存放投稿信息，ID:作品ID，      Author_ID:画师ID，           Title:投稿标题，Description:投稿的描述,Tag:投稿标签，Tool:绘图工具
+* TABLE Illust(uint ID [PRIMARY KEY], uint Author_ID [NOT NULL], uint Page [NOT NULL [1]], string Title, string Description, string Tag, string Tool,
+*       用于存放投稿信息，ID:作品ID，      Author_ID:画师ID，         Page:投稿分p数              Title:投稿标题，Description:投稿的描述,Tag:投稿标签，Tool:绘图工具
 *              int Click [NOT NULL [0]], int Width [NOT NULL [0]], int Height [NOT NULL [0]] int Rate_Count [NOT NULL [0]], int Score [NOT NULL [0]],
 *                   Click:点击数，           Width:作品宽度像素,       Height:作品高度像素,      Rate_Count:用户评分数，        Score:用户评分
 *              ulong Submit_Time [NOT NULL [0]], int HTTP_Status [NOT NULL [0]], ulong Last_Update [NOT NULL [0]], ulong Last_Success_Update [NOT NULL [0]])
@@ -80,6 +80,8 @@ namespace Pixiv_Background
         public uint ID;
         //画师ID
         public uint Author_ID;
+        //投稿分p
+        public uint Page;
         //投稿标题
         public string Title;
         //投稿的描述
@@ -113,7 +115,8 @@ namespace Pixiv_Background
 
     public enum DataUpdateMode
     {
-        No_Update, Async_Update, Sync_Update, Force_Update
+        //flg : 0 0(Force mode) 0(Sync mode) 0(Async mode)
+        No_Update, Async_Update, Sync_Update, Force_Update = 4, Force_Async_Update, Force_Sync_Update
     }
 
     #endregion
@@ -141,10 +144,9 @@ namespace Pixiv_Background
         //用户列表
         private Dictionary<uint, int> m_user_list;
 
-        //无视获取失败
+        //无视403 404错误
         private bool m_ignore_non_200_status;
-        //数据搜集线程的调用函数
-        //todo: 在列表中单独出一个未成功的列表，减少比较次数
+        //数据更新列表
         private List<uint> m_illust_query_list;
         private List<uint> m_user_query_list;
         private int m_query_count;
@@ -161,6 +163,7 @@ namespace Pixiv_Background
         private Thread m_monitor_thd;
         //操作终止标识
         private bool m_abort_flag;
+        //线程数统计，用于确保线程数量正确
         private int m_illust_working_thd_count;
         private int m_user_working_thd_count;
 
@@ -170,14 +173,19 @@ namespace Pixiv_Background
         #region Constant Definations
 
         //常量定义：当前版本和最大获取投稿信息的线程数
-        private const string M_CURRENT_DBVERSION = "1.0.3";
-        private const int M_MAX_ILLUST_SYNC_THREAD = 4;
-        private const int M_MAX_USER_SYNC_THREAD = 4;
+        private const string M_CURRENT_DBVERSION = "1.0.4";
+        //最大获取投稿信息的线程数
+        private const int M_MAX_ILLUST_SYNC_THREAD = 2;
+        //最大获取用户信息的线程数
+        private const int M_MAX_USER_SYNC_THREAD = 2;
+        //多个Tag或者绘画工具的分隔符
         private const string multi_data_split_string = ",";
+        //最小数据更新周期（单位：秒）
         private const int M_MIN_AUTOUPDATE_INTERVAL = 15 * 24 * 60 * 60; //15 days
         #endregion //Constant Definations
 
         //构造函数及初始化
+        //todo: 分离初始化时的创建sql，移到patch块
         #region Constructor
 
         /// <summary>
@@ -242,7 +250,7 @@ namespace Pixiv_Background
 
                 string create_var_table = "CREATE TABLE DbVars(Key VARCHAR PRIMARY KEY, Value VARCHAR)";
                 string create_user_table = "CREATE TABLE User(ID INT PRIMARY KEY, Name VARCHAR, Description TEXT, User_Face IMAGE, User_Face_Url VARCHAR, Home_Page VARCHAR, Gender VARCHAR, Personal_Tag VARCHAR, Address VARCHAR, Birthday VARCHAR, Twitter VARCHAR, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
-                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL DEFAULT 0, HTTP_Status INT NOT NULL DEFAULT 0, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
+                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Page INT NOT NULL DEFAULT 1, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL DEFAULT 0, HTTP_Status INT NOT NULL DEFAULT 0, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
                 string write_version_info = "INSERT INTO DbVars VALUES('Version', '" + M_CURRENT_DBVERSION + "')";
                 m_dbCommand.CommandText = create_var_table;
                 m_dbCommand.ExecuteNonQuery();
@@ -280,15 +288,9 @@ namespace Pixiv_Background
                     return;
                 }
                 //comparing current path and db path, if not matches, it will be deleted and rebuilded
-                string get_db_path = "SELECT Value FROM DbVars WHERE Key='Path'";
-                m_dbCommand.CommandText = get_db_path;
-                var dr0 = m_dbCommand.ExecuteReader();
-                dr0.Read();
-                string db_path = dr0.GetString(0);
-                dr0.Close();
                 string get_db_version = "SELECT Value FROM DbVars WHERE Key='Version'";
                 m_dbCommand.CommandText = get_db_version;
-                dr0 = m_dbCommand.ExecuteReader();
+                var dr0 = m_dbCommand.ExecuteReader();
                 dr0.Read();
                 string db_version = dr0.GetString(0);
                 dr0.Close();
@@ -399,7 +401,7 @@ namespace Pixiv_Background
                 {
                     uint id = uint.Parse(match.Result("${id}"));
                     uint page = uint.Parse(match.Result("${page}"));
-                    
+
                     var exist_id = m_illust_list.ContainsKey(id);
 
                     //在sql中不存在该作品，应该就是新增的了，加入到sql和内存列表中
@@ -443,11 +445,11 @@ namespace Pixiv_Background
                     }
                     catch (Exception ex)
                     {
-                        
-Debug.Print("Error occurred while updating local file list: " + ex.ToString());
+
+                        Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                         throw;
                     }
-                    
+
                     if (m_dbTransaction != null)
                     {
                         m_dbTransaction.Commit();
@@ -476,6 +478,7 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
         private void _sync_illust_callback()
         {
             if (m_illust_working_thd_count >= M_MAX_ILLUST_SYNC_THREAD) return;
+            Debug.Print("Sync Illust Thread Created");
             m_illust_working_thd_count++;
 
             uint id;
@@ -516,9 +519,6 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                             user.ID = illust.Author_ID;
                             __auto_insert_user(user);
 
-                        }
-                        if (!exist_user)
-                        {
                             m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                             //加入到查询列表
                             m_user_query_list.Add(illust.Author_ID);
@@ -528,7 +528,7 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                     }
                     m_sqlThreadLock.ReleaseWriterLock();
 
-                    FetchIllustSucceeded?.Invoke(id, (uint)m_query_finished, (uint)m_query_count, illust);
+                    FetchIllustSucceeded?.Invoke(id, (uint)m_query_finished + 1, (uint)m_query_count, illust);
                 }
                 catch (Exception ex) //获取投稿时出错
                 {
@@ -543,17 +543,19 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 }
                 finally
                 {
-                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    //m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                     m_query_finished++;
-                    m_dataThreadLock.ReleaseWriterLock();
+                    //m_dataThreadLock.ReleaseWriterLock();
                 }
             } while (id != 0 && !m_abort_flag);
 
             m_illust_working_thd_count--;
+            Debug.Print("Sync Illust Thread Exited");
         }
         private void _sync_user_callback()
         {
             if (m_user_working_thd_count >= M_MAX_USER_SYNC_THREAD) return;
+            Debug.Print("Sync User Thread Created");
             m_user_working_thd_count++;
 
             uint id;
@@ -581,7 +583,7 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 {
                     //解析
                     _parse_user_info(id, out user);
-                    
+
                     m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
                     __auto_insert_user(user);
                     m_sqlThreadLock.ReleaseWriterLock();
@@ -601,13 +603,14 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 }
                 finally
                 {
-                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    //m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                     m_query_finished++;
-                    m_dataThreadLock.ReleaseWriterLock();
+                    //m_dataThreadLock.ReleaseWriterLock();
                 }
             } while (id != 0 && !m_abort_flag);
 
             m_user_working_thd_count--;
+            Debug.Print("Sync User Thread Exited");
         }
         private void _monitor_callback()
         {
@@ -619,7 +622,7 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                     int illust_count = m_illust_query_list.Count;
                     m_dataThreadLock.ReleaseWriterLock();
 
-                    if (m_illust_working_thd_count == 0 && illust_count != 0 && M_MAX_ILLUST_SYNC_THREAD > 0)
+                    if (m_illust_working_thd_count < M_MAX_ILLUST_SYNC_THREAD && illust_count != 0)
                     {
 
                         Debug.Print("Multi-thread access for illust started!");
@@ -630,21 +633,21 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                             m_sqlThreadLock.ReleaseWriterLock();
                         }
 
-                        for (int i = 0; i < M_MAX_ILLUST_SYNC_THREAD; i++)
+                        for (int i = m_illust_working_thd_count; i < M_MAX_ILLUST_SYNC_THREAD; i++)
                         {
                             m_illust_thd[i] = new Thread(_sync_illust_callback);
                             m_illust_thd[i].Name = "Illust Work Thread (#" + i + ")";
                             m_illust_thd[i].IsBackground = false;
                             m_illust_thd[i].Start();
                         }
-                        
+
                     }
 
                     m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                     int user_count = m_user_query_list.Count;
                     m_dataThreadLock.ReleaseWriterLock();
 
-                    if (m_user_working_thd_count == 0 && user_count != 0 && M_MAX_USER_SYNC_THREAD > 0)
+                    if (m_user_working_thd_count < M_MAX_USER_SYNC_THREAD && user_count != 0)
                     {
                         Debug.Print("Multi-thread access for user started!");
                         if (m_dbTransaction == null)
@@ -654,7 +657,7 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                             m_sqlThreadLock.ReleaseWriterLock();
                         }
 
-                        for (int i = 0; i < M_MAX_USER_SYNC_THREAD; i++)
+                        for (int i = m_user_working_thd_count; i < M_MAX_USER_SYNC_THREAD; i++)
                         {
                             m_user_thd[i] = new Thread(_sync_user_callback);
                             m_user_thd[i].Name = "User Work Thread (#" + i + ")";
@@ -691,22 +694,22 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 //更新列表为空，线程空闲，清空队列数量缓存
                 m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                 int ic = m_illust_query_list.Count, uc = m_user_query_list.Count;
+                m_dataThreadLock.ReleaseLock();
+
                 if (ic != 0 && uc != 0 && m_illust_working_thd_count == 0 && m_user_working_thd_count == 0)
                 {
                     Debug.Print("Query completed, resetting query list size");
                     m_query_count = 0;
                     m_query_finished = 0;
                 }
-                m_dataThreadLock.ReleaseLock();
+
+                //Debug.Print("[Debug] - m_illust_working_thd_count = " + m_illust_working_thd_count + ", m_user_working_thd_count = " + m_user_working_thd_count + ", m_illust_query_list = " + ic + ", m_user_query_list = " + uc);
 
                 Thread.Sleep(1000);
             } while (!m_abort_flag);
 
             Debug.Print("Abort signal received, waiting all thread to be aborted...");
-            for (int i = 0; i < m_illust_thd.Length; i++)
-                m_illust_thd[i]?.Join();
-            for (int i = 0; i < m_user_thd.Length; i++)
-                m_user_thd[i]?.Join();
+            _join_all_thread();
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
             if (m_dbTransaction != null)
@@ -734,7 +737,6 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
         //从list中更新数据到query list [STA]
         private void _update_query_list()
         {
-            //m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
             m_illust_query_list.Clear();
             m_user_query_list.Clear();
             foreach (var item in m_illust_list)
@@ -749,23 +751,32 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
             }
             m_query_count = m_illust_query_list.Count + m_user_query_list.Count;
             m_query_finished = 0;
-            //m_dataThreadLock.ReleaseWriterLock();
+        }
+
+        private void _join_all_thread()
+        {
+            for (int i = 0; i < m_illust_thd.Length; i++)
+                m_illust_thd[i]?.Join();
+            for (int i = 0; i < m_user_thd.Length; i++)
+                m_user_thd[i]?.Join();
         }
         #endregion //Multi-Thread Access Control
 
-        //sql读写操作
+        //sql读写操作[STA]
         #region SQL Operations
 
         #region SQL Operations For Illust
 
-        //向sql中自动插入投稿数据 [STA]
+        //向sql中自动插入投稿数据
         private bool __insert_illust(Illust illust)
         {
-            var insert_str = "INSERT INTO Illust(ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID";
+            var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID, @Page";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = illust.ID;
             m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
             m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
+            m_dbCommand.Parameters.Add("@Page", DbType.Int32);
+            m_dbCommand.Parameters["@Page"].Value = illust.Page;
 
             if (!string.IsNullOrEmpty(illust.Title))
             {
@@ -850,13 +861,15 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
             //数据保护：非200时不覆盖写入已存数据
             if (force_mode || illust.HTTP_Status == (int)HttpStatusCode.OK)
             {
-                update_str += ", Author_ID=@Author_ID, Submit_Time=@Submit_Time, Last_Success_Update=@Last_Success_Update";
+                update_str += ", Author_ID=@Author_ID, Submit_Time=@Submit_Time, Last_Success_Update=@Last_Success_Update, Page=@Page";
                 m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
                 m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
                 m_dbCommand.Parameters.Add("@Submit_Time", DbType.Int64);
                 m_dbCommand.Parameters["@Submit_Time"].Value = illust.Submit_Time;
                 m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
                 m_dbCommand.Parameters["@Last_Success_Update"].Value = illust.Last_Success_Update;
+                m_dbCommand.Parameters.Add("@Page", DbType.Int32);
+                m_dbCommand.Parameters["@Page"].Value = illust.Page;
 
                 if (illust.Click >= 0)
                 {
@@ -942,6 +955,44 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 return __update_illust(illust);
             else
                 return __insert_illust(illust);
+        }
+        private Illust __get_illust(uint id)
+        {
+            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Page FROM Illust WHERE ID=" + id;
+            var ret = new Illust();
+            if (id == 0) return ret;
+            try
+            {
+                m_dbCommand.CommandText = get_value_str;
+                var dr = m_dbCommand.ExecuteReader();
+                bool suc = dr.Read();
+                if (!suc)
+                {
+                    ret.ID = id;
+                    return ret;
+                }
+                ret.ID = (uint)dr.GetInt32(0);
+                ret.Author_ID = (uint)dr.GetInt32(1);
+                ret.Title = dr.IsDBNull(2) ? "" : dr.GetString(2);
+                ret.Description = dr.IsDBNull(3) ? "" : dr.GetString(3);
+                ret.Tag = dr.IsDBNull(4) ? "" : dr.GetString(4);
+                ret.Tool = dr.IsDBNull(5) ? "" : dr.GetString(5);
+                ret.Click = dr.GetInt32(6);
+                ret.Size = new Size(dr.GetInt32(7), dr.GetInt32(8));
+                ret.Rate_Count = dr.GetInt32(9);
+                ret.Score = dr.GetInt32(10);
+                ret.Submit_Time = (ulong)dr.GetInt64(11);
+                ret.HTTP_Status = dr.GetInt32(12);
+                ret.Last_Update = (ulong)dr.GetInt64(13);
+                ret.Last_Success_Update = (ulong)dr.GetInt64(14);
+                ret.Page = (uint)dr.GetInt32(15);
+                dr.Close();
+            }
+            catch (Exception)
+            {
+
+            }
+            return ret;
         }
 
         #endregion //SQL Operations For Illust
@@ -1160,6 +1211,13 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                     m_dbCommand.Parameters.Add("@Twitter", DbType.String);
                     m_dbCommand.Parameters["@Twitter"].Value = user.Twitter;
                 }
+
+                if (user.Personal_Tag != null)
+                {
+                    update_user_data += ",Personal_Tag=@Personal_Tag";
+                    m_dbCommand.Parameters.Add("@Personal_Tag", DbType.String);
+                    m_dbCommand.Parameters["@Personal_Tag"].Value = user.Personal_Tag;
+                }
             }
 
             update_user_data += " WHERE ID=@ID";
@@ -1190,14 +1248,60 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
             else
                 return __insert_user(user);
         }
+        private User __get_user(uint id)
+        {
+
+            var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE ID=" + id;
+            var ret = new User();
+            if (id == 0) return ret;
+            try
+            {
+                m_dbCommand.CommandText = get_user_str;
+                var dr = m_dbCommand.ExecuteReader();
+                var suc = dr.Read();
+                if (!suc)
+                {
+                    ret.ID = id;
+                    return ret;
+                }
+                ret.ID = (uint)dr.GetInt32(0);
+                ret.Name = dr.IsDBNull(1) ? "" : dr.GetString(1);
+                ret.Description = dr.IsDBNull(2) ? "" : dr.GetString(2);
+                if (!dr.IsDBNull(3))
+                {
+                    byte[] img_buf = (byte[])dr[3];
+                    var mm = new MemoryStream();
+                    mm.Write(img_buf, 0, img_buf.Length);
+                    mm.Position = 0;
+                    ret.User_Face = Image.FromStream(mm);
+                }
+                ret.User_Face_Url = dr.IsDBNull(4) ? "" : dr.GetString(4);
+                ret.Home_Page = dr.IsDBNull(5) ? "" : dr.GetString(5);
+                ret.Gender = dr.IsDBNull(6) ? "" : dr.GetString(6);
+                ret.Personal_Tag = dr.IsDBNull(7) ? "" : dr.GetString(7);
+                ret.Address = dr.IsDBNull(8) ? "" : dr.GetString(8);
+                ret.Birthday = dr.IsDBNull(9) ? "" : dr.GetString(9);
+                ret.Twitter = dr.IsDBNull(10) ? "" : dr.GetString(10);
+                ret.HTTP_Status = dr.GetInt32(11);
+                ret.Last_Update = (ulong)dr.GetInt64(12);
+                ret.Last_Success_Update = (ulong)dr.GetInt64(13);
+
+                dr.Close();
+            }
+            catch (Exception)
+            {
+                
+            }
+            return ret;
+        }
 
         #endregion //SQL Operations For User
 
         #endregion //SQL Operations
 
-        //数据解析 todo:修复<li>匹配bug
+        //数据解析
         #region Data Parser
-            
+
         /// <summary>
         /// 从网页上获取投稿信息 [MTA]
         /// </summary>
@@ -1269,17 +1373,18 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 uint user_id = match.Success ? uint.Parse(match.Result("${user_id}")) : 0;
                 failed_section += match.Success ? "" : "user_id ";
 
-                //投稿相关的信息 [illust_meta]
-                var str_ptr_illust_meta = "<ul\\sclass=\"meta\">(?<meta>.*?)</ul>";
-                match = Regex.Match(http_str, str_ptr_illust_meta);
-                string illust_meta = match.Success ? match.Result("${meta}") : "";
-                failed_section += match.Success ? "" : "meta ";
-                var str_ptr_illust_split = "<li>(?<info>.*?)</li>";
-
+                //投稿相关的信息 注意：结尾匹配未封闭（即未必为</ul>）
+                var str_ptr_meta_size = "<li>(?<size>(?<width>\\d+)×(?<height>\\d+))</li>";
+                var str_ptr_meta_page = "<li>(?<multi_page>一次性投稿多张作品\\s(?<page>\\d+)P)</li>";
+                var str_ptr_meta_tool = "<li><ul\\sclass=\"tools\">(?<tools>.*?)</ul></li>";
+                var str_ptr_meta_1 = "<ul\\sclass=\"meta\"><li>(?<date>.*?)</li>((" + str_ptr_meta_size + ")|(" + str_ptr_meta_page + "))(" + str_ptr_meta_tool + ")?";
                 //投稿时间 submit_time [submit_time_str]
-                match = Regex.Match(illust_meta, str_ptr_illust_split);
-                string submit_time_str = match.Result("${info}");
-                match = match.NextMatch();
+                match = Regex.Match(http_str, str_ptr_meta_1);
+                if (!match.Success)
+                {
+                    throw new InvalidDataException("Meta fetch failed!: original string:\n" + http_str);
+                }
+                var submit_time_str = match.Result("${date}");
 
                 //将投稿时间转变为DateTime类型
                 var str_ptr_submit_time_split = "(?<year>\\d+)年(?<month>\\d+)月(?<day>\\d+)日\\s(?<hour>\\d+):(?<minute>\\d+)";
@@ -1288,30 +1393,28 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 DateTime submit_time = new DateTime(year, month, day, hour, minute, 0);
                 ulong submit_unix_timestamp = (ulong)VBUtil.Utils.Others.ToUnixTimestamp(submit_time);
 
-                //作品分辨率 illust_size [illust_size_str] (注：多p投稿没有该属性)
-                string illust_size_str = match.Result("${info}");
-                match = match.NextMatch();
-                var str_ptr_split_image_size = "(?<width>\\d+)×(?<height>\\d+)";
-                tmpMatch = Regex.Match(illust_size_str, str_ptr_split_image_size);
-                Size illust_size = tmpMatch.Success ? new Size(int.Parse(tmpMatch.Result("${width}")), int.Parse(tmpMatch.Result("${height}"))) : new Size();
+                //作品分辨率 illust_size (注：多p投稿没有该属性)
+                var group = match.Groups["size"];
+                Size illust_size = group.Success ? new Size(int.Parse(match.Result("${width}")), int.Parse(match.Result("${height}"))) : new Size(0, 0);
+                bool exist_illust_size = group.Success;
+
+
+                //作品分p illust_page
+                group = match.Groups["multi_page"];
+                uint illust_page = group.Success ? uint.Parse(match.Result("${page}")) : 1;
 
                 //工具（如果可能有的话） tools
-                var str_ptr_tool_info = "<ul\\sclass=\"tools\">(?<subtool>.*?)</ul>";
+                group = match.Groups["tools"];
+                var str_ptr_tool_info = "<li>(?<tool>.*?)</li>";
                 string tools = "";
-                while (match.Success)
+                if (group.Success)
                 {
-                    tmpMatch = Regex.Match(match.Result("${info}"), str_ptr_tool_info);
-                    if (tmpMatch.Success)
+                    tmpMatch = Regex.Match(match.Result("${tools}"), str_ptr_tool_info);
+                    while (tmpMatch.Success)
                     {
-                        tmpMatch = Regex.Match(tmpMatch.Result("${subtool}"), str_ptr_illust_split);
-                        while (tmpMatch.Success)
-                        {
-                            tools += tmpMatch.Result("${info}") + multi_data_split_string;
-                            tmpMatch = tmpMatch.NextMatch();
-                        }
-                        break;
+                        tools += tmpMatch.Result("${tool}") + multi_data_split_string;
+                        tmpMatch = tmpMatch.NextMatch();
                     }
-                    match = match.NextMatch();
                 }
                 tools = tools.Length >= multi_data_split_string.Length ? tools.Substring(0, tools.Length - multi_data_split_string.Length) : tools;
                 //failed_section += match.Success ? "" : "tools "; //optional
@@ -1382,6 +1485,7 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 illust.Rate_Count = rate_count;
                 illust.Score = score;
                 illust.Last_Success_Update = illust.Last_Update;
+                illust.Page = illust_page;
             }
             catch (WebException ex)
             {
@@ -1495,6 +1599,7 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
                 user.Twitter = twitter;
                 user.Personal_Tag = tag;
                 user.Last_Success_Update = user.Last_Update;
+                user.Description = description;
             }
             catch (WebException ex)
             {
@@ -1544,15 +1649,21 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
             }
             catch (WebException ex)
             {
-                var response = (HttpWebResponse)ex.Response;
-                http_status = (int)response.StatusCode;
-                throw;
+                if (ex.Response != null)
+                {
+                    var response = (HttpWebResponse)ex.Response;
+                    http_status = (int)response.StatusCode;
+                }
+                else
+                    http_status = -2;
+                //throw ex;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 http_status = -2;
-                throw;
+                //throw ex;
             }
+            return null; // new Bitmap(1, 1);
         }
 
         #endregion //Data Parser
@@ -1638,104 +1749,83 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
         #endregion //Static Functions
 
 
+        //公有函数
         #region Public Functions
 
 
         //获取投稿信息 [MTA] [throwable]
-        public Illust GetIllustInfo(uint id)
+        public Illust GetIllustInfo(uint id, DataUpdateMode mode = DataUpdateMode.Async_Update)
         {
-            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update FROM Illust WHERE ID=" + id;
-            var ret = new Illust();
-            if (id == 0) return ret;
-            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            try
-            {
-                m_dbCommand.CommandText = get_value_str;
-                var dr = m_dbCommand.ExecuteReader();
-                bool suc = dr.Read();
-                if (!suc)
-                {
-                    ret.ID = id;
-                    return ret;
-                }
-                ret.ID = (uint)dr.GetInt32(0);
-                ret.Author_ID = (uint)dr.GetInt32(1);
-                ret.Title = dr.IsDBNull(2) ? "" : dr.GetString(2);
-                ret.Description = dr.IsDBNull(3) ? "" : dr.GetString(3);
-                ret.Tag = dr.IsDBNull(4) ? "" : dr.GetString(4);
-                ret.Tool = dr.IsDBNull(5) ? "" : dr.GetString(5);
-                ret.Click = dr.GetInt32(6);
-                ret.Size = new Size(dr.GetInt32(7), dr.GetInt32(8));
-                ret.Rate_Count = dr.GetInt32(9);
-                ret.Score = dr.GetInt32(10);
-                ret.Submit_Time = (ulong)dr.GetInt64(11);
-                ret.HTTP_Status = dr.GetInt32(12);
-                ret.Last_Update = (ulong)dr.GetInt64(13);
-                ret.Last_Success_Update = (ulong)dr.GetInt64(14);
-                dr.Close();
-            }
-            catch (Exception)
-            {
+            if (id == 0) return new Illust();
 
-                throw;
-            }
-            finally
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var info = __get_illust(id);
+            m_sqlThreadLock.ReleaseWriterLock();
+
+            if (mode != DataUpdateMode.No_Update)
             {
-                m_sqlThreadLock.ReleaseWriterLock();
+                var last_update = VBUtil.Utils.Others.FromUnixTimeStamp(info.Last_Update);
+                if ((mode & DataUpdateMode.Force_Update) != 0 || last_update.AddSeconds(M_MIN_AUTOUPDATE_INTERVAL) <= DateTime.Now)
+                {
+                    //illust needs to be updated
+
+
+                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    m_illust_list[id] = 0;
+                    _update_query_list();
+                    m_dataThreadLock.ReleaseWriterLock();
+
+                    if ((mode & DataUpdateMode.Sync_Update) != 0)
+                    {
+                        //sync mode
+                        _join_all_thread();
+                        m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                        info = __get_illust(id);
+                        m_sqlThreadLock.ReleaseWriterLock();
+                    }
+                    //default: async mode
+                }
+
             }
-            return ret;
+
+            return info;
         }
         //获取用户信息 [MTA] [throwable] todo: fixed table section
-        public User GetUserInfo(uint userID)
+        public User GetUserInfo(uint id, DataUpdateMode mode = DataUpdateMode.Async_Update)
         {
-            var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE ID=" + userID;
-            var ret = new User();
-            if (userID == 0) return ret;
+            if (id == 0) return new User();
+
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            try
-            {
-                m_dbCommand.CommandText = get_user_str;
-                var dr = m_dbCommand.ExecuteReader();
-                var suc = dr.Read();
-                if (!suc)
-                {
-                    ret.ID = userID;
-                    return ret;
-                }
-                ret.ID = (uint)dr.GetInt32(0);
-                ret.Name = dr.IsDBNull(1) ? "" : dr.GetString(1);
-                ret.Description = dr.IsDBNull(2) ? "" : dr.GetString(2);
-                if (!dr.IsDBNull(3))
-                {
-                    byte[] img_buf = (byte[])dr[3];
-                    var mm = new MemoryStream();
-                    mm.Write(img_buf, 0, img_buf.Length);
-                    mm.Position = 0;
-                    ret.User_Face = Image.FromStream(mm);
-                }
-                ret.User_Face_Url = dr.IsDBNull(4) ? "" : dr.GetString(4);
-                ret.Home_Page = dr.IsDBNull(5) ? "" : dr.GetString(5);
-                ret.Gender = dr.IsDBNull(6) ? "" : dr.GetString(6);
-                ret.Personal_Tag = dr.IsDBNull(7) ? "" : dr.GetString(7);
-                ret.Address = dr.IsDBNull(8) ? "" : dr.GetString(8);
-                ret.Birthday = dr.IsDBNull(9) ? "" : dr.GetString(9);
-                ret.Twitter = dr.IsDBNull(10) ? "" : dr.GetString(10);
-                ret.HTTP_Status = dr.GetInt32(11);
-                ret.Last_Update = (ulong)dr.GetInt64(12);
-                ret.Last_Success_Update = (ulong)dr.GetInt64(13);
+            var info = __get_user(id);
+            m_sqlThreadLock.ReleaseWriterLock();
 
-                dr.Close();
-            }
-            catch (Exception)
+            if (mode != DataUpdateMode.No_Update)
             {
+                var last_update = VBUtil.Utils.Others.FromUnixTimeStamp(info.Last_Update);
+                if ((mode & DataUpdateMode.Force_Update) != 0 || last_update.AddSeconds(M_MIN_AUTOUPDATE_INTERVAL) <= DateTime.Now)
+                {
+                    //illust needs to be updated
 
-                throw;
+
+                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    m_user_list[id] = 0;
+                    _update_query_list();
+                    m_dataThreadLock.ReleaseWriterLock();
+
+                    if ((mode & DataUpdateMode.Sync_Update) != 0)
+                    {
+                        //sync mode
+                        _join_all_thread();
+                        m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                        info = __get_user(id);
+                        m_sqlThreadLock.ReleaseWriterLock();
+                    }
+                    //default: async mode
+                }
+
             }
-            finally
-            {
-                m_sqlThreadLock.ReleaseWriterLock();
-            }
-            return ret;
+
+            return info;
         }
         //中止工作线程
         public void AbortWorkingThread(bool wait = false)
@@ -1787,8 +1877,12 @@ Debug.Print("Error occurred while updating local file list: " + ex.ToString());
         }
         #endregion //Public Functions
 
+
+        //公有属性
         #region Public Properties
+        //数据库中的投稿数量
         public int Illust_Count { get { return m_illust_list.Count; } }
+        //数据库中的用户数量
         public int User_Count { get { return m_user_list.Count; } }
         #endregion //Public Properties
     }

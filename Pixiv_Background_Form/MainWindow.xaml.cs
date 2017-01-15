@@ -103,7 +103,8 @@ namespace Pixiv_Background_Form
             _load_background_info();
 
             //test area
-            //_database.ForceUpdateAllData();
+            //Illust test1; User test2;
+            //saucenaoAPI.QueryImage(@"D:\pixiv\pixiv character\11325767_p0.jpg", out test1, out test2);
 
             //file updating
             if (!string.IsNullOrEmpty(_background_path))
@@ -111,6 +112,10 @@ namespace Pixiv_Background_Form
                 _database.UpdateFileList(_background_path);
                 _add_dir(_background_path);
             }
+
+            _illust_info = _database.GetIllustInfo(_illust_info.ID);
+            _user_info = _database.GetUserInfo(_illust_info.Author_ID);
+            _show_current_msg();
 
             //新开线程进行背景图操作
             _bgthread = new Thread(_bgthread_callback);
@@ -130,6 +135,13 @@ namespace Pixiv_Background_Form
         private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, Illust data)
         {
             _update_progress_bar(currentTask, totalTask);
+            if (data.ID == _illust_info.ID)
+            {
+                //updating current illust info
+                _illust_info = data;
+                _save_background_info();
+                _show_current_msg();
+            }
         }
         private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, User data)
         {
@@ -449,13 +461,13 @@ namespace Pixiv_Background_Form
                     Author_Image.Source = null;
 
                 //click
-                Click.Content = illust.Click;
+                Click.Content = illust.Click.ToString("#,##0");
                 //rating
                 string rating_str;
                 if (illust.Rate_Count > 0)
                 {
                     rating_str = Math.Round((double)(illust.Score) / illust.Rate_Count, 2).ToString();
-                    rating_str += " (" + illust.Score + "/" + illust.Rate_Count + ")";
+                    rating_str += " (" + illust.Score.ToString("#,##0") + "/" + illust.Rate_Count.ToString("#,##0") + ")";
                 }
                 else
                     rating_str = "No Rating Data";
@@ -471,10 +483,13 @@ namespace Pixiv_Background_Form
                 else
                     Tools.Content = "";
                 //user description
-                UserDescription.Children.Clear();
-                if (user.Description != null)
-                    UserDescription.Children.Add(html_parser.parseHTML(user.Description));
-                
+                //UserDescription.Children.Clear();
+                //if (user.Description != null)
+                //    UserDescription.Children.Add(html_parser.parseHTML(user.Description));
+
+                string str_last_update = (_illust_info.Last_Update > 0) ? VBUtil.Utils.Others.FromUnixTimeStamp(_illust_info.Last_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
+                string str_last_success_update = (_illust_info.Last_Success_Update > 0) ? VBUtil.Utils.Others.FromUnixTimeStamp(_illust_info.Last_Success_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
+                Update_Time.Content = string.Format("最后更新时间：{0} | 最后成功更新时间：{1}", str_last_update, str_last_success_update);
               });
             this.Dispatcher.Invoke(del);
         }

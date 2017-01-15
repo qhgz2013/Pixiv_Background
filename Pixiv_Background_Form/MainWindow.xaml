@@ -305,12 +305,15 @@
                 <Image Source="pack://application:,,,/Resources/Star.png" Grid.Column="4" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
                 <!--Others-->
             </Grid>
+            <!--
             <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Foreground="{StaticResource MyGrayBrush}">用户描述</Label>
             <ScrollViewer Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Height="80">
                 <Grid x:Name="UserDescription">
                     <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">User ID and description here</Label>
                 </Grid>
             </ScrollViewer>
+            -->
+            <Label x:Name="Update_Time" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">最后更新时间：无 | 最后成功更新时间：无</Label>
         </Grid>
     </Grid>
 </Window>
