@@ -27,6 +27,8 @@ namespace Pixiv_Background_Form
     /// </summary>
     public partial class MainWindow : Window
     {
+        //窗体的构造函数以及初始化函数
+        #region Form Initialize
         public MainWindow()
         {
             InitializeComponent();
@@ -40,186 +42,8 @@ namespace Pixiv_Background_Form
             _save_background_info();
         }
 
-
-        #region Constant Definations
-        private const bool _include_sub_dir = false;
-        private const int _time_change_minutes = 10; //切换背景的间隔时间
-        //匹配图片并加到列表中
-        private const string _image_ptn = "(?<id>\\d+)_p(?<page>\\d+)\\.(?<ext>[a-zA-Z0-9]+)";
-        #endregion //Constant Definations
-
-        #region Member Definations
-        //背景图片的候选列表
-        private List<string> _background_queue;
-        private dataUpdater _database;
-        private Thread _bgthread;
-
-        private DateTime _next_update_time;
-        //图片信息
-        private Illust _illust_info;
-        private uint _illust_page;
-        private User _user_info;
-        private System.Drawing.Size _image_solution;
-        private string _background_path;
-
-        [Serializable]
-        private struct _temp_serialize_struct
-        {
-            public Illust illust;
-            public User user;
-            public uint page;
-            public System.Drawing.Size imageSolution;
-            public string backgroundPath;
-        }
-
-        private bool _detailed = false;
-        private ReaderWriterLock _operationLock;
-        private delegate void NoArgSTA();
-        #endregion //Member Definations
-
-
-        //异步初始化数据
-        #region Async Initialize
-        private void _data_initialize()
-        {
-            _begin_loading_effect(); //显示loading界面
-
-            VBUtil.Utils.NetUtils.Global.LoadCookie();
-
-            _background_queue = new List<string>();
-            _operationLock = new ReaderWriterLock();
-
-            bool ignore_non_200 = true;
-            dataUpdater.LoginSucceeded += _loginSucceeded;
-            dataUpdater.LoginFailed += _loginFailed;
-            _database = new dataUpdater(true, ignore_non_200);
-
-            _database.LoginRequired += _doLogin;
-            _database.FetchIllustSucceeded += _database_FetchDataEnded;
-            _database.FetchIllustFailed += _database_FetchDataEnded;
-            _database.FetchUserSucceeded += _database_FetchDataEnded;
-            _database.FetchUserFailed += _database_FetchDataEnded;
-
-            _load_background_info();
-
-            //test area
-            //Illust test1; User test2;
-            //saucenaoAPI.QueryImage(@"D:\pixiv\pixiv character\11325767_p0.jpg", out test1, out test2);
-
-            //file updating
-            if (!string.IsNullOrEmpty(_background_path))
-            {
-                _database.UpdateFileList(_background_path);
-                _add_dir(_background_path);
-            }
-
-            _illust_info = _database.GetIllustInfo(_illust_info.ID);
-            _user_info = _database.GetUserInfo(_illust_info.Author_ID);
-            _show_current_msg();
-
-            //新开线程进行背景图操作
-            _bgthread = new Thread(_bgthread_callback);
-            _bgthread.Name = "Background Change Thread";
-            _bgthread.IsBackground = true;
-            _bgthread.Start();
-
-
-            _stop_loading_effect(); //调用回本界面
-        }
-        #endregion //Async Initialize
-
-
-        #region Event Callback
-        
-        //调用结束
-        private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, Illust data)
-        {
-            _update_progress_bar(currentTask, totalTask);
-            if (data.ID == _illust_info.ID)
-            {
-                //updating current illust info
-                _illust_info = data;
-                _save_background_info();
-                _show_current_msg();
-            }
-        }
-        private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, User data)
-        {
-            _update_progress_bar(currentTask, totalTask);
-        }
-        private void _update_progress_bar(uint currentTask, uint totalTask)
-        {
-            var del = new NoArgSTA(() =>
-              {
-                  if (currentTask != totalTask)
-                  {
-                      var percent = currentTask * 1.0 / totalTask;
-                      ProgressBar.Opacity = 1;
-                      ProgressBar.Width = percent * (frmMain.ActualWidth - 16);
-                  }
-                  else
-                  {
-                      ProgressBar.Opacity = 0;
-                  }
-              });
-            Debug.Print("Task finished: " + currentTask + " / " + totalTask);
-            this.Dispatcher.Invoke(del);
-        }
-
-        //状态回调[STA]：登陆
-        private void _doLogin()
-        {
-            //show login dialog here .... no more password
-            
-            this.Dispatcher.Invoke(new NoArgSTA(() =>
-            {
-                var test = new frmLogin();
-                test.ShowDialog();
-
-                var userName = test.user_name;
-                var passWord = test.pass_word;
-                var canceled = test.canceled;
-                if (!canceled)
-                {
-                    dataUpdater.Login(userName, passWord);
-                    //restart init
-                    _database.UpdateFileList(_background_path);
-                }
-                else
-                {
-                    Close();
-                }
-            }));
-        }
-        private void _loginSucceeded() { }
-        private void _loginFailed(string reason) { }
-        #endregion //Event Callback
-
-
-        private void _add_dir(string path)
-        {
-            var dir = new DirectoryInfo(path);
-            if (dir.Exists)
-            {
-                foreach (var item in dir.GetFiles())
-                {
-                    var match = Regex.Match(item.Name, _image_ptn);
-                    if (match.Success)
-                    {
-                        _background_queue.Add(item.FullName);
-                    }
-                }
-
-                if (_include_sub_dir)
-                {
-                    foreach (var item in dir.GetDirectories())
-                    {
-                        _add_dir(item.FullName);
-                    }
-                }
-            }
-        }
-        //load and save current background information [not STA]
+        //读取已保存的变量
+        //包含的变量: _illust_info, _illust_page, _user_info, _image_solution, _background_path
         private void _load_background_info()
         {
             var fi = new FileInfo("tempBackground.dat");
@@ -248,6 +72,7 @@ namespace Pixiv_Background_Form
                 }
             }
         }
+        //保存当前变量的信息
         private void _save_background_info()
         {
             var fi = new FileStream("tempBackground.dat", FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
@@ -261,9 +86,188 @@ namespace Pixiv_Background_Form
             bf.Serialize(fi, data);
             fi.Close();
         }
+
+        //异步初始化数据
+        #region Async Initialize
+        private void _data_initialize()
+        {
+            _begin_loading_effect(); //显示loading界面
+
+            VBUtil.Utils.NetUtils.Global.LoadCookie();
+
+            _background_queue = new List<string>();
+            _operationLock = new ReaderWriterLock();
+
+            bool ignore_non_200 = true;
+            dataUpdater.LoginSucceeded += _loginSucceeded;
+            dataUpdater.LoginFailed += _loginFailed;
+            _database = new dataUpdater(true, ignore_non_200);
+
+            _database.LoginRequired += _doLogin;
+            _database.FetchIllustSucceeded += _database_FetchDataEnded;
+            _database.FetchIllustFailed += _database_FetchDataEnded;
+            _database.FetchUserSucceeded += _database_FetchDataEnded;
+            _database.FetchUserFailed += _database_FetchDataEnded;
+
+            _load_background_info();
+
+            //test area
+            var callback = new TimerCallback(Timer_callback);
+            _callback_timer = new Timer(callback);
+            _callback_timer.Change(0, 100);
+
+            //file updating
+            if (!string.IsNullOrEmpty(_background_path))
+            {
+                _database.UpdateFileList(_background_path);
+                _add_dir(_background_path);
+            }
+
+            _illust_info = _database.GetIllustInfo(_illust_info.ID);
+            _user_info = _database.GetUserInfo(_illust_info.Author_ID);
+            _show_current_msg();
+
+            //新开线程进行背景图操作
+            _bgthread = new Thread(_bgthread_callback);
+            _bgthread.Name = "Background Change Thread";
+            _bgthread.IsBackground = true;
+            _bgthread.Start();
+
+
+            _stop_loading_effect(); //调用回本界面
+        }
+        #endregion //Async Initialize
+
+        #endregion //Form Initialize
+
+
+        //常量定义
+        #region Constant Definations
+        //是否包含子文件夹
+        private const bool _include_sub_dir = false;
+        //背景图片更改的时间（单位：min）
+        private const int _time_change_minutes = 10;
+        //匹配图片的正则表达式语法，id page必须，ext可选
+        private const string _image_ptn = "(?<id>\\d+)_p(?<page>\\d+)\\.(?<ext>[a-zA-Z0-9]+)";
+        #endregion //Constant Definations
+
+
+        //变量定义
+        #region Member Definations
+        //背景图片的候选列表
+        private List<string> _background_queue;
+        private dataUpdater _database;
+        private Thread _bgthread;
+
+        //下一次更新的时间
+        private DateTime _next_update_time;
+        //保存的变量
+        private Illust _illust_info;
+        private uint _illust_page;
+        private User _user_info;
+        private System.Drawing.Size _image_solution;
+        private string _background_path;
+
+        [Serializable]
+        private struct _temp_serialize_struct
+        {
+            public Illust illust;
+            public User user;
+            public uint page;
+            public System.Drawing.Size imageSolution;
+            public string backgroundPath;
+        }
+
+        //当前是否显示详细信息
+        private bool _detailed = false;
+        //当前是否开启滑动隐藏
+        private bool _enabled_slide_hide = false;
+        //线程锁
+        private ReaderWriterLock _operationLock;
+        //跨线程委托（无参的lambda表达式）
+        private delegate void NoArgSTA();
+        #endregion //Member Definations
+
+
+        //数据库的事件回调
+        #region Event Callback
+
+        //调用结束
+        private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, Illust data)
+        {
+            _update_progress_bar(currentTask, totalTask);
+            if (data.ID == _illust_info.ID)
+            {
+                //updating current illust info
+                _illust_info = data;
+                _save_background_info();
+                _show_current_msg();
+            }
+        }
+        private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, User data)
+        {
+            _update_progress_bar(currentTask, totalTask);
+            if (data.ID == _user_info.ID)
+            {
+                _user_info = data;
+                _save_background_info();
+                _show_current_msg();
+            }
+        }
+        private void _update_progress_bar(uint currentTask, uint totalTask)
+        {
+            var del = new NoArgSTA(() =>
+              {
+                  if (currentTask != totalTask)
+                  {
+                      var percent = currentTask * 1.0 / totalTask;
+                      ProgressBar.Opacity = 1;
+                      ProgressBar.Width = percent * (frmMain.ActualWidth - 16);
+                  }
+                  else
+                  {
+                      ProgressBar.Opacity = 0;
+                  }
+              });
+            Debug.Print("Task finished: " + currentTask + " / " + totalTask);
+            this.Dispatcher.Invoke(del);
+        }
+
+        //状态回调[STA]：登陆
+        private void _doLogin()
+        {
+            //show login dialog here .... no more password
+
+            this.Dispatcher.Invoke(new NoArgSTA(() =>
+            {
+                var test = new frmLogin();
+                test.ShowDialog();
+
+                var userName = test.user_name;
+                var passWord = test.pass_word;
+                var canceled = test.canceled;
+                if (!canceled)
+                {
+                    dataUpdater.Login(userName, passWord);
+                    //restart init
+                    _database.UpdateFileList(_background_path);
+                }
+                else
+                {
+                    Close();
+                }
+            }));
+        }
+        private void _loginSucceeded() { }
+        private void _loginFailed(string reason) { }
+        #endregion //Event Callback
+
+
+        //线程工作函数
+        #region Working Thread
         private void _bgthread_callback()
         {
-           _next_update_time = DateTime.Now.Date;
+            _next_update_time = DateTime.Now.Date;
             while (_next_update_time < DateTime.Now)
             {
                 _next_update_time = _next_update_time.AddMinutes(_time_change_minutes);
@@ -333,7 +337,8 @@ namespace Pixiv_Background_Form
                 //see http://james-ramsden.com/c-get-dpi-screen/
                 double factor = 1.0;
                 //using STA invoke
-                this.Dispatcher.Invoke(new NoArgSTA(() => {
+                this.Dispatcher.Invoke(new NoArgSTA(() =>
+                {
                     factor = System.Windows.PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
                 }));
                 var tmpbmp = new System.Drawing.Bitmap((int)(SystemParameters.WorkArea.Width * factor), (int)(SystemParameters.WorkArea.Height * factor));
@@ -374,6 +379,153 @@ namespace Pixiv_Background_Form
 
             img.Dispose();
         }
+
+        #endregion //Working Thread
+
+
+        //开始的加载动画[STA]
+        #region Loading Animation
+        //用于加载loading界面的几个变量，一个用于保存目前的页面内容
+        private loading_animation _uc_loading;
+        private object _last_content;
+        private void _begin_loading_effect()
+        {
+            var del = new NoArgSTA(() =>
+              {
+                  _uc_loading = new loading_animation();
+                  _last_content = this.Content;
+                  this.Content = _uc_loading;
+              });
+            this.Dispatcher.Invoke(del);
+        }
+        private void _stop_loading_effect()
+        {
+            var del = new NoArgSTA(() =>
+            {
+                this.Content = _last_content;
+            });
+            this.Dispatcher.Invoke(del);
+        }
+        #endregion //Loading Animation
+
+
+        //界面操作
+        #region UI Functions
+        //大标题点击：打开投稿页面
+        private void illust_open_Click(object sender, RoutedEventArgs e)
+        {
+            _open_illust(_illust_info.ID);
+        }
+        //窗体点击：默认拖动
+        private void frmMain_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed) this.DragMove();
+        }
+        //用户名称点击：打开用户页面
+        private void user_open_Click(object sender, RoutedEventArgs e)
+        {
+            _open_illust(_illust_info.ID);
+        }
+        //用户图像点击：打开用户
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            _open_user(_user_info.ID);
+        }
+        private Guid _refresh_background_click_guid;
+        //刷新背景点击：刷新背景
+        private void Refresh_Background_Click(object sender, RoutedEventArgs e)
+        {
+            _refresh_background_click_guid = Guid.NewGuid();
+            ThreadPool.QueueUserWorkItem((object obj) =>
+            {
+                Guid current_task = _refresh_background_click_guid;
+                _operationLock.AcquireWriterLock(Timeout.Infinite);
+                _operationLock.ReleaseWriterLock(); //waiting background thread complete current task
+
+                if (_refresh_background_click_guid == current_task)
+                    _bgthread.Interrupt();
+                //verifying async token and update
+            });
+        }
+        //显示详细信息点击：更改窗体大小
+        private void Show_More_Click_click(object sender, RoutedEventArgs e)
+        {
+            Show_More_Click.Inlines.Clear();
+            if (_detailed)
+            {
+                this.Width = 410;
+                this.Height = 170;
+                Show_More_Click.Inlines.Add("详细信息");
+            }
+            else
+            {
+                this.Width = 620;
+                this.Height = 460;
+                Show_More_Click.Inlines.Add("简略信息");
+            }
+            _detailed = !_detailed;
+        }
+        //更改背景目录点击：弹出目录选择框
+        private void Update_From_Path_Click(object sender, RoutedEventArgs e)
+        {
+            var fbd = new System.Windows.Forms.FolderBrowserDialog();
+            if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                if (_database != null)
+                {
+                    _background_path = fbd.SelectedPath;
+                    _database.UpdateFileList(_background_path);
+                }
+            }
+
+        }
+
+        //鼠标悬停
+        private void Slide_Hide_Click(object sender, RoutedEventArgs e)
+        {
+            //Debug.Print("Slide_Hide clicked");
+            if (_enabled_slide_hide)
+            {
+                _enabled_slide_hide = false;
+                Slide_Hide.Inlines.Clear();
+                Slide_Hide.Inlines.Add("开启滑动透明");
+
+            }
+            else
+            {
+                _last_mouse_move = DateTime.Now;
+                _enabled_slide_hide = true;
+                Slide_Hide.Inlines.Clear();
+                Slide_Hide.Inlines.Add("取消滑动透明");
+            };
+        }
+        #endregion //UI Functions
+
+
+        //通用函数
+        #region Utility Functions
+        private void _open_illust(uint id)
+        {
+            if (id == 0) return;
+            System.Diagnostics.Process.Start("http://www.pixiv.net/i/" + id);
+        }
+        private void _open_user(uint id)
+        {
+            if (id == 0) return;
+            System.Diagnostics.Process.Start("http://www.pixiv.net/u/" + id);
+        }
+        //随机显示字符串数组中的任意字符串
+        private string _random_text(string[] origin)
+        {
+            var r = new Random();
+            return origin[r.Next(origin.Length)];
+        }
+        private string _escape_xml_char(string str_in)
+        {
+            return System.Net.WebUtility.HtmlDecode(str_in);
+        }
+        [DllImport("user32.dll")]
+        private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
         //显示当前投稿信息
         private void _show_current_msg()
         {
@@ -490,131 +642,73 @@ namespace Pixiv_Background_Form
                 string str_last_update = (_illust_info.Last_Update > 0) ? VBUtil.Utils.Others.FromUnixTimeStamp(_illust_info.Last_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
                 string str_last_success_update = (_illust_info.Last_Success_Update > 0) ? VBUtil.Utils.Others.FromUnixTimeStamp(_illust_info.Last_Success_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
                 Update_Time.Content = string.Format("最后更新时间：{0} | 最后成功更新时间：{1}", str_last_update, str_last_success_update);
-              });
-            this.Dispatcher.Invoke(del);
-        }
-
-        [DllImport("user32.dll")]
-        private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
-
-
-        #region Loading Animation
-        //用于加载loading界面的几个变量，一个用于保存目前的页面内容
-        private loading_animation _uc_loading;
-        private object _last_content;
-        private void _begin_loading_effect()
-        {
-            var del = new NoArgSTA(() =>
-              {
-                  _uc_loading = new loading_animation();
-                  _last_content = this.Content;
-                  this.Content = _uc_loading;
-              });
-            this.Dispatcher.Invoke(del);
-        }
-        private void _stop_loading_effect()
-        {
-            var del = new NoArgSTA(() =>
-            {
-                this.Content = _last_content;
             });
             this.Dispatcher.Invoke(del);
         }
-        #endregion //Loading Animation
 
 
-        //界面操作
-        #region UI Functions
-        private void illust_open_Click(object sender, RoutedEventArgs e)
+        private void _add_dir(string path)
         {
-            _open_illust();
-        }
-        private void frmMain_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.LeftButton == MouseButtonState.Pressed) this.DragMove();
-        }
-        private void _open_illust()
-        {
-            if (_illust_info.ID == 0) return;
-            System.Diagnostics.Process.Start("http://www.pixiv.net/i/" + _illust_info.ID);
-        }
-        private void _open_user()
-        {
-            if (_user_info.ID == 0) return;
-            System.Diagnostics.Process.Start("http://www.pixiv.net/u/" + _user_info.ID);
-        }
-        private void user_open_Click(object sender, RoutedEventArgs e)
-        {
-            _open_illust();
-        }
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            _open_user();
-        }
-        //刷新背景
-        private Guid _refresh_background_click_guid;
-        private void Refresh_Background_Click(object sender, RoutedEventArgs e)
-        {
-            _refresh_background_click_guid = Guid.NewGuid();
-            ThreadPool.QueueUserWorkItem((object obj) =>
+            var dir = new DirectoryInfo(path);
+            if (dir.Exists)
             {
-                Guid current_task = _refresh_background_click_guid;
-                _operationLock.AcquireWriterLock(Timeout.Infinite);
-                _operationLock.ReleaseWriterLock(); //waiting background thread complete current task
-
-                if (_refresh_background_click_guid == current_task)
-                    _bgthread.Interrupt();
-                //verifying async token and update
-            });
-        }
-        #endregion //UI Functions
-
-
-
-        //显示详细信息
-        private void Show_More_Click_click(object sender, RoutedEventArgs e)
-        {
-            Show_More_Click.Inlines.Clear();
-            if (_detailed)
-            {
-                this.Width = 410;
-                this.Height = 180;
-                Show_More_Click.Inlines.Add("详细信息");
-            }
-            else
-            {
-                this.Width = 620;
-                this.Height = 460;
-                Show_More_Click.Inlines.Add("简略信息");
-            }
-            _detailed = !_detailed;
-        }
-
-        #region Utility Functions
-        //随机显示字符串数组中的任意字符串
-        private string _random_text(string[] origin)
-        {
-            var r = new Random();
-            return origin[r.Next(origin.Length)];
-        }
-        private string _escape_xml_char(string str_in)
-        {
-            return System.Net.WebUtility.HtmlDecode(str_in);
-        }
-        #endregion //Utility Functions
-
-        private void Update_From_Path_Click(object sender, RoutedEventArgs e)
-        {
-            var fbd = new System.Windows.Forms.FolderBrowserDialog();
-            if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                if (_database != null)
+                foreach (var item in dir.GetFiles())
                 {
-                    _background_path = fbd.SelectedPath;
-                    _database.UpdateFileList(_background_path);
+                    var match = Regex.Match(item.Name, _image_ptn);
+                    if (match.Success)
+                    {
+                        _background_queue.Add(item.FullName);
+                    }
+                }
+
+                if (_include_sub_dir)
+                {
+                    foreach (var item in dir.GetDirectories())
+                    {
+                        _add_dir(item.FullName);
+                    }
                 }
             }
-            
+        }
+
+        #endregion //Utility Functions
+
+
+        //test module for slide hide
+        private DateTime _last_mouse_move = DateTime.MinValue;
+        private Timer _callback_timer;
+        private double _origin_alpha = 1.0;
+        private double _destination_alpha = 0.5;
+        private void frmMain_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_enabled_slide_hide)
+            {
+                if (Opacity == _origin_alpha)
+                {
+                    var da = new DoubleAnimation(_origin_alpha, _destination_alpha, new TimeSpan(0, 0, 0, 0, 300));
+                    this.BeginAnimation(OpacityProperty, da);
+                }
+
+                _last_mouse_move = DateTime.Now;
+            }
+        }
+        private void Timer_callback(object sender)
+        {
+            var del = new NoArgSTA(() =>
+            {
+                if ((!_enabled_slide_hide || _enabled_slide_hide && _last_mouse_move.AddSeconds(2) <= DateTime.Now) && Opacity == _destination_alpha)
+                {
+                    var da = new DoubleAnimation(_destination_alpha, _origin_alpha, new TimeSpan(0, 0, 0, 0, 300));
+                    this.BeginAnimation(OpacityProperty, da);
+                    //_enabled_slide_hide = false;
+                }
+            });
+            this.Dispatcher.Invoke(del);
+        }
+        
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            this.Close();
         }
     }
 }

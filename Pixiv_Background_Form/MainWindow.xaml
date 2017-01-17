@@ -6,7 +6,7 @@
         xmlns:s="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="MainWindow" Height="180" Width="410" WindowStyle="None" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing">
+        Title="MainWindow" Height="170" Width="410" WindowStyle="None" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing" MouseMove="frmMain_MouseMove" AllowsTransparency="True">
     <!--  origin: 410 x 180  -->
     <!--  large: 620 x 460  -->
     <Window.Resources>
@@ -68,6 +68,47 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!--Form closing area-->
+        <Grid x:Name="cancel_grid" Panel.ZIndex="1" Margin="0,3,3,0" Width="15" Height="15" HorizontalAlignment="Right" VerticalAlignment="Top">
+            <Button Background="Transparent" BorderThickness="0" OverridesDefaultStyle="True" Width="15" Height="15" Click="Button_Click_1">
+                <Button.Template>
+                    <ControlTemplate>
+                        <Canvas HorizontalAlignment="Left" Width="{Binding ElementName=cancel_grid, Path=ActualWidth}" Height="{Binding ElementName=cancel_grid, Path=ActualHeight}">
+                            <Path Stroke="{StaticResource MyGrayBrush}" StrokeThickness="0.8" Fill="Transparent" x:Name="cancel_1">
+                                <Path.Data>
+                                    <PathGeometry Figures="m 0,0 l 15,0 l 0,15 l -15,0 l 0,-15"></PathGeometry>
+                                </Path.Data>
+                            </Path>
+                            <Path Stroke="{StaticResource MyGrayBrush}" StrokeThickness="1.2" Fill="Transparent" x:Name="cancel_2">
+                                <Path.Data>
+                                    <PathGeometry Figures="M 2,2 l 11,11 M 2,13 l 11,-11"></PathGeometry>
+                                </Path.Data>
+                            </Path>
+                            <Canvas.Triggers>
+                                <EventTrigger RoutedEvent="MouseEnter">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation To="Orange" Duration="0:0:0.3" Storyboard.TargetName="cancel_1" Storyboard.TargetProperty="Stroke.(SolidColorBrush.Color)" />
+                                            <ColorAnimation To="Orange" Duration="0:0:0.3" Storyboard.TargetName="cancel_2" Storyboard.TargetProperty="Stroke.(SolidColorBrush.Color)" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                                <EventTrigger RoutedEvent="MouseLeave">
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <ColorAnimation To="{StaticResource MyGrayColor}" Duration="0:0:0.3" Storyboard.TargetName="cancel_1" Storyboard.TargetProperty="Stroke.(SolidColorBrush.Color)" />
+                                            <ColorAnimation To="{StaticResource MyGrayColor}" Duration="0:0:0.3" Storyboard.TargetName="cancel_2" Storyboard.TargetProperty="Stroke.(SolidColorBrush.Color)" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Canvas.Triggers>
+                        </Canvas>
+
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+        </Grid>
+        
         <!--Main info-->
         <!--Title display area-->
         <Grid Margin="10,6,10,5" Height="40" x:Name="Title_Layout" Grid.Row="0" Grid.Column="0">
@@ -180,6 +221,7 @@
                 <ColumnDefinition Width="70"/>
                 <ColumnDefinition Width="70"/>
                 <ColumnDefinition Width="70"/>
+                <ColumnDefinition Width="90"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
 
@@ -205,7 +247,7 @@
                     </EventTrigger>
                 </Label.Triggers>
             </Label>
-            
+
             <Label x:Name="Refresh_Background_lbl" Grid.Column="1" Grid.Row="0" HorizontalAlignment="Center">
                 <Label.Content>
                     <Hyperlink Foreground="{StaticResource HighlightBrush}" x:Name="Refresh_Background" TextDecorations="" Click="Refresh_Background_Click">更换背景</Hyperlink>
@@ -249,6 +291,28 @@
                     </EventTrigger>
                 </Label.Triggers>
             </Label>
+
+            <Label x:Name="Slide_Hide_lbl" Grid.Column="3" Grid.Row="0" HorizontalAlignment="Center">
+                <Label.Content>
+                    <Hyperlink Foreground="{StaticResource HighlightBrush}" x:Name="Slide_Hide" TextDecorations="" Click="Slide_Hide_Click">开启滑动透明</Hyperlink>
+                </Label.Content>
+                <Label.Triggers>
+                    <EventTrigger RoutedEvent="MouseEnter">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <ColorAnimation To="Orange" Duration="0:0:0.3" Storyboard.TargetName="Slide_Hide" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                    <EventTrigger RoutedEvent="MouseLeave">
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <ColorAnimation To="{StaticResource HighlightColor}" Duration="0:0:0.3" Storyboard.TargetName="Slide_Hide" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </EventTrigger>
+                </Label.Triggers>
+            </Label>
         </Grid>
 
         <!--Progress bar-->
@@ -272,7 +336,7 @@
             </Grid.RowDefinitions>
             <!--Description (HTML data display area)-->
             <ScrollViewer Grid.Row="0" Grid.Column="0" Height="80" Grid.ColumnSpan="2">
-                <Grid x:Name="Description">
+                <Grid x:Name="Description" MouseDown="frmMain_MouseDown">
                     <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center" Margin="0,10,0,15">Description here</Label>
                 </Grid>
             </ScrollViewer>

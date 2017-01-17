@@ -3,8 +3,7 @@
 <h2>Notice</h2>
 <p>
 This project is still developing, all the code may be modified occasionally.<br/>
-<br/>
-This is the temporary project and i do not know when it can be released<br/>
+And i do not know when it can be released ....<br/>
 </p>
 
 <p>
@@ -27,5 +26,5 @@ This is the temporary project and i do not know when it can be released<br/>
 
 <p>
 最新更新的图片：<br/>
-<img src="https://raw.githubusercontent.com/qhgz2013/Pixiv_Background/master/history_screenshot/20170115184910.png"/>
+<img src="https://raw.githubusercontent.com/qhgz2013/Pixiv_Background/master/history_screenshot/20170117235551.png"/>
 </p>

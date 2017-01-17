@@ -1,4 +1,6 @@
 <p>
+<b>alpha v0.9</b><br/>
+开始更新/完善窗体<br/>
 <b>alpha v0.8</b><br/>
 SauceNAO API Ready,准备通过SauceNao获取已经删除的投稿及作者信息<br/>
 修复若干bug<br/>
