@@ -9,6 +9,7 @@ using System.Net;
 using System.Drawing;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
+using System.Diagnostics;
 
 namespace Pixiv_Background
 {
@@ -193,6 +194,7 @@ namespace Pixiv_Background
         {
             illust = new Illust();
             user = new User();
+            illust.Origin = DataOrigin.SauceNao_API;
             illust.Last_Update = (ulong)Others.ToUnixTimestamp(DateTime.Now);
             user.Last_Update = illust.Last_Update;
 
@@ -280,7 +282,9 @@ namespace Pixiv_Background
         /// <returns>相似程度（最大值1）</returns>
         public static float QueryImage(Image img, out Illust illust, out User user)
         {
+            Debug.Print("[sauceNao API]: querying image");
             var json = post_formdata(img);
+            Debug.Print("[sauceNao API]: query completed");
             return parse_json_object(json, out illust, out user);
         }
         /// <summary>

@@ -15,7 +15,7 @@ using System.Net;
 using System.Diagnostics;
 
 /*
-* 目前数据库的表格变量定义 [v1.0.4]
+* 目前数据库的表格变量定义 [v1.0.5]
 * 
 * TABLE DbVars(string Key [PRIMARY KEY], string Value)
 *       用于存放数据库相关信息，如版本，路径等。 Key:数值名称 Value:数值内容
@@ -28,8 +28,8 @@ using System.Diagnostics;
 *       用于存放投稿信息，ID:作品ID，      Author_ID:画师ID，         Page:投稿分p数              Title:投稿标题，Description:投稿的描述,Tag:投稿标签，Tool:绘图工具
 *              int Click [NOT NULL [0]], int Width [NOT NULL [0]], int Height [NOT NULL [0]] int Rate_Count [NOT NULL [0]], int Score [NOT NULL [0]],
 *                   Click:点击数，           Width:作品宽度像素,       Height:作品高度像素,      Rate_Count:用户评分数，        Score:用户评分
-*              ulong Submit_Time [NOT NULL [0]], int HTTP_Status [NOT NULL [0]], ulong Last_Update [NOT NULL [0]], ulong Last_Success_Update [NOT NULL [0]])
-*                    Submit_Time:投稿时间，          HTTP_Status:获取投稿信息时的http状态码，Last_Update:最后更新投稿信息的时间, Last_Success_Update:最后成功更新的时间
+*              ulong Submit_Time [NOT NULL [0]], int HTTP_Status [NOT NULL [0]], ulong Last_Update [NOT NULL [0]], ulong Last_Success_Update [NOT NULL [0]], byte Origin [NOT NULL [0]])
+*                    Submit_Time:投稿时间，          HTTP_Status:获取投稿信息时的http状态码，Last_Update:最后更新投稿信息的时间, Last_Success_Update:最后成功更新的时间, Origin:数据来源
 * 
 * 状态附加定义：-1代表该内容正在下载中（多线程时的占用标识）
 * */
@@ -106,6 +106,8 @@ namespace Pixiv_Background
         public ulong Last_Update;
         //最后成功更新的时间
         public ulong Last_Success_Update;
+        //数据来源
+        public DataOrigin Origin;
     }
 
     public enum DataOrigin
@@ -173,7 +175,7 @@ namespace Pixiv_Background
         #region Constant Definations
 
         //常量定义：当前版本和最大获取投稿信息的线程数
-        private const string M_CURRENT_DBVERSION = "1.0.4";
+        private const string M_CURRENT_DBVERSION = "1.0.5";
         //最大获取投稿信息的线程数
         private const int M_MAX_ILLUST_SYNC_THREAD = 2;
         //最大获取用户信息的线程数
@@ -250,7 +252,7 @@ namespace Pixiv_Background
 
                 string create_var_table = "CREATE TABLE DbVars(Key VARCHAR PRIMARY KEY, Value VARCHAR)";
                 string create_user_table = "CREATE TABLE User(ID INT PRIMARY KEY, Name VARCHAR, Description TEXT, User_Face IMAGE, User_Face_Url VARCHAR, Home_Page VARCHAR, Gender VARCHAR, Personal_Tag VARCHAR, Address VARCHAR, Birthday VARCHAR, Twitter VARCHAR, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
-                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Page INT NOT NULL DEFAULT 1, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL DEFAULT 0, HTTP_Status INT NOT NULL DEFAULT 0, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
+                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Page INT NOT NULL DEFAULT 1, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL DEFAULT 0, HTTP_Status INT NOT NULL DEFAULT 0, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0, Origin TINYINT NOT NULL DEFAULT 0)";
                 string write_version_info = "INSERT INTO DbVars VALUES('Version', '" + M_CURRENT_DBVERSION + "')";
                 m_dbCommand.CommandText = create_var_table;
                 m_dbCommand.ExecuteNonQuery();
@@ -770,13 +772,15 @@ namespace Pixiv_Background
         //向sql中自动插入投稿数据
         private bool __insert_illust(Illust illust)
         {
-            var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID, @Page";
+            var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Origin) VALUES(@ID, @Author_ID, @Page, @Origin";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = illust.ID;
             m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
             m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
             m_dbCommand.Parameters.Add("@Page", DbType.Int32);
             m_dbCommand.Parameters["@Page"].Value = illust.Page;
+            m_dbCommand.Parameters.Add("@Origin", DbType.Byte);
+            m_dbCommand.Parameters["@Origin"].Value = illust.Origin;
 
             if (!string.IsNullOrEmpty(illust.Title))
             {
@@ -861,7 +865,7 @@ namespace Pixiv_Background
             //数据保护：非200时不覆盖写入已存数据
             if (force_mode || illust.HTTP_Status == (int)HttpStatusCode.OK)
             {
-                update_str += ", Author_ID=@Author_ID, Submit_Time=@Submit_Time, Last_Success_Update=@Last_Success_Update, Page=@Page";
+                update_str += ", Author_ID=@Author_ID, Submit_Time=@Submit_Time, Last_Success_Update=@Last_Success_Update, Page=@Page, Origin=@Origin";
                 m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
                 m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
                 m_dbCommand.Parameters.Add("@Submit_Time", DbType.Int64);
@@ -870,6 +874,8 @@ namespace Pixiv_Background
                 m_dbCommand.Parameters["@Last_Success_Update"].Value = illust.Last_Success_Update;
                 m_dbCommand.Parameters.Add("@Page", DbType.Int32);
                 m_dbCommand.Parameters["@Page"].Value = illust.Page;
+                m_dbCommand.Parameters.Add("@Origin", DbType.Byte);
+                m_dbCommand.Parameters["@Origin"].Value = illust.Origin;
 
                 if (illust.Click >= 0)
                 {
@@ -958,7 +964,7 @@ namespace Pixiv_Background
         }
         private Illust __get_illust(uint id)
         {
-            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Page FROM Illust WHERE ID=" + id;
+            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Page, Origin FROM Illust WHERE ID=" + id;
             var ret = new Illust();
             if (id == 0) return ret;
             try
@@ -986,6 +992,7 @@ namespace Pixiv_Background
                 ret.Last_Update = (ulong)dr.GetInt64(13);
                 ret.Last_Success_Update = (ulong)dr.GetInt64(14);
                 ret.Page = (uint)dr.GetInt32(15);
+                ret.Origin = (DataOrigin)dr.GetByte(16);
                 dr.Close();
             }
             catch (Exception)
@@ -1312,6 +1319,7 @@ namespace Pixiv_Background
             //初始化
             illust = new Illust();
             illust.ID = id;
+            illust.Origin = DataOrigin.Pixiv_Html;
             illust.Last_Update = (ulong)VBUtil.Utils.Others.ToUnixTimestamp(DateTime.Now);
 
             var ns = new NetStream();
@@ -1874,6 +1882,30 @@ namespace Pixiv_Background
 
                 _create_monitor_thread();
             });
+        }
+        public void SetIllustInfo(Illust illust)
+        {
+            if (illust.ID == 0) return;
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+
+            __auto_insert_illust(illust);
+            _update_query_list();
+
+            m_dataThreadLock.ReleaseWriterLock();
+            m_sqlThreadLock.ReleaseWriterLock();
+        }
+        public void SetUserInfo(User user)
+        {
+            if (user.ID == 0) return;
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+
+            __auto_insert_user(user);
+            _update_query_list();
+
+            m_dataThreadLock.ReleaseWriterLock();
+            m_sqlThreadLock.ReleaseWriterLock();
         }
         #endregion //Public Functions
 

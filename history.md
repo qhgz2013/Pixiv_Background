@@ -1,12 +1,20 @@
 <p>
+<b>alpha v0.10</b><br/>
+支持从sauceNao接口自动获取投稿信息</b><br/>
+<br/>
 <b>alpha v0.9</b><br/>
 开始更新/完善窗体<br/>
+<br/>
 <b>alpha v0.8</b><br/>
 SauceNAO API Ready,准备通过SauceNao获取已经删除的投稿及作者信息<br/>
 修复若干bug<br/>
 更改为非whitecube（旧版）的解析代码<br/>
+<br/>
 <b>alpha v0.7</b><br/>
 准备分离数据管理和背景更换模块<br/>
+<br/>
+<b>注：以下版本代码由于清仓处理过所以不在提交历史上……</b><br/>
+<br/>
 <b>alpha v0.6</b><br/>
 修正html解析以及一些超链接跳转的bug<br/>
 <br/>

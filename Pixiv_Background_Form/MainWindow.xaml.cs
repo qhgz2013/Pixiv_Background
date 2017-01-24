@@ -306,6 +306,14 @@ namespace Pixiv_Background_Form
                         _user_info = _database.GetUserInfo(_illust_info.Author_ID);
 
                         _save_background_info();
+
+
+                        //fetch using sauceNao API
+                        if (_illust_info.HTTP_Status == 403 || _illust_info.HTTP_Status == 404)
+                        {
+                            _update_from_sauceNao();
+                        }
+
                         _show_current_msg();
                     }
 
@@ -526,7 +534,7 @@ namespace Pixiv_Background_Form
         }
         [DllImport("user32.dll")]
         private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
-        //显示当前投稿信息
+        //显示当前投稿信息[MTA]
         private void _show_current_msg()
         {
             //todo: 修改非200时的显示
@@ -535,11 +543,11 @@ namespace Pixiv_Background_Form
                 Illust illust = _illust_info;
                 User user = _user_info;
                 //image solution
-                Image_Size.Content = _image_solution.Width + " x " + _image_solution.Height;
+                Image_Size.Content = _image_solution.Width + "×" + _image_solution.Height;
 
                 //author id & illust id
                 user_id_open.Inlines.Clear();
-                user_id_open.Inlines.Add("ID=" + illust.ID + " #" + _illust_page);
+                user_id_open.Inlines.Add("ID=" + illust.ID + " #" + _illust_page + "/" + illust.Page);
 
                 //title
                 illust_open.Inlines.Clear();
@@ -646,7 +654,25 @@ namespace Pixiv_Background_Form
             this.Dispatcher.Invoke(del);
         }
 
+        //private bool _using_background_worker = false;
+        private void _update_from_sauceNao()
+        {
+            //if (_using_background_worker) return;
+            //_using_background_worker = true;
+            ThreadPool.QueueUserWorkItem((object obj) =>
+            {
+                Illust illust; User user;
+                saucenaoAPI.QueryImage("tempBackground.bmp", out illust, out user);
+                _database.SetIllustInfo(illust);
+                user = _database.GetUserInfo(user.ID);
 
+                _illust_info = illust;
+                _user_info = user;
+
+                _show_current_msg();
+                //_using_background_worker = false;
+            });
+        }
         private void _add_dir(string path)
         {
             var dir = new DirectoryInfo(path);
