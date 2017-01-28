@@ -278,7 +278,8 @@ namespace Pixiv_Background_Form
                 var time = DateTime.Now;
                 try
                 {
-                    Thread.Sleep((int)(_next_update_time - time).TotalMilliseconds);
+                    int sleep_time = (int)(_next_update_time - time).TotalMilliseconds;
+                    if (sleep_time > 0) Thread.Sleep(sleep_time);
                 }
                 catch (Exception)
                 {
@@ -705,17 +706,20 @@ namespace Pixiv_Background_Form
         private Timer _callback_timer;
         private double _origin_alpha = 1.0;
         private double _destination_alpha = 0.5;
+        private Point _last_cursor;
         private void frmMain_MouseMove(object sender, MouseEventArgs e)
         {
             if (_enabled_slide_hide)
             {
-                if (Opacity == _origin_alpha)
+                if (Opacity == _origin_alpha && _last_cursor != e.GetPosition(this))
                 {
                     var da = new DoubleAnimation(_origin_alpha, _destination_alpha, new TimeSpan(0, 0, 0, 0, 300));
                     this.BeginAnimation(OpacityProperty, da);
                 }
 
                 _last_mouse_move = DateTime.Now;
+                _last_cursor = e.GetPosition(this);
+                //Debug.Print(_last_cursor.ToString());
             }
         }
         private void Timer_callback(object sender)

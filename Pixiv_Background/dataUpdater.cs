@@ -772,7 +772,7 @@ namespace Pixiv_Background
         //向sql中自动插入投稿数据
         private bool __insert_illust(Illust illust)
         {
-            var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Origin) VALUES(@ID, @Author_ID, @Page, @Origin";
+            var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Origin, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID, @Page, @Origin";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = illust.ID;
             m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
