@@ -43,6 +43,7 @@ namespace Pixiv_Background_Form
         }
 
         //读取已保存的变量
+        private ReaderWriterLock _external_save_lock = new ReaderWriterLock();
         //包含的变量: _illust_info, _illust_page, _user_info, _image_solution, _background_path
         private void _load_background_info()
         {
@@ -75,6 +76,7 @@ namespace Pixiv_Background_Form
         //保存当前变量的信息
         private void _save_background_info()
         {
+            _external_save_lock.AcquireWriterLock(Timeout.Infinite);
             var fi = new FileStream("tempBackground.dat", FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
             var bf = new BinaryFormatter();
             var data = new _temp_serialize_struct();
@@ -85,6 +87,7 @@ namespace Pixiv_Background_Form
             data.backgroundPath = _background_path;
             bf.Serialize(fi, data);
             fi.Close();
+            _external_save_lock.ReleaseWriterLock();
         }
 
         //异步初始化数据
@@ -199,7 +202,26 @@ namespace Pixiv_Background_Form
             if (data.ID == _illust_info.ID)
             {
                 //updating current illust info
-                _illust_info = data;
+                if (data.HTTP_Status == 200)
+                {
+                    if (data.Author_ID != _illust_info.Author_ID)
+                    {
+                        ThreadPool.QueueUserWorkItem(delegate 
+                        {
+                            _user_info = _database.GetUserInfo(data.Author_ID);
+                            _save_background_info();
+                            _show_current_msg();
+                        });
+                    }
+                    _illust_info = data;
+                }
+                else if(_illust_info.HTTP_Status != 200)
+                {
+                    ThreadPool.QueueUserWorkItem(delegate 
+                    {
+                        _update_from_sauceNao();
+                    });
+                }
                 _save_background_info();
                 _show_current_msg();
             }
@@ -207,7 +229,7 @@ namespace Pixiv_Background_Form
         private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, User data)
         {
             _update_progress_bar(currentTask, totalTask);
-            if (data.ID == _user_info.ID)
+            if (data.ID == _user_info.ID || data.ID == _illust_info.Author_ID)
             {
                 _user_info = data;
                 _save_background_info();
@@ -484,6 +506,13 @@ namespace Pixiv_Background_Form
                 {
                     _background_path = fbd.SelectedPath;
                     _database.UpdateFileList(_background_path);
+                    _background_queue.Clear();
+                    var dir_info = new DirectoryInfo(_background_path);
+                    foreach (var item in dir_info.GetFiles())
+                    {
+                        _background_queue.Add(item.FullName);
+                    }
+                    Refresh_Background.DoClick();
                 }
             }
 
@@ -605,7 +634,7 @@ namespace Pixiv_Background_Form
                     Border1.Background = Brushes.Red;
 
                 //author image
-                if (user.HTTP_Status == 200)
+                if (user.User_Face!= null)
                 {
                     var ss = new MemoryStream();
                     user.User_Face.Save(ss, user.User_Face.RawFormat);
@@ -664,11 +693,20 @@ namespace Pixiv_Background_Form
             {
                 Illust illust; User user;
                 saucenaoAPI.QueryImage("tempBackground.bmp", out illust, out user);
-                _database.SetIllustInfo(illust);
-                user = _database.GetUserInfo(user.ID);
 
                 _illust_info = illust;
-                _user_info = user;
+                _database.SetIllustInfo(illust);
+
+                var origin_user = _database.GetUserInfo(user.ID);
+                if (origin_user.HTTP_Status == 200)
+                {
+                    _user_info = origin_user;
+                }
+                else
+                {
+                    _database.SetUserInfo(user);
+                    _user_info = user;
+                }
 
                 _show_current_msg();
                 //_using_background_worker = false;

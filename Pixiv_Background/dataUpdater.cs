@@ -680,6 +680,8 @@ namespace Pixiv_Background
                     Debug.Print(ex.ToString());
                 }
 
+                _join_all_thread(1000);
+
                 //线程为空，提交数据
                 if (m_illust_working_thd_count == 0 && m_user_working_thd_count == 0)
                 {
@@ -755,12 +757,12 @@ namespace Pixiv_Background
             m_query_finished = 0;
         }
 
-        private void _join_all_thread()
+        private void _join_all_thread(int timeout = int.MaxValue)
         {
             for (int i = 0; i < m_illust_thd.Length; i++)
-                m_illust_thd[i]?.Join();
+                m_illust_thd[i]?.Join(timeout);
             for (int i = 0; i < m_user_thd.Length; i++)
-                m_user_thd[i]?.Join();
+                m_user_thd[i]?.Join(timeout);
         }
         #endregion //Multi-Thread Access Control
 
@@ -1269,6 +1271,7 @@ namespace Pixiv_Background
                 if (!suc)
                 {
                     ret.ID = id;
+                    dr.Close();
                     return ret;
                 }
                 ret.ID = (uint)dr.GetInt32(0);
@@ -1534,6 +1537,12 @@ namespace Pixiv_Background
 
                 #region Parsing
 
+                if (Regex.Match(http_str, "抱歉，您当前所寻找的个用户已经离开了pixiv, 或者这ID不存在。").Success)
+                {
+                    user.HTTP_Status = (int)HttpStatusCode.NotFound;
+                    return;
+                }
+
                 //用户头像 [user_face_url]
                 var str_ptr_user_face_url = "<img\\ssrc=\"(?<user_face_url>[^\"]*?)\"\\salt=\"\"\\sclass=\"user-image\">";
                 var match = Regex.Match(http_str, str_ptr_user_face_url);
@@ -1776,10 +1785,16 @@ namespace Pixiv_Background
                 if ((mode & DataUpdateMode.Force_Update) != 0 || last_update.AddSeconds(M_MIN_AUTOUPDATE_INTERVAL) <= DateTime.Now)
                 {
                     //illust needs to be updated
-
-
+                    
                     m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
-                    m_illust_list[id] = 0;
+                    if (m_illust_list.ContainsKey(id))
+                    {
+                        m_illust_list[id] = 0;
+                    }
+                    else
+                    {
+                        __auto_insert_illust(info);
+                    }
                     _update_query_list();
                     m_dataThreadLock.ReleaseWriterLock();
 
@@ -1816,7 +1831,14 @@ namespace Pixiv_Background
 
 
                     m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
-                    m_user_list[id] = 0;
+                    if (m_user_list.ContainsKey(id))
+                    {
+                        m_user_list[id] = 0;
+                    }
+                    else
+                    {
+                        __auto_insert_user(info);
+                    }
                     _update_query_list();
                     m_dataThreadLock.ReleaseWriterLock();
 

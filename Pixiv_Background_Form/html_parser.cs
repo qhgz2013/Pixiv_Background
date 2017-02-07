@@ -30,13 +30,24 @@ namespace Pixiv_Background_Form
             var main_layout = new Grid();
             main_layout.Name = "main_layout";
 
-            int index = 0;
-            var htmltree = parse_html_tree(html, ref index);
-            System.Diagnostics.Debug.Print("parsing html string:\n" + html);
-            System.Diagnostics.Debug.Print("Deserialized string:\n" + htmltree.ToString());
-            var html_visual = (TextBlock)convert_object(htmltree);
-            html_visual.Foreground = new SolidColorBrush(Color.FromRgb(0x5b, 0x5b, 0x5b));
-            main_layout.Children.Add(html_visual);
+            try
+            {
+                int index = 0;
+                var htmltree = parse_html_tree(html, ref index);
+                System.Diagnostics.Debug.Print("parsing html string:\n" + html);
+                System.Diagnostics.Debug.Print("Deserialized string:\n" + htmltree.ToString());
+                var html_visual = (TextBlock)convert_object(htmltree);
+                html_visual.Foreground = new SolidColorBrush(Color.FromRgb(0x5b, 0x5b, 0x5b));
+                main_layout.Children.Add(html_visual);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.Print(ex.ToString());
+                var exception_output = new TextBlock();
+                exception_output.Inlines.Add(ex.ToString());
+                exception_output.Foreground = new SolidColorBrush(Color.FromRgb(0x5b, 0x5b, 0x5b));
+                main_layout.Children.Add(exception_output);
+            }
 
             uc.Content = main_layout;
             return uc;
@@ -49,22 +60,29 @@ namespace Pixiv_Background_Form
             public override string ToString()
             {
                 var sb = new StringBuilder();
-                sb.Append("<");
-                sb.Append(Name);
-                if (Attribute != null)
+                if (!string.IsNullOrEmpty(Name))
                 {
-                    sb.Append(" ");
-                    sb.Append(Attribute.ToString());
+                    sb.Append("<");
+                    sb.Append(Name);
+                    if (Attribute != null && Attribute.Count > 0)
+                    {
+                        sb.Append(" ");
+                        sb.Append(Attribute.ToString());
+                    }
+                    sb.Append(">");
                 }
-                sb.Append(">");
 
                 foreach (var item in Document)
                 {
                     sb.Append(item.ToString());
                 }
-                sb.Append("</");
-                sb.Append(Name);
-                sb.Append(">");
+
+                if (!string.IsNullOrEmpty(Name))
+                {
+                    sb.Append("</");
+                    sb.Append(Name);
+                    sb.Append(">");
+                }
                 return sb.ToString();
             }
         }
