@@ -6,8 +6,8 @@
         xmlns:s="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="MainWindow" Height="170" Width="410" WindowStyle="None" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing" MouseMove="frmMain_MouseMove" AllowsTransparency="True">
-    <!--  origin: 410 x 180  -->
+        Height="160" Width="410" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing" MouseMove="frmMain_MouseMove" WindowStyle="None">
+    <!--  origin: 410 x 160  -->
     <!--  large: 620 x 460  -->
     <Window.Resources>
         <ResourceDictionary>
@@ -56,10 +56,6 @@
         </ResourceDictionary>
     </Window.Resources>
     <Grid x:Name="MainWindow_Layout">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="10"/>
-        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -74,12 +70,12 @@
                 <Button.Template>
                     <ControlTemplate>
                         <Canvas HorizontalAlignment="Left" Width="{Binding ElementName=cancel_grid, Path=ActualWidth}" Height="{Binding ElementName=cancel_grid, Path=ActualHeight}">
-                            <Path Stroke="{StaticResource MyGrayBrush}" StrokeThickness="0.8" Fill="Transparent" x:Name="cancel_1">
+                            <Path Stroke="{StaticResource MyGrayBrush}" StrokeThickness="0.6" Fill="Transparent" x:Name="cancel_1">
                                 <Path.Data>
                                     <PathGeometry Figures="m 0,0 l 15,0 l 0,15 l -15,0 l 0,-15"></PathGeometry>
                                 </Path.Data>
                             </Path>
-                            <Path Stroke="{StaticResource MyGrayBrush}" StrokeThickness="1.2" Fill="Transparent" x:Name="cancel_2">
+                            <Path Stroke="{StaticResource MyGrayBrush}" StrokeThickness="1.0" Fill="Transparent" x:Name="cancel_2">
                                 <Path.Data>
                                     <PathGeometry Figures="M 2,2 l 11,11 M 2,13 l 11,-11"></PathGeometry>
                                 </Path.Data>
@@ -108,11 +104,11 @@
                 </Button.Template>
             </Button>
         </Grid>
-        
+
         <!--Main info-->
         <!--Title display area-->
-        <Grid Margin="10,6,10,5" Height="40" x:Name="Title_Layout" Grid.Row="0" Grid.Column="0">
-            <Border Grid.Row="0" Grid.Column="0" Background="AliceBlue" x:Name="Border1" Width="8" HorizontalAlignment="Left" Margin="0,5,5,5"></Border>
+        <Grid Margin="0" Height="Auto" x:Name="Title_Layout" Grid.Row="0" Width="{Binding ElementName=frmMain, Path=ActualWidth}">
+            <Border Grid.Row="0" Grid.Column="0" Background="AliceBlue" x:Name="Border1" Width="8" HorizontalAlignment="Left" Margin="10,5,5,5"></Border>
             <Label Grid.Column="1" Grid.Row="0" Name="Title" FontSize="16" FontWeight="SemiBold" Margin="15,5,5,5">
                 <Label.Content>
                     <Hyperlink Foreground="Black" TextDecorations="" x:Name="illust_open" Click="illust_open_Click">Click click Orz</Hyperlink>
@@ -152,8 +148,8 @@
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="70"/>
-                <ColumnDefinition Width="130"/>
-                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="145"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!--User image-->
@@ -321,10 +317,10 @@
         </Grid>
 
         <!--Detailed info-->
-        <Grid x:Name="Detailed_Info_Layout" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="10" HorizontalAlignment="Left">
+        <Grid x:Name="Detailed_Info_Layout" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" Width="{Binding ElementName= MainWindow_Layout, Path=ActualWidth}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="30"/>
-                <ColumnDefinition Width="560"/>
+                <ColumnDefinition Width="26"/>
+                <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition/>
@@ -335,9 +331,9 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
             <!--Description (HTML data display area)-->
-            <ScrollViewer Grid.Row="0" Grid.Column="0" Height="80" Grid.ColumnSpan="2">
-                <Grid x:Name="Description" MouseDown="frmMain_MouseDown">
-                    <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center" Margin="0,10,0,15">Description here</Label>
+            <ScrollViewer Grid.Row="0" Grid.Column="0" Height="80" Grid.ColumnSpan="2" HorizontalAlignment="Left" Width="{Binding ElementName=Detailed_Info_Layout, Path=ActualWidth}" Margin="-5,0,5,0">
+                <Grid x:Name="Description" MouseDown="frmMain_MouseDown" HorizontalAlignment="Left" Margin="10,0,0,0">
+                    <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,10,0,15">Description here</Label>
                 </Grid>
             </ScrollViewer>
             <!--Tag-->
@@ -346,16 +342,15 @@
             <!--Tools-->
             <Label x:Name="Tools" Grid.Row="2" Grid.Column="1" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Tools here</Label>
             <Image Source="pack://application:,,,/Resources/Tools.png" Grid.Column="0" Grid.Row="2" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-
-            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2">
+            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Width="{Binding ElementName=Detailed_Info_Layout,Path=ActualWidth}">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="26"/>
                     <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="26"/>
                     <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="26"/>
                     <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="26"/>
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
@@ -369,6 +364,7 @@
                 <Image Source="pack://application:,,,/Resources/Star.png" Grid.Column="4" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
                 <!--Others-->
             </Grid>
+
             <!--
             <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Foreground="{StaticResource MyGrayBrush}">用户描述</Label>
             <ScrollViewer Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Height="80">

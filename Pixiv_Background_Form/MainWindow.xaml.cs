@@ -229,7 +229,7 @@ namespace Pixiv_Background_Form
         private void _database_FetchDataEnded(uint id, uint currentTask, uint totalTask, User data)
         {
             _update_progress_bar(currentTask, totalTask);
-            if (data.ID == _user_info.ID || data.ID == _illust_info.Author_ID)
+            if ((data.ID == _user_info.ID || data.ID == _illust_info.Author_ID) && data.HTTP_Status > 0)
             {
                 _user_info = data;
                 _save_background_info();
@@ -455,7 +455,7 @@ namespace Pixiv_Background_Form
         //用户名称点击：打开用户页面
         private void user_open_Click(object sender, RoutedEventArgs e)
         {
-            _open_illust(_illust_info.ID);
+            _open_user(_illust_info.Author_ID);
         }
         //用户图像点击：打开用户
         private void Button_Click(object sender, RoutedEventArgs e)
@@ -485,7 +485,7 @@ namespace Pixiv_Background_Form
             if (_detailed)
             {
                 this.Width = 410;
-                this.Height = 170;
+                this.Height = 160;
                 Show_More_Click.Inlines.Add("详细信息");
             }
             else
