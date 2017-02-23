@@ -6,8 +6,8 @@
         xmlns:s="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Height="160" Width="410" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing" MouseMove="frmMain_MouseMove" WindowStyle="None">
-    <!--  origin: 410 x 160  -->
+        Height="166" Width="410" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing" MouseMove="frmMain_MouseMove" WindowStyle="None" AllowsTransparency="True">
+    <!--  origin: 410 x 166  -->
     <!--  large: 620 x 460  -->
     <Window.Resources>
         <ResourceDictionary>
@@ -62,6 +62,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!--Form closing area-->
@@ -107,7 +108,7 @@
 
         <!--Main info-->
         <!--Title display area-->
-        <Grid Margin="0" Height="Auto" x:Name="Title_Layout" Grid.Row="0" Width="{Binding ElementName=frmMain, Path=ActualWidth}">
+        <Grid Margin="0,10,0,0" Height="Auto" x:Name="Title_Layout" Grid.Row="0" Width="{Binding ElementName=frmMain, Path=ActualWidth}">
             <Border Grid.Row="0" Grid.Column="0" Background="AliceBlue" x:Name="Border1" Width="8" HorizontalAlignment="Left" Margin="10,5,5,5"></Border>
             <Label Grid.Column="1" Grid.Row="0" Name="Title" FontSize="16" FontWeight="SemiBold" Margin="15,5,5,5">
                 <Label.Content>
@@ -140,7 +141,7 @@
         </Grid>
 
         <!--Author display area-->
-        <Grid Margin="10,5,10,5" Height="Auto" x:Name="Author_Layout" Grid.Row="1" Grid.Column="0">
+        <Grid Margin="10,5,10,0" Height="Auto" x:Name="Author_Layout" Grid.Row="1" Grid.Column="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -164,7 +165,7 @@
                     </StackPanel>
                 </Grid>
             </Button>
-            <Label Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0" x:Name="Author_Name" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Left" Height="24" VerticalAlignment="Bottom">
+            <Label Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Margin="0" x:Name="Author_Name" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Left" Height="26" VerticalAlignment="Bottom">
                 <Label.Content>
                     <Hyperlink Foreground="{StaticResource MyGrayBrush}" TextDecorations="" x:Name="user_open" Click="user_open_Click">exo me?蛤？</Hyperlink>
                 </Label.Content>
@@ -185,29 +186,29 @@
                     </EventTrigger>
                 </Label.Triggers>
             </Label>
-            <Label Grid.Row="1" Grid.Column="2" HorizontalAlignment="Left" Margin="0" x:Name="Post_Time" Content="6666-13-32 24:61" FontSize="12" Foreground="Gray" Height="24" VerticalAlignment="Top"/>
+            <Label Grid.Row="1" Grid.Column="2" HorizontalAlignment="Left" Margin="0" x:Name="Post_Time" Content="6666-13-32 24:61" FontSize="12" Foreground="Gray" Height="26" VerticalAlignment="Top"/>
             <Label Grid.Row="1" Grid.Column="1" HorizontalAlignment="Left" Margin="0" x:Name="Illust_Info" FontSize="12" Foreground="Gray" Height="24" VerticalAlignment="Top">
                 <Label.Content>
-                    <Hyperlink Foreground="Gray" TextDecorations="" x:Name="user_id_open" Click="user_open_Click">ID=</Hyperlink>
+                    <Hyperlink Foreground="Gray" TextDecorations="" x:Name="illust_id_open" Click="illust_open_Click">ID=</Hyperlink>
                 </Label.Content>
                 <Label.Triggers>
                     <EventTrigger RoutedEvent="MouseEnter">
                         <BeginStoryboard>
                             <Storyboard>
-                                <ColorAnimation Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)" Storyboard.TargetName="user_id_open" To="{StaticResource ResourceKey=HighlightColor}" AutoReverse="False" Duration="0:0:0.3"></ColorAnimation>
+                                <ColorAnimation Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)" Storyboard.TargetName="illust_id_open" To="{StaticResource ResourceKey=HighlightColor}" AutoReverse="False" Duration="0:0:0.3"></ColorAnimation>
                             </Storyboard>
                         </BeginStoryboard>
                     </EventTrigger>
                     <EventTrigger RoutedEvent="MouseLeave">
                         <BeginStoryboard>
                             <Storyboard>
-                                <ColorAnimation Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)" Storyboard.TargetName="user_id_open" To="Gray" AutoReverse="False" Duration="0:0:0.3"></ColorAnimation>
+                                <ColorAnimation Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)" Storyboard.TargetName="illust_id_open" To="Gray" AutoReverse="False" Duration="0:0:0.3"></ColorAnimation>
                             </Storyboard>
                         </BeginStoryboard>
                     </EventTrigger>
                 </Label.Triggers>
             </Label>
-            <Label Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" Margin="0" x:Name="Image_Size" Content="0 x 0" FontSize="12" Foreground="Gray" Height="24" VerticalAlignment="Top"/>
+            <Label Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Left" x:Name="Image_Size" Content="-233×-666" FontSize="12" Foreground="Gray" Height="26" VerticalAlignment="Top"/>
 
         </Grid>
 
@@ -319,8 +320,9 @@
         <!--Detailed info-->
         <Grid x:Name="Detailed_Info_Layout" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Left" Width="{Binding ElementName= MainWindow_Layout, Path=ActualWidth}">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="10"/><!--Left Margin Column-->
                 <ColumnDefinition Width="26"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="584"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition/>
@@ -331,18 +333,18 @@
                 <RowDefinition/>
             </Grid.RowDefinitions>
             <!--Description (HTML data display area)-->
-            <ScrollViewer Grid.Row="0" Grid.Column="0" Height="80" Grid.ColumnSpan="2" HorizontalAlignment="Left" Width="{Binding ElementName=Detailed_Info_Layout, Path=ActualWidth}" Margin="-5,0,5,0">
-                <Grid x:Name="Description" MouseDown="frmMain_MouseDown" HorizontalAlignment="Left" Margin="10,0,0,0">
-                    <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="5,10,0,15">Description here</Label>
+            <ScrollViewer Grid.Row="0" Grid.Column="1" Height="80" Grid.ColumnSpan="2" HorizontalAlignment="Left" Padding="10,3,3,3" Width="600">
+                <Grid x:Name="Description" MouseDown="frmMain_MouseDown" HorizontalAlignment="Left">
+                    <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center" HorizontalAlignment="Left">Description here</Label>
                 </Grid>
             </ScrollViewer>
             <!--Tag-->
-            <Label x:Name="Tags" Grid.Row="1" Grid.Column="1" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Tags here</Label>
-            <Image Source="pack://application:,,,/Resources/Tags.png" Grid.Column="0" Grid.Row="1" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            <Label x:Name="Tags" Grid.Row="1" Grid.Column="2" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Tags here</Label>
+            <Image Source="pack://application:,,,/Resources/Tags.png" Grid.Column="1" Grid.Row="1" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"/>
             <!--Tools-->
-            <Label x:Name="Tools" Grid.Row="2" Grid.Column="1" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Tools here</Label>
-            <Image Source="pack://application:,,,/Resources/Tools.png" Grid.Column="0" Grid.Row="2" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-            <Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Width="{Binding ElementName=Detailed_Info_Layout,Path=ActualWidth}">
+            <Label x:Name="Tools" Grid.Row="2" Grid.Column="2" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Tools here</Label>
+            <Image Source="pack://application:,,,/Resources/Tools.png" Grid.Column="1" Grid.Row="2" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            <Grid Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Width="{Binding ElementName=Detailed_Info_Layout,Path=ActualWidth}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="26"/>
                     <ColumnDefinition Width="100"/>
@@ -366,14 +368,14 @@
             </Grid>
 
             <!--
-            <Label Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Foreground="{StaticResource MyGrayBrush}">用户描述</Label>
+            <Label Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Foreground="{StaticResource MyGrayBrush}">用户描述</Label>
             <ScrollViewer Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Height="80">
                 <Grid x:Name="UserDescription">
                     <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">User ID and description here</Label>
                 </Grid>
             </ScrollViewer>
             -->
-            <Label x:Name="Update_Time" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">最后更新时间：无 | 最后成功更新时间：无</Label>
+            <Label x:Name="Update_Time" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">最后更新时间：无 | 最后成功更新时间：无</Label>
         </Grid>
     </Grid>
 </Window>

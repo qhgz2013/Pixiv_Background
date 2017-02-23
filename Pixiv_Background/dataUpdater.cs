@@ -1344,7 +1344,7 @@ namespace Pixiv_Background
 
                 //获取失败匹配
                 //投稿被删除
-                var str_ptr_illust_deleted = "<div\\sclass=\"layout-body\">.*?<span.*?>这幅作品已经被删除了</span>.*?</div>";
+                var str_ptr_illust_deleted = "这幅作品已经被删除了";
                 var match = Regex.Match(http_str, str_ptr_illust_deleted);
                 if (match.Success)
                 {
@@ -1362,6 +1362,14 @@ namespace Pixiv_Background
                     uint tuser_id = uint.Parse(match.Result("${user_id}"));
 
                     illust.Author_ID = tuser_id;
+                    illust.HTTP_Status = (int)HttpStatusCode.Forbidden;
+                    return;
+                }
+                //由于作品的公开设置所限，您无法浏览该作品。
+                var str_ptr_illust_forbidden = "由于作品的公开设置所限，您无法浏览该作品。";
+                match = Regex.Match(http_str, str_ptr_illust_forbidden);
+                if (match.Success)
+                {
                     illust.HTTP_Status = (int)HttpStatusCode.Forbidden;
                     return;
                 }

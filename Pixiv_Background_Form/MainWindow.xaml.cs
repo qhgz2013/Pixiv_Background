@@ -485,7 +485,7 @@ namespace Pixiv_Background_Form
             if (_detailed)
             {
                 this.Width = 410;
-                this.Height = 160;
+                this.Height = 166;
                 Show_More_Click.Inlines.Add("详细信息");
             }
             else
@@ -574,10 +574,11 @@ namespace Pixiv_Background_Form
                 User user = _user_info;
                 //image solution
                 Image_Size.Content = _image_solution.Width + "×" + _image_solution.Height;
+                if (illust.Size.Width > 0 && illust.Size.Height > 0) { Image_Size.Content += " [Origin: " + illust.Size.Width + "×" + illust.Size.Height + "]"; }
 
                 //author id & illust id
-                user_id_open.Inlines.Clear();
-                user_id_open.Inlines.Add("ID=" + illust.ID + " #" + _illust_page + "/" + illust.Page);
+                illust_id_open.Inlines.Clear();
+                illust_id_open.Inlines.Add("ID=" + illust.ID + " #" + (_illust_page + 1) + "/" + illust.Page);
 
                 //title
                 illust_open.Inlines.Clear();
@@ -595,7 +596,7 @@ namespace Pixiv_Background_Form
                             title_reason = "[403] " + _random_text(new string[] { "该投稿无法浏览", "该投稿仅好p友可见哦～", "明明……它都在那了……你却无法触摸它" });
                             break;
                         case 0:
-                            title_reason = "获取投稿信息中...(sorry,刷新模块还没写)";
+                            title_reason = "获取投稿信息中...";
                             break;
                         case 200: //status correct but empty/null
                             title_reason = "";
