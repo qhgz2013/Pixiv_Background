@@ -97,6 +97,17 @@ namespace Pixiv_Background_Form
             _begin_loading_effect(); //显示loading界面
 
             VBUtil.Utils.NetUtils.Global.LoadCookie();
+            
+            //login cookie test
+            var cookie = VBUtil.Utils.NetUtils.Global.DefaultCookieContainer.GetCookies(new Uri("http://www.pixiv.net/"))["device_token"];
+            if (cookie == null)
+            {
+                //login required
+                var login_dialog = new frmLogin();
+                login_dialog.ShowDialog();
+                if (login_dialog.canceled) Close();
+                dataUpdater.Login(login_dialog.user_name, login_dialog.pass_word);
+            }
 
             _background_queue = new List<string>();
             _operationLock = new ReaderWriterLock();
@@ -746,19 +757,34 @@ namespace Pixiv_Background_Form
         private double _origin_alpha = 1.0;
         private double _destination_alpha = 0.5;
         private Point _last_cursor;
+        //test module for click through
+        [DllImport("user32", EntryPoint = "SetWindowLong")]
+        private static extern uint SetWindowLong(IntPtr hwnd, int nIndex, uint dwNewLong);
+        [DllImport("user32", EntryPoint = "GetWindowLong")]
+        private static extern uint GetWindowLong(IntPtr hwnd, int nIndex);
+        private const int WS_EX_TRANSPARENT = 0x20;
+        private const int GWL_EXSTYLE = (-20);
+        private const uint WS_EX_LAYERED = 0x80000;
+        private const int GWL_STYLE = (-16);
+        private uint _last_window_style;
         private void frmMain_MouseMove(object sender, MouseEventArgs e)
         {
             if (_enabled_slide_hide)
             {
                 if (Opacity == _origin_alpha && _last_cursor != e.GetPosition(this))
                 {
+                    //fade out animation
                     var da = new DoubleAnimation(_origin_alpha, _destination_alpha, new TimeSpan(0, 0, 0, 0, 300));
                     this.BeginAnimation(OpacityProperty, da);
+                    //click through
+                    var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                    _last_window_style = GetWindowLong(hwnd, GWL_EXSTYLE);
+                    SetWindowLong(hwnd, GWL_EXSTYLE, _last_window_style | WS_EX_TRANSPARENT);
                 }
 
                 _last_mouse_move = DateTime.Now;
                 _last_cursor = e.GetPosition(this);
-                //Debug.Print(_last_cursor.ToString());
+                Debug.Print(_last_cursor.ToString());
             }
         }
         private void Timer_callback(object sender)
@@ -767,9 +793,12 @@ namespace Pixiv_Background_Form
             {
                 if ((!_enabled_slide_hide || _enabled_slide_hide && _last_mouse_move.AddSeconds(2) <= DateTime.Now) && Opacity == _destination_alpha)
                 {
+                    //fade in animation
                     var da = new DoubleAnimation(_destination_alpha, _origin_alpha, new TimeSpan(0, 0, 0, 0, 300));
                     this.BeginAnimation(OpacityProperty, da);
-                    //_enabled_slide_hide = false;
+                    //click through
+                    var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                    SetWindowLong(hwnd, GWL_EXSTYLE, _last_window_style);
                 }
             });
             this.Dispatcher.Invoke(del);
