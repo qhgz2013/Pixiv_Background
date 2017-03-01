@@ -153,6 +153,7 @@ namespace Pixiv_Background
         private List<uint> m_user_query_list;
         private int m_query_count;
         private int m_query_finished;
+        private int m_querying_count;
         //数据更新多线程同步锁，负责数据更新的表m_illust_query_list和m_user_query_list，以及更新列表的数量m_query_count的读写
         private ReaderWriterLock m_dataThreadLock;
 
@@ -480,7 +481,7 @@ namespace Pixiv_Background
         private void _sync_illust_callback()
         {
             if (m_illust_working_thd_count >= M_MAX_ILLUST_SYNC_THREAD) return;
-            Debug.Print("Sync Illust Thread Created");
+            //Debug.Print("Sync Illust Thread Created");
             m_illust_working_thd_count++;
 
             uint id;
@@ -492,6 +493,7 @@ namespace Pixiv_Background
                 if (m_illust_query_list.Count != 0)
                 {
                     id = m_illust_query_list[0];
+                    m_querying_count++;
                     m_illust_query_list.RemoveAt(0);
                 }
 
@@ -545,19 +547,20 @@ namespace Pixiv_Background
                 }
                 finally
                 {
-                    //m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                     m_query_finished++;
-                    //m_dataThreadLock.ReleaseWriterLock();
+                    m_querying_count--;
+                    m_dataThreadLock.ReleaseWriterLock();
                 }
             } while (id != 0 && !m_abort_flag);
 
             m_illust_working_thd_count--;
-            Debug.Print("Sync Illust Thread Exited");
+            //Debug.Print("Sync Illust Thread Exited");
         }
         private void _sync_user_callback()
         {
             if (m_user_working_thd_count >= M_MAX_USER_SYNC_THREAD) return;
-            Debug.Print("Sync User Thread Created");
+            //Debug.Print("Sync User Thread Created");
             m_user_working_thd_count++;
 
             uint id;
@@ -570,6 +573,7 @@ namespace Pixiv_Background
                 {
                     id = m_user_query_list[0];
                     m_user_query_list.RemoveAt(0);
+                    m_querying_count++;
                 }
 
                 m_dataThreadLock.ReleaseWriterLock();
@@ -605,14 +609,15 @@ namespace Pixiv_Background
                 }
                 finally
                 {
-                    //m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
                     m_query_finished++;
-                    //m_dataThreadLock.ReleaseWriterLock();
+                    m_querying_count--;
+                    m_dataThreadLock.ReleaseWriterLock();
                 }
             } while (id != 0 && !m_abort_flag);
 
             m_user_working_thd_count--;
-            Debug.Print("Sync User Thread Exited");
+            //Debug.Print("Sync User Thread Exited");
         }
         private void _monitor_callback()
         {
@@ -627,7 +632,7 @@ namespace Pixiv_Background
                     if (m_illust_working_thd_count < M_MAX_ILLUST_SYNC_THREAD && illust_count != 0)
                     {
 
-                        Debug.Print("Multi-thread access for illust started!");
+                        //Debug.Print("Multi-thread access for illust started!");
                         if (m_dbTransaction == null)
                         {
                             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -651,7 +656,7 @@ namespace Pixiv_Background
 
                     if (m_user_working_thd_count < M_MAX_USER_SYNC_THREAD && user_count != 0)
                     {
-                        Debug.Print("Multi-thread access for user started!");
+                        //Debug.Print("Multi-thread access for user started!");
                         if (m_dbTransaction == null)
                         {
                             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -753,8 +758,9 @@ namespace Pixiv_Background
                 if (item.Value == 0 || item.Value == -2 || (item.Value > 0 && item.Value != (int)HttpStatusCode.OK && !m_ignore_non_200_status))
                     m_user_query_list.Add(item.Key);
             }
-            m_query_count = m_illust_query_list.Count + m_user_query_list.Count;
+            m_query_count = m_illust_query_list.Count + m_user_query_list.Count + m_querying_count;
             m_query_finished = 0;
+            Debug.Print("Illust queue: " + m_illust_query_list.Count + ", User queue: " + m_user_query_list.Count + ", Querying: " + m_querying_count);
         }
 
         private void _join_all_thread(int timeout = int.MaxValue)

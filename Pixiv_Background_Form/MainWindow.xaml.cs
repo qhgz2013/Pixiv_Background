@@ -97,7 +97,7 @@ namespace Pixiv_Background_Form
             _begin_loading_effect(); //显示loading界面
 
             VBUtil.Utils.NetUtils.Global.LoadCookie();
-            
+
             //login cookie test
             var cookie = VBUtil.Utils.NetUtils.Global.DefaultCookieContainer.GetCookies(new Uri("http://www.pixiv.net/"))["device_token"];
             if (cookie == null)
@@ -217,7 +217,7 @@ namespace Pixiv_Background_Form
                 {
                     if (data.Author_ID != _illust_info.Author_ID)
                     {
-                        ThreadPool.QueueUserWorkItem(delegate 
+                        ThreadPool.QueueUserWorkItem(delegate
                         {
                             _user_info = _database.GetUserInfo(data.Author_ID);
                             _save_background_info();
@@ -226,9 +226,9 @@ namespace Pixiv_Background_Form
                     }
                     _illust_info = data;
                 }
-                else if(_illust_info.HTTP_Status != 200)
+                else if (_illust_info.HTTP_Status != 200)
                 {
-                    ThreadPool.QueueUserWorkItem(delegate 
+                    ThreadPool.QueueUserWorkItem(delegate
                     {
                         _update_from_sauceNao();
                     });
@@ -298,6 +298,7 @@ namespace Pixiv_Background_Form
 
         //线程工作函数
         #region Working Thread
+        private ReaderWriterLock _thdLck = new ReaderWriterLock();
         private void _bgthread_callback()
         {
             _next_update_time = DateTime.Now.Date;
@@ -370,6 +371,8 @@ namespace Pixiv_Background_Form
             var path = System.Environment.CurrentDirectory;
             path += @"\tempBackground.bmp";
 
+            _thdLck.AcquireWriterLock(Timeout.Infinite);
+
             const bool use_fast_mode = true;
 
             if (!use_fast_mode)
@@ -405,6 +408,8 @@ namespace Pixiv_Background_Form
                 }
                 gr.DrawImage(img, (tmpbmp.Width - new_width) / 2, (tmpbmp.Height - new_height) / 2, new_width, new_height);
 
+                _image_solution = img.Size;
+                img.Dispose();
 
                 tmpbmp.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
                 gr.Dispose();
@@ -412,14 +417,30 @@ namespace Pixiv_Background_Form
             }
             else
             {
-                img.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
+                // fixing bug:
+                //引发的异常:“System.Runtime.InteropServices.ExternalException”(位于 System.Drawing.dll 中)
+                //System.Runtime.InteropServices.ExternalException (0x80004005): GDI+ 中发生一般性错误。
+                //   在 System.Drawing.Image.Save(String filename, ImageCodecInfo encoder, EncoderParameters encoderParams)
+                //   在 Pixiv_Background_Form.MainWindow._set_desktop_background(String imgPath) 位置 D:\coding\CS\Pixiv_Background\Pixiv_Background_Form\MainWindow.xaml.cs:行号 415
+                //   在 Pixiv_Background_Form.MainWindow._bgthread_callback() 位置 D:\coding\CS\Pixiv_Background\Pixiv_Background_Form\MainWindow.xaml.cs:行号 336
+
+                var img2 = new System.Drawing.Bitmap(img.Width, img.Height);
+                var gr = System.Drawing.Graphics.FromImage(img2);
+                gr.DrawImage(img, 0, 0, img2.Width, img2.Height);
+                gr.Dispose();
+                _image_solution = img.Size;
+                img.Dispose();
+                img2.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
+                img2.Dispose();
+
+                //img.Save(path, System.Drawing.Imaging.ImageFormat.Bmp);
             }
 
             SystemParametersInfo(20, 0, path, 2);
 
-            _image_solution = img.Size;
 
-            img.Dispose();
+
+            _thdLck.ReleaseWriterLock();
         }
 
         #endregion //Working Thread
@@ -646,7 +667,7 @@ namespace Pixiv_Background_Form
                     Border1.Background = Brushes.Red;
 
                 //author image
-                if (user.User_Face!= null)
+                if (user.User_Face != null)
                 {
                     var ss = new MemoryStream();
                     user.User_Face.Save(ss, user.User_Face.RawFormat);
@@ -803,7 +824,7 @@ namespace Pixiv_Background_Form
             });
             this.Dispatcher.Invoke(del);
         }
-        
+
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
             this.Close();

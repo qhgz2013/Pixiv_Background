@@ -1,4 +1,7 @@
 <p>
+<b>alpha v0.11</b><br/>
+bug修复（感谢室友老韦的鼠标猛搓，果然大力出奇迹）<br/>
+<br/>
 <b>alpha v0.10</b><br/>
 支持从sauceNao接口自动获取投稿信息</b><br/>
 <br/>
