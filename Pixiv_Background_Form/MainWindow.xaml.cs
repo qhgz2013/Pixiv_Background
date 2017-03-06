@@ -32,9 +32,14 @@ namespace Pixiv_Background_Form
         public MainWindow()
         {
             InitializeComponent();
-            ThreadPool.QueueUserWorkItem((object obj) => { _data_initialize(); }); //异步初始化数据
         }
 
+        private void frmMain_Loaded(object sender, RoutedEventArgs e)
+        {
+            frmMain.Left = SystemParameters.WorkArea.Width - frmMain.ActualWidth;
+            frmMain.Top = 0;
+            ThreadPool.QueueUserWorkItem((object obj) => { _data_initialize(); }); //异步初始化数据
+        }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _database.AbortWorkingThread();
@@ -829,5 +834,6 @@ namespace Pixiv_Background_Form
         {
             this.Close();
         }
+
     }
 }

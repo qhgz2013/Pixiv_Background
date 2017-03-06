@@ -915,25 +915,25 @@ namespace Pixiv_Background
                     m_dbCommand.Parameters.Add("@Score", DbType.Int32);
                     m_dbCommand.Parameters["@Score"].Value = illust.Score;
                 }
-                if (illust.Title != null)
+                if (!string.IsNullOrEmpty(illust.Title))
                 {
                     update_str += ",Title=@Title";
                     m_dbCommand.Parameters.Add("@Title", DbType.String);
                     m_dbCommand.Parameters["@Title"].Value = illust.Title;
                 }
-                if (illust.Description != null)
+                if (!string.IsNullOrEmpty(illust.Description))
                 {
                     update_str += ",Description=@Description";
                     m_dbCommand.Parameters.Add("@Description", DbType.String);
                     m_dbCommand.Parameters["@Description"].Value = illust.Description;
                 }
-                if (illust.Tag != null)
+                if (!string.IsNullOrEmpty(illust.Tag))
                 {
                     update_str += ",Tag=@Tag";
                     m_dbCommand.Parameters.Add("@Tag", DbType.String);
                     m_dbCommand.Parameters["@Tag"].Value = illust.Tag;
                 }
-                if (illust.Tool != null)
+                if (!string.IsNullOrEmpty(illust.Tool))
                 {
                     update_str += ",Tool=@Tool";
                     m_dbCommand.Parameters.Add("@Tool", DbType.String);
@@ -1158,14 +1158,14 @@ namespace Pixiv_Background
                 m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
                 m_dbCommand.Parameters["@Last_Success_Update"].Value = user.Last_Success_Update;
 
-                if (user.Name != null)
+                if (!string.IsNullOrEmpty(user.Name))
                 {
                     update_user_data += ",Name=@Name";
                     m_dbCommand.Parameters.Add("@Name", DbType.String);
                     m_dbCommand.Parameters["@Name"].Value = user.Name;
                 }
 
-                if (user.Description != null)
+                if (!string.IsNullOrEmpty(user.Description))
                 {
                     update_user_data += ",Description=@Description";
                     m_dbCommand.Parameters.Add("@Description", DbType.String);
@@ -1185,49 +1185,49 @@ namespace Pixiv_Background
                     m_dbCommand.Parameters["@User_Face"].Value = buf;
                 }
 
-                if (user.User_Face_Url != null)
+                if (!string.IsNullOrEmpty(user.User_Face_Url))
                 {
                     update_user_data += ",User_Face_Url=@User_Face_Url";
                     m_dbCommand.Parameters.Add("@User_Face_Url", DbType.String);
                     m_dbCommand.Parameters["@User_Face_Url"].Value = user.User_Face_Url;
                 }
 
-                if (user.Home_Page != null)
+                if (!string.IsNullOrEmpty(user.Home_Page))
                 {
                     update_user_data += ",Home_Page=@Home_Page";
                     m_dbCommand.Parameters.Add("@Home_Page", DbType.String);
                     m_dbCommand.Parameters["@Home_Page"].Value = user.Home_Page;
                 }
 
-                if (user.Gender != null)
+                if (!string.IsNullOrEmpty(user.Gender))
                 {
                     update_user_data += ",Gender=@Gender";
                     m_dbCommand.Parameters.Add("@Gender", DbType.String);
                     m_dbCommand.Parameters["@Gender"].Value = user.Gender;
                 }
 
-                if (user.Address != null)
+                if (!string.IsNullOrEmpty(user.Address))
                 {
                     update_user_data += ",Address=@Address";
                     m_dbCommand.Parameters.Add("@Address", DbType.String);
                     m_dbCommand.Parameters["@Address"].Value = user.Address;
                 }
 
-                if (user.Birthday != null)
+                if (!string.IsNullOrEmpty(user.Birthday))
                 {
                     update_user_data += ",Birthday=@Birthday";
                     m_dbCommand.Parameters.Add("@Birthday", DbType.String);
                     m_dbCommand.Parameters["@Birthday"].Value = user.Birthday;
                 }
 
-                if (user.Twitter != null)
+                if (!string.IsNullOrEmpty(user.Twitter))
                 {
                     update_user_data += ",Twitter=@Twitter";
                     m_dbCommand.Parameters.Add("@Twitter", DbType.String);
                     m_dbCommand.Parameters["@Twitter"].Value = user.Twitter;
                 }
 
-                if (user.Personal_Tag != null)
+                if (!string.IsNullOrEmpty(user.Personal_Tag))
                 {
                     update_user_data += ",Personal_Tag=@Personal_Tag";
                     m_dbCommand.Parameters.Add("@Personal_Tag", DbType.String);
