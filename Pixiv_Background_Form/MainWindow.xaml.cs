@@ -108,10 +108,16 @@ namespace Pixiv_Background_Form
             if (cookie == null)
             {
                 //login required
-                var login_dialog = new frmLogin();
-                login_dialog.ShowDialog();
-                if (login_dialog.canceled) Close();
-                dataUpdater.Login(login_dialog.user_name, login_dialog.pass_word);
+
+                //sta invoke
+                this.Dispatcher.Invoke(new NoArgSTA(delegate
+                {
+                    var login_dialog = new frmLogin();
+                    login_dialog.ShowDialog();
+                    if (login_dialog.canceled) Close();
+                    dataUpdater.Login(login_dialog.user_name, login_dialog.pass_word);
+
+                }));
             }
 
             _background_queue = new List<string>();
