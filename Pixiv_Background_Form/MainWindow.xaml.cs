@@ -42,7 +42,7 @@ namespace Pixiv_Background_Form
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            _database.AbortWorkingThread();
+            if (_database != null) _database.AbortWorkingThread();
             VBUtil.Utils.NetUtils.Global.SaveCookie();
             _save_background_info();
         }
@@ -114,9 +114,10 @@ namespace Pixiv_Background_Form
                 {
                     var login_dialog = new frmLogin();
                     login_dialog.ShowDialog();
-                    if (login_dialog.canceled) Close();
+                    if (login_dialog.canceled) { Close(); return; }
                     dataUpdater.Login(login_dialog.user_name, login_dialog.pass_word);
 
+                    VBUtil.Utils.NetUtils.Global.SaveCookie();
                 }));
             }
 
@@ -516,7 +517,7 @@ namespace Pixiv_Background_Form
                 _operationLock.AcquireWriterLock(Timeout.Infinite);
                 _operationLock.ReleaseWriterLock(); //waiting background thread complete current task
 
-                if (_refresh_background_click_guid == current_task)
+                if (_refresh_background_click_guid == current_task && _bgthread != null)
                     _bgthread.Interrupt();
                 //verifying async token and update
             });
