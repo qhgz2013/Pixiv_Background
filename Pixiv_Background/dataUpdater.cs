@@ -112,7 +112,7 @@ namespace Pixiv_Background
 
     public enum DataOrigin
     {
-        Pixiv_Html, SauceNao_API
+        Pixiv_Html, SauceNao_API, Pixiv_App_Api
     }
 
     public enum DataUpdateMode
@@ -1316,7 +1316,7 @@ namespace Pixiv_Background
         #endregion //SQL Operations
 
         //数据解析
-        #region Data Parser
+        #region Data Parser [Pixiv HTML Origin]
 
         /// <summary>
         /// 从网页上获取投稿信息 [MTA]
