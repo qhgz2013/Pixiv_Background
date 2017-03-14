@@ -15,19 +15,21 @@ using System.Net;
 using System.Diagnostics;
 
 /*
-* 目前数据库的表格变量定义 [v1.0.5]
+* 目前数据库的表格变量定义 [v1.0.6]
 * 
 * TABLE DbVars(string Key [PRIMARY KEY], string Value)
 *       用于存放数据库相关信息，如版本，路径等。 Key:数值名称 Value:数值内容
 * TABLE User(uint ID [PRIMARY KEY], string Name, string Description, Byte[] User_Face, string User_Face_Url, string Home_Page,
 *       用于存放画师信息，ID:画师ID，      Name:画师名称，Description:画师描述（html代码）, User_Face:画师头像（二进制图片）,User_Face_Url:画师头像的url 下载失败可以从这里直接下载, Home_Page: 画师的个人主页
-*            string Gender, string Personal_Tag, string Address, string Birthday, string Twitter, int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL], ulong Last_Success_Update[NOT NULL])
-*            Gender:性别，男/女,   Personal_Tag:个人的标签, Address:地址, Birthday:生日, Twitter:推,  HTTP_Status:http状态,         Last_Update:最后更新的时间    Last_Success_Update:最后成功更新的时间
+*            string Gender, string Personal_Tag, string Address, string Birthday, string Job, int Follow_Users, int Follower, int Illust_Bookmark_Public, int Mypixiv_Users, int Total_Illusts, int Total_Novels, string Twitter, 
+*            Gender:性别，男/女,   Personal_Tag:个人的标签, Address:地址, Birthday:生日, Job:职业, Follow_Users:关注着, Follower:被关注着, Illust_Bookmark_Public:公开收藏数, Mypixiv_Users:好p友数, Total_Illusts: 总插画投稿数, int Total_Novels:总小说投稿数, Twitter:推,
+*            int HTTP_Status [NOT NULL], ulong Last_Update [NOT NULL], ulong Last_Success_Update[NOT NULL])
+*            HTTP_Status:http状态,         Last_Update:最后更新的时间    Last_Success_Update:最后成功更新的时间
 * 
 * TABLE Illust(uint ID [PRIMARY KEY], uint Author_ID [NOT NULL], uint Page [NOT NULL [1]], string Title, string Description, string Tag, string Tool,
 *       用于存放投稿信息，ID:作品ID，      Author_ID:画师ID，         Page:投稿分p数              Title:投稿标题，Description:投稿的描述,Tag:投稿标签，Tool:绘图工具
-*              int Click [NOT NULL [0]], int Width [NOT NULL [0]], int Height [NOT NULL [0]] int Rate_Count [NOT NULL [0]], int Score [NOT NULL [0]],
-*                   Click:点击数，           Width:作品宽度像素,       Height:作品高度像素,      Rate_Count:用户评分数，        Score:用户评分
+*              int Click [NOT NULL [0]], int Bookmark_Count, int Comment_Count, int Width [NOT NULL [0]], int Height [NOT NULL [0]] int Rate_Count [NOT NULL [0]], int Score [NOT NULL [0]],
+*                   Click:点击数，           Bookmark_Count:收藏数 Comment_Count:评论数 Width:作品宽度像素,   Height:作品高度像素,      Rate_Count:用户评分数，        Score:用户评分
 *              ulong Submit_Time [NOT NULL [0]], int HTTP_Status [NOT NULL [0]], ulong Last_Update [NOT NULL [0]], ulong Last_Success_Update [NOT NULL [0]], byte Origin [NOT NULL [0]])
 *                    Submit_Time:投稿时间，          HTTP_Status:获取投稿信息时的http状态码，Last_Update:最后更新投稿信息的时间, Last_Success_Update:最后成功更新的时间, Origin:数据来源
 * 
@@ -63,6 +65,20 @@ namespace Pixiv_Background
         public string Address;
         //生日
         public string Birthday;
+        //职业
+        public string Job;
+        //关注其他画师的人数
+        public int Follow_Users;
+        //被他人关注的人数
+        public int Follower;
+        //公开的收藏数
+        public int Illust_Bookmark_Public;
+        //好p友数
+        public int Mypixiv_Users;
+        //总插画投稿数
+        public int Total_Illusts;
+        //总漫画投稿数
+        public int Total_Novels;
         //Twitter
         public string Twitter;
         //http状态
@@ -92,6 +108,10 @@ namespace Pixiv_Background
         public string Tool;
         //点击数
         public int Click;
+        //收藏数
+        public int Bookmark_Count;
+        //评论数
+        public int Comment_Count;
         //作品像素
         public Size Size;
         //评分次数
@@ -112,7 +132,7 @@ namespace Pixiv_Background
 
     public enum DataOrigin
     {
-        Pixiv_Html, SauceNao_API
+        Pixiv_Html, SauceNao_API, Pixiv_App_API
     }
 
     public enum DataUpdateMode
@@ -176,7 +196,7 @@ namespace Pixiv_Background
         #region Constant Definations
 
         //常量定义：当前版本和最大获取投稿信息的线程数
-        private const string M_CURRENT_DBVERSION = "1.0.5";
+        private const string M_CURRENT_DBVERSION = "1.0.6";
         //最大获取投稿信息的线程数
         private const int M_MAX_ILLUST_SYNC_THREAD = 2;
         //最大获取用户信息的线程数
@@ -185,6 +205,11 @@ namespace Pixiv_Background
         private const string multi_data_split_string = ",";
         //最小数据更新周期（单位：秒）
         private const int M_MIN_AUTOUPDATE_INTERVAL = 15 * 24 * 60 * 60; //15 days
+        //client id
+        private const string M_CLIENT_ID = "MOBrBDS8blbauoSck0ZfDbtuzpyT";
+        //client secret
+        private const string M_CLIENT_SECRET = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
+        private const string M_APP_USER_AGENT = "PixivAndroidApp/5.0.54 (Android 6.0.1; MI 5s)";
         #endregion //Constant Definations
 
         //构造函数及初始化
@@ -252,8 +277,8 @@ namespace Pixiv_Background
                 Debug.Print("Creating basic table and inserting variables into database.");
 
                 string create_var_table = "CREATE TABLE DbVars(Key VARCHAR PRIMARY KEY, Value VARCHAR)";
-                string create_user_table = "CREATE TABLE User(ID INT PRIMARY KEY, Name VARCHAR, Description TEXT, User_Face IMAGE, User_Face_Url VARCHAR, Home_Page VARCHAR, Gender VARCHAR, Personal_Tag VARCHAR, Address VARCHAR, Birthday VARCHAR, Twitter VARCHAR, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
-                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Page INT NOT NULL DEFAULT 1, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL DEFAULT 0, HTTP_Status INT NOT NULL DEFAULT 0, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0, Origin TINYINT NOT NULL DEFAULT 0)";
+                string create_user_table = "CREATE TABLE User(ID INT PRIMARY KEY, Name VARCHAR, Description TEXT, User_Face IMAGE, User_Face_Url VARCHAR, Home_Page VARCHAR, Gender VARCHAR, Personal_Tag VARCHAR, Address VARCHAR, Birthday VARCHAR, Job VARCHAR, Follow_Users INT, Follower INT, Illust_Bookmark_Public INT, Mypixiv_Users INT, Total_Illusts INT, Total_Novels INT, Twitter VARCHAR, HTTP_Status INT NOT NULL, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0)";
+                string create_illust_table = "CREATE TABLE Illust(ID INT PRIMARY KEY, Author_ID INT NOT NULL, Page INT NOT NULL DEFAULT 1, Title VARCHAR, Description TEXT, Tag VARCHAR, Tool VARCHAR, Click INT NOT NULL DEFAULT 0, Bookmark_Count INT NOT NULL DEFAULT 0, Comment_Count INT NOT NULL DEFAULT 0, Rate_Count INT NOT NULL DEFAULT 0, Score INT NOT NULL DEFAULT 0, Width INT NOT NULL DEFAULT 0, Height INT NOT NULL DEFAULT 0, Submit_Time BIGINT NOT NULL DEFAULT 0, HTTP_Status INT NOT NULL DEFAULT 0, Last_Update BIGINT NOT NULL DEFAULT 0, Last_Success_Update BIGINT NOT NULL DEFAULT 0, Origin TINYINT NOT NULL DEFAULT 0)";
                 string write_version_info = "INSERT INTO DbVars VALUES('Version', '" + M_CURRENT_DBVERSION + "')";
                 m_dbCommand.CommandText = create_var_table;
                 m_dbCommand.ExecuteNonQuery();
@@ -623,98 +648,102 @@ namespace Pixiv_Background
         {
             do
             {
-                try
+                if (Is_Logined)
                 {
-                    m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
-                    int illust_count = m_illust_query_list.Count;
-                    m_dataThreadLock.ReleaseWriterLock();
 
-                    if (m_illust_working_thd_count < M_MAX_ILLUST_SYNC_THREAD && illust_count != 0)
+                    try
                     {
+                        m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                        int illust_count = m_illust_query_list.Count;
+                        m_dataThreadLock.ReleaseWriterLock();
 
-                        //Debug.Print("Multi-thread access for illust started!");
-                        if (m_dbTransaction == null)
+                        if (m_illust_working_thd_count < M_MAX_ILLUST_SYNC_THREAD && illust_count != 0)
                         {
+
+                            //Debug.Print("Multi-thread access for illust started!");
+                            if (m_dbTransaction == null)
+                            {
+                                m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                                m_dbTransaction = m_dbConnection.BeginTransaction();
+                                m_sqlThreadLock.ReleaseWriterLock();
+                            }
+
+                            for (int i = m_illust_working_thd_count; i < M_MAX_ILLUST_SYNC_THREAD; i++)
+                            {
+                                m_illust_thd[i] = new Thread(_sync_illust_callback);
+                                m_illust_thd[i].Name = "Illust Work Thread (#" + i + ")";
+                                m_illust_thd[i].IsBackground = false;
+                                m_illust_thd[i].Start();
+                            }
+
+                        }
+
+                        m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
+                        int user_count = m_user_query_list.Count;
+                        m_dataThreadLock.ReleaseWriterLock();
+
+                        if (m_user_working_thd_count < M_MAX_USER_SYNC_THREAD && user_count != 0)
+                        {
+                            //Debug.Print("Multi-thread access for user started!");
+                            if (m_dbTransaction == null)
+                            {
+                                m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                                m_dbTransaction = m_dbConnection.BeginTransaction();
+                                m_sqlThreadLock.ReleaseWriterLock();
+                            }
+
+                            for (int i = m_user_working_thd_count; i < M_MAX_USER_SYNC_THREAD; i++)
+                            {
+                                m_user_thd[i] = new Thread(_sync_user_callback);
+                                m_user_thd[i].Name = "User Work Thread (#" + i + ")";
+                                m_user_thd[i].IsBackground = false;
+                                m_user_thd[i].Start();
+                            }
+                        }
+
+                    }
+                    catch (ThreadAbortException)
+                    {
+                        //thread aborting, stopping all working thread
+                        m_abort_flag = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.Print("Unexpected exception happed in monitor thread:");
+                        Debug.Print(ex.ToString());
+                    }
+
+                    _join_all_thread(1000);
+
+                    //线程为空，提交数据
+                    if (m_illust_working_thd_count == 0 && m_user_working_thd_count == 0)
+                    {
+                        if (m_dbTransaction != null)
+                        {
+                            Debug.Print("Thread All Exited, Commiting data");
                             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-                            m_dbTransaction = m_dbConnection.BeginTransaction();
+                            m_dbTransaction.Commit();
+                            m_dbTransaction = null;
                             m_sqlThreadLock.ReleaseWriterLock();
                         }
-
-                        for (int i = m_illust_working_thd_count; i < M_MAX_ILLUST_SYNC_THREAD; i++)
-                        {
-                            m_illust_thd[i] = new Thread(_sync_illust_callback);
-                            m_illust_thd[i].Name = "Illust Work Thread (#" + i + ")";
-                            m_illust_thd[i].IsBackground = false;
-                            m_illust_thd[i].Start();
-                        }
-
                     }
 
+                    //更新列表为空，线程空闲，清空队列数量缓存
                     m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
-                    int user_count = m_user_query_list.Count;
-                    m_dataThreadLock.ReleaseWriterLock();
+                    int ic = m_illust_query_list.Count, uc = m_user_query_list.Count;
+                    m_dataThreadLock.ReleaseLock();
 
-                    if (m_user_working_thd_count < M_MAX_USER_SYNC_THREAD && user_count != 0)
+                    if (ic != 0 && uc != 0 && m_illust_working_thd_count == 0 && m_user_working_thd_count == 0)
                     {
-                        //Debug.Print("Multi-thread access for user started!");
-                        if (m_dbTransaction == null)
-                        {
-                            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-                            m_dbTransaction = m_dbConnection.BeginTransaction();
-                            m_sqlThreadLock.ReleaseWriterLock();
-                        }
-
-                        for (int i = m_user_working_thd_count; i < M_MAX_USER_SYNC_THREAD; i++)
-                        {
-                            m_user_thd[i] = new Thread(_sync_user_callback);
-                            m_user_thd[i].Name = "User Work Thread (#" + i + ")";
-                            m_user_thd[i].IsBackground = false;
-                            m_user_thd[i].Start();
-                        }
+                        Debug.Print("Query completed, resetting query list size");
+                        m_query_count = 0;
+                        m_query_finished = 0;
                     }
 
+                    //Debug.Print("[Debug] - m_illust_working_thd_count = " + m_illust_working_thd_count + ", m_user_working_thd_count = " + m_user_working_thd_count + ", m_illust_query_list = " + ic + ", m_user_query_list = " + uc);
+
+                    Thread.Sleep(1000);
                 }
-                catch (ThreadAbortException)
-                {
-                    //thread aborting, stopping all working thread
-                    m_abort_flag = true;
-                }
-                catch (Exception ex)
-                {
-                    Debug.Print("Unexpected exception happed in monitor thread:");
-                    Debug.Print(ex.ToString());
-                }
-
-                _join_all_thread(1000);
-
-                //线程为空，提交数据
-                if (m_illust_working_thd_count == 0 && m_user_working_thd_count == 0)
-                {
-                    if (m_dbTransaction != null)
-                    {
-                        Debug.Print("Thread All Exited, Commiting data");
-                        m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-                        m_dbTransaction.Commit();
-                        m_dbTransaction = null;
-                        m_sqlThreadLock.ReleaseWriterLock();
-                    }
-                }
-
-                //更新列表为空，线程空闲，清空队列数量缓存
-                m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
-                int ic = m_illust_query_list.Count, uc = m_user_query_list.Count;
-                m_dataThreadLock.ReleaseLock();
-
-                if (ic != 0 && uc != 0 && m_illust_working_thd_count == 0 && m_user_working_thd_count == 0)
-                {
-                    Debug.Print("Query completed, resetting query list size");
-                    m_query_count = 0;
-                    m_query_finished = 0;
-                }
-
-                //Debug.Print("[Debug] - m_illust_working_thd_count = " + m_illust_working_thd_count + ", m_user_working_thd_count = " + m_user_working_thd_count + ", m_illust_query_list = " + ic + ", m_user_query_list = " + uc);
-
-                Thread.Sleep(1000);
             } while (!m_abort_flag);
 
             Debug.Print("Abort signal received, waiting all thread to be aborted...");
@@ -780,7 +809,7 @@ namespace Pixiv_Background
         //向sql中自动插入投稿数据
         private bool __insert_illust(Illust illust)
         {
-            var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Origin, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID, @Page, @Origin";
+            var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Origin, Title, Description, Tag, Tool, Click, Bookmark_Count, Comment_Count, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID, @Page, @Origin";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = illust.ID;
             m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
@@ -824,10 +853,14 @@ namespace Pixiv_Background
             else
                 insert_str += ", NULL";
 
-            insert_str += ", @Click, @Width, @Height, @Rate_Count, @Score, @Submit_Time, @HTTP_Status, @Last_Update, @Last_Success_Update)";
+            insert_str += ", @Click, @Bookmark_Count, @Comment_Count, @Width, @Height, @Rate_Count, @Score, @Submit_Time, @HTTP_Status, @Last_Update, @Last_Success_Update)";
 
             m_dbCommand.Parameters.Add("@Click", DbType.Int32);
             m_dbCommand.Parameters["@Click"].Value = illust.Click;
+            m_dbCommand.Parameters.Add("@Bookmark_Count", DbType.Int32);
+            m_dbCommand.Parameters["@Bookmark_Count"].Value = illust.Bookmark_Count;
+            m_dbCommand.Parameters.Add("@Comment_Count", DbType.Int32);
+            m_dbCommand.Parameters["@Comment_Count"].Value = illust.Comment_Count;
             m_dbCommand.Parameters.Add("@Width", DbType.Int32);
             m_dbCommand.Parameters["@Width"].Value = illust.Size.Width;
             m_dbCommand.Parameters.Add("@Height", DbType.Int32);
@@ -885,6 +918,24 @@ namespace Pixiv_Background
                 m_dbCommand.Parameters.Add("@Origin", DbType.Byte);
                 m_dbCommand.Parameters["@Origin"].Value = illust.Origin;
 
+                if (illust.Click >= 0)
+                {
+                    update_str += ",Click=@Click";
+                    m_dbCommand.Parameters.Add("@Click", DbType.Int32);
+                    m_dbCommand.Parameters["@Click"].Value = illust.Click;
+                }
+                if (illust.Bookmark_Count >= 0)
+                {
+                    update_str += ",Bookmark_Count=@Bookmark_Count";
+                    m_dbCommand.Parameters.Add("@Bookmark_Count", DbType.Int32);
+                    m_dbCommand.Parameters["@Bookmark_Count"].Value = illust.Bookmark_Count;
+                }
+                if (illust.Comment_Count >= 0)
+                {
+                    update_str += ",Comment_Count=@Comment_Count";
+                    m_dbCommand.Parameters.Add("@Comment_Count", DbType.Int32);
+                    m_dbCommand.Parameters["@Comment_Count"].Value = illust.Comment_Count;
+                }
                 if (illust.Click >= 0)
                 {
                     update_str += ",Click=@Click";
@@ -972,7 +1023,7 @@ namespace Pixiv_Background
         }
         private Illust __get_illust(uint id)
         {
-            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Page, Origin FROM Illust WHERE ID=" + id;
+            var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Bookmark_Count, Comment_Count, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Page, Origin FROM Illust WHERE ID=" + id;
             var ret = new Illust();
             if (id == 0) return ret;
             try
@@ -992,15 +1043,17 @@ namespace Pixiv_Background
                 ret.Tag = dr.IsDBNull(4) ? "" : dr.GetString(4);
                 ret.Tool = dr.IsDBNull(5) ? "" : dr.GetString(5);
                 ret.Click = dr.GetInt32(6);
-                ret.Size = new Size(dr.GetInt32(7), dr.GetInt32(8));
-                ret.Rate_Count = dr.GetInt32(9);
-                ret.Score = dr.GetInt32(10);
-                ret.Submit_Time = (ulong)dr.GetInt64(11);
-                ret.HTTP_Status = dr.GetInt32(12);
-                ret.Last_Update = (ulong)dr.GetInt64(13);
-                ret.Last_Success_Update = (ulong)dr.GetInt64(14);
-                ret.Page = (uint)dr.GetInt32(15);
-                ret.Origin = (DataOrigin)dr.GetByte(16);
+                ret.Bookmark_Count = dr.GetInt32(7);
+                ret.Comment_Count = dr.GetInt32(8);
+                ret.Size = new Size(dr.GetInt32(9), dr.GetInt32(10));
+                ret.Rate_Count = dr.GetInt32(11);
+                ret.Score = dr.GetInt32(12);
+                ret.Submit_Time = (ulong)dr.GetInt64(13);
+                ret.HTTP_Status = dr.GetInt32(14);
+                ret.Last_Update = (ulong)dr.GetInt64(15);
+                ret.Last_Success_Update = (ulong)dr.GetInt64(16);
+                ret.Page = (uint)dr.GetInt32(17);
+                ret.Origin = (DataOrigin)dr.GetByte(18);
                 dr.Close();
             }
             catch (Exception)
@@ -1018,7 +1071,7 @@ namespace Pixiv_Background
         //插入用户信息到sql和内存列表中（自动跳过null参数） [STA]
         private bool __insert_user(User user)
         {
-            var insert_user_data = "INSERT INTO User(ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID";
+            var insert_user_data = "INSERT INTO User(ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Job, Follow_Users, Follower, Illust_Bookmark_Public, Mypixiv_Users, Total_Illusts, Total_Novels, Twitter, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = user.ID;
             if (!string.IsNullOrEmpty(user.Name))
@@ -1107,6 +1160,29 @@ namespace Pixiv_Background
             }
             else
                 insert_user_data += ",NULL";
+
+            if (user.Job != null)
+            {
+                insert_user_data += ",@Job";
+                m_dbCommand.Parameters.Add("@Job", DbType.String);
+                m_dbCommand.Parameters["@Job"].Value = user.Job;
+            }
+            else
+                insert_user_data += ",NULL";
+
+            insert_user_data += ",@Follow_Users,@Follower,@Illust_Bookmark_Public,@Mypixiv_Users,@Total_Illusts,@Total_Novels";
+            m_dbCommand.Parameters.Add("@Follow_Users", DbType.Int32);
+            m_dbCommand.Parameters["@Follow_Users"].Value = user.Follow_Users;
+            m_dbCommand.Parameters.Add("@Follower", DbType.Int32);
+            m_dbCommand.Parameters["@Follower"].Value = user.Follower;
+            m_dbCommand.Parameters.Add("@Illust_Bookmark_Public", DbType.Int32);
+            m_dbCommand.Parameters["@Illust_Bookmark_Public"].Value = user.Illust_Bookmark_Public;
+            m_dbCommand.Parameters.Add("@Mypixiv_Users", DbType.Int32);
+            m_dbCommand.Parameters["@Mypixiv_Users"].Value = user.Mypixiv_Users;
+            m_dbCommand.Parameters.Add("@Total_Illusts", DbType.Int32);
+            m_dbCommand.Parameters["@Total_Illusts"].Value = user.Total_Illusts;
+            m_dbCommand.Parameters.Add("@Total_Novels", DbType.Int32);
+            m_dbCommand.Parameters["@Total_Novels"].Value = user.Total_Novels;
 
             if (!string.IsNullOrEmpty(user.Twitter))
             {
@@ -1220,6 +1296,48 @@ namespace Pixiv_Background
                     m_dbCommand.Parameters["@Birthday"].Value = user.Birthday;
                 }
 
+                if (user.Follow_Users > 0)
+                {
+                    update_user_data += ",Follow_Users=@Follow_Users";
+                    m_dbCommand.Parameters.Add("@Follow_Users", DbType.Int32);
+                    m_dbCommand.Parameters["@Follow_Users"].Value = user.Follow_Users;
+                }
+
+                if (user.Follower > 0)
+                {
+                    update_user_data += ",Follower=@Follower";
+                    m_dbCommand.Parameters.Add("@Follower", DbType.Int32);
+                    m_dbCommand.Parameters["@Follower"].Value = user.Follower;
+                }
+
+                if (user.Illust_Bookmark_Public > 0)
+                {
+                    update_user_data += ",Illust_Bookmark_Public=@Illust_Bookmark_Public";
+                    m_dbCommand.Parameters.Add("@Illust_Bookmark_Public", DbType.Int32);
+                    m_dbCommand.Parameters["@Illust_Bookmark_Public"].Value = user.Illust_Bookmark_Public;
+                }
+
+                if (user.Mypixiv_Users > 0)
+                {
+                    update_user_data += ",Mypixiv_Users=@Mypixiv_Users";
+                    m_dbCommand.Parameters.Add("@Mypixiv_Users", DbType.Int32);
+                    m_dbCommand.Parameters["@Mypixiv_Users"].Value = user.Mypixiv_Users;
+                }
+
+                if (user.Total_Illusts > 0)
+                {
+                    update_user_data += ",Total_Illusts=@Total_Illusts";
+                    m_dbCommand.Parameters.Add("@Total_Illusts", DbType.Int32);
+                    m_dbCommand.Parameters["@Total_Illusts"].Value = user.Total_Illusts;
+                }
+
+                if (user.Total_Novels > 0)
+                {
+                    update_user_data += ",Total_Novels=@Total_Novels";
+                    m_dbCommand.Parameters.Add("@Total_Novels", DbType.Int32);
+                    m_dbCommand.Parameters["@Total_Novels"].Value = user.Total_Novels;
+                }
+
                 if (!string.IsNullOrEmpty(user.Twitter))
                 {
                     update_user_data += ",Twitter=@Twitter";
@@ -1266,7 +1384,7 @@ namespace Pixiv_Background
         private User __get_user(uint id)
         {
 
-            var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE ID=" + id;
+            var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Job, Follow_Users, Follower, Illust_Bookmark_Public, Mypixiv_Users, Total_Illusts, Total_Novels, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE ID=" + id;
             var ret = new User();
             if (id == 0) return ret;
             try
@@ -1297,10 +1415,17 @@ namespace Pixiv_Background
                 ret.Personal_Tag = dr.IsDBNull(7) ? "" : dr.GetString(7);
                 ret.Address = dr.IsDBNull(8) ? "" : dr.GetString(8);
                 ret.Birthday = dr.IsDBNull(9) ? "" : dr.GetString(9);
-                ret.Twitter = dr.IsDBNull(10) ? "" : dr.GetString(10);
-                ret.HTTP_Status = dr.GetInt32(11);
-                ret.Last_Update = (ulong)dr.GetInt64(12);
-                ret.Last_Success_Update = (ulong)dr.GetInt64(13);
+                ret.Job = dr.IsDBNull(10) ? "" : dr.GetString(10);
+                ret.Follow_Users = dr.IsDBNull(11) ? 0 : dr.GetInt32(11);
+                ret.Follower = dr.IsDBNull(12) ? 0 : dr.GetInt32(12);
+                ret.Illust_Bookmark_Public = dr.IsDBNull(13) ? 0 : dr.GetInt32(13);
+                ret.Mypixiv_Users = dr.IsDBNull(14) ? 0 : dr.GetInt32(14);
+                ret.Total_Illusts = dr.IsDBNull(15) ? 0 : dr.GetInt32(15);
+                ret.Total_Novels = dr.IsDBNull(16) ? 0 : dr.GetInt32(16);
+                ret.Twitter = dr.IsDBNull(17) ? "" : dr.GetString(17);
+                ret.HTTP_Status = dr.IsDBNull(18) ? 0 : dr.GetInt32(18);
+                ret.Last_Update = dr.IsDBNull(19) ? 0 : (ulong)dr.GetInt64(19);
+                ret.Last_Success_Update = dr.IsDBNull(20) ? 0 : (ulong)dr.GetInt64(20);
 
                 dr.Close();
             }
@@ -1328,189 +1453,74 @@ namespace Pixiv_Background
             //初始化
             illust = new Illust();
             illust.ID = id;
-            illust.Origin = DataOrigin.Pixiv_Html;
+            illust.Origin = DataOrigin.Pixiv_App_API;
             illust.Last_Update = (ulong)VBUtil.Utils.Others.ToUnixTimestamp(DateTime.Now);
 
-            var ns = new NetStream();
-            ns.RetryTimes = 0;
+            var ns = new NetStream(RetryTimes: 1, readWriteTimeout: 15000);
+            ns.Timeout = 30000;
             //获取基本的信息
             try
             {
-                var url = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id=" + id;
-                ns.HttpGet(url);
+                var url = "https://app-api.pixiv.net/v1/illust/detail?illust_id=" + id;
 
-                var http_str = ns.ReadResponseString();
-                http_str = http_str.Replace("\r", "").Replace("\n", "");
+                RefreshToken();
+                var header_param = new Parameters();
+                if (!string.IsNullOrEmpty(_access_token))
+                {
+                    header_param.Add("Authorization", "Bearer " + _access_token);
+                }
+
+                ns.HttpGet(url, headerParam: header_param);
+
                 //解析开始~
                 #region Parsing
-                //万能的正则表达式啊！~赐予我力量吧
+                var str_json = ns.ReadResponseString();
+                var json = JsonConvert.DeserializeObject(str_json) as JObject;
+                json = json.Value<JObject>("illust");
 
-                //在html代码里匹配每一个数据
-                string failed_section = "";
+                illust.Description = json.Value<string>("caption");
+                var create_time = json.Value<DateTime>("create_date");
+                //set to GMT+09:00
+                create_time = create_time.ToUniversalTime().AddHours(9);
+                illust.Submit_Time = (ulong)VBUtil.Utils.Others.ToUnixTimestamp(create_time);
+                illust.Size = new Size(json.Value<int>("width"), json.Value<int>("height"));
+                illust.Page = json.Value<uint>("page_count");
 
-                //获取失败匹配
-                //投稿被删除
-                var str_ptr_illust_deleted = "这幅作品已经被删除了";
-                var match = Regex.Match(http_str, str_ptr_illust_deleted);
-                if (match.Success)
+                illust.Tag = "";
+                //parsing tag
+                var tag_list = json.Value<JArray>("tags");
+                foreach (JObject item in tag_list)
                 {
-                    illust.HTTP_Status = (int)HttpStatusCode.NotFound;
-                    return;
+                    illust.Tag += item.Value<string>("name") + ",";
                 }
-                //仅好p友可见
-                var str_ptr_illust_hidden = "<div\\sclass=\"layout-body\">.*?只有在.*?的好P友表里的用户才可以阅览这作品。";
-                match = Regex.Match(http_str, str_ptr_illust_hidden);
-                if (match.Success)
+                if (illust.Tag.Length > 0) illust.Tag = illust.Tag.Substring(0, illust.Tag.Length - 1);
+
+                illust.Title = json.Value<string>("title");
+
+                //parsing tool
+                illust.Tool = "";
+                var tool_list = json.Value<JArray>("tools");
+                foreach (string item in tool_list)
                 {
-                    var str_ptr_author_info = "只有在<a\\shref=\".*?id=(?<user_id>\\d+)\">(?<user>.*?)</a>";
-                    match = Regex.Match(match.Value, str_ptr_author_info);
-                    string tuser_name = match.Result("${user}");
-                    uint tuser_id = uint.Parse(match.Result("${user_id}"));
-
-                    illust.Author_ID = tuser_id;
-                    illust.HTTP_Status = (int)HttpStatusCode.Forbidden;
-                    return;
+                    illust.Tool += item + ",";
                 }
-                //由于作品的公开设置所限，您无法浏览该作品。
-                var str_ptr_illust_forbidden = "由于作品的公开设置所限，您无法浏览该作品。";
-                match = Regex.Match(http_str, str_ptr_illust_forbidden);
-                if (match.Success)
-                {
-                    illust.HTTP_Status = (int)HttpStatusCode.Forbidden;
-                    return;
-                }
+                if (illust.Tool.Length > 0) illust.Tool = illust.Tool.Substring(0, illust.Tool.Length - 1);
 
-                //头像url user_face_url
-                var str_ptr_user_face_url = "<img\\ssrc=\"(?<url>[^\"]*?)\"\\salt=\"\"\\sclass=\"user-image\">";
-                match = Regex.Match(http_str, str_ptr_user_face_url);
-                string user_face_url = match.Success ? match.Result("${url}") : "";
-                failed_section += match.Success ? "" : "user_face_url ";
+                illust.Bookmark_Count = json.Value<int>("total_bookmarks");
+                illust.Comment_Count = json.Value<int>("total_comments");
+                illust.Click = json.Value<int>("total_view");
 
-                //用户名称 user_name
-                var str_ptr_user_name = "<h1\\sclass=\"user\">(?<user_name>.*?)</h1>";
-                match = Regex.Match(http_str, str_ptr_user_name);
-                string user_name = match.Success ? match.Result("${user_name}") : "";
-                failed_section += match.Success ? "" : "user_name ";
+                illust.Author_ID = json["user"].Value<uint>("id");
 
-                //用户id user_id
-                var str_ptr_user_id = "<input\\stype=\"hidden\"\\sname=\"user_id\"\\svalue=\"(?<user_id>\\d+)\">";
-                match = Regex.Match(http_str, str_ptr_user_id);
-                uint user_id = match.Success ? uint.Parse(match.Result("${user_id}")) : 0;
-                failed_section += match.Success ? "" : "user_id ";
-
-                //投稿相关的信息 注意：结尾匹配未封闭（即未必为</ul>）
-                var str_ptr_meta_size = "<li>(?<size>(?<width>\\d+)×(?<height>\\d+))</li>";
-                var str_ptr_meta_page = "<li>(?<multi_page>一次性投稿多张作品\\s(?<page>\\d+)P)</li>";
-                var str_ptr_meta_tool = "<li><ul\\sclass=\"tools\">(?<tools>.*?)</ul></li>";
-                var str_ptr_meta_1 = "<ul\\sclass=\"meta\"><li>(?<date>.*?)</li>((" + str_ptr_meta_size + ")|(" + str_ptr_meta_page + "))(" + str_ptr_meta_tool + ")?";
-                //投稿时间 submit_time [submit_time_str]
-                match = Regex.Match(http_str, str_ptr_meta_1);
-                if (!match.Success)
-                {
-                    throw new InvalidDataException("Meta fetch failed!: original string:\n" + http_str);
-                }
-                var submit_time_str = match.Result("${date}");
-
-                //将投稿时间转变为DateTime类型
-                var str_ptr_submit_time_split = "(?<year>\\d+)年(?<month>\\d+)月(?<day>\\d+)日\\s(?<hour>\\d+):(?<minute>\\d+)";
-                var tmpMatch = Regex.Match(submit_time_str, str_ptr_submit_time_split);
-                int year = int.Parse(tmpMatch.Result("${year}")), month = int.Parse(tmpMatch.Result("${month}")), day = int.Parse(tmpMatch.Result("${day}")), hour = int.Parse(tmpMatch.Result("${hour}")), minute = int.Parse(tmpMatch.Result("${minute}"));
-                DateTime submit_time = new DateTime(year, month, day, hour, minute, 0);
-                ulong submit_unix_timestamp = (ulong)VBUtil.Utils.Others.ToUnixTimestamp(submit_time);
-
-                //作品分辨率 illust_size (注：多p投稿没有该属性)
-                var group = match.Groups["size"];
-                Size illust_size = group.Success ? new Size(int.Parse(match.Result("${width}")), int.Parse(match.Result("${height}"))) : new Size(0, 0);
-                bool exist_illust_size = group.Success;
-
-
-                //作品分p illust_page
-                group = match.Groups["multi_page"];
-                uint illust_page = group.Success ? uint.Parse(match.Result("${page}")) : 1;
-
-                //工具（如果可能有的话） tools
-                group = match.Groups["tools"];
-                var str_ptr_tool_info = "<li>(?<tool>.*?)</li>";
-                string tools = "";
-                if (group.Success)
-                {
-                    tmpMatch = Regex.Match(match.Result("${tools}"), str_ptr_tool_info);
-                    while (tmpMatch.Success)
-                    {
-                        tools += tmpMatch.Result("${tool}") + multi_data_split_string;
-                        tmpMatch = tmpMatch.NextMatch();
-                    }
-                }
-                tools = tools.Length >= multi_data_split_string.Length ? tools.Substring(0, tools.Length - multi_data_split_string.Length) : tools;
-                //failed_section += match.Success ? "" : "tools "; //optional
-
-                //点击 click
-                var str_ptr_click = "<dd\\sclass=\"view-count\">(?<click>\\d+)</dd>";
-                match = Regex.Match(http_str, str_ptr_click);
-                int click = match.Success ? int.Parse(match.Result("${click}")) : 0;
-                failed_section += match.Success ? "" : "clicks ";
-
-                //评分数 rate_count
-                var str_ptr_rate_count = "<dd\\sclass=\"rated-count\">(?<rate_count>\\d+)</dd>";
-                match = Regex.Match(http_str, str_ptr_rate_count);
-                int rate_count = match.Success ? int.Parse(match.Result("${rate_count}")) : 0;
-                failed_section += match.Success ? "" : "rate_count ";
-
-                //评分 score
-                var str_ptr_rate = "<dd\\sclass=\"score-count\">(?<score>\\d+)</dd>";
-                match = Regex.Match(http_str, str_ptr_rate);
-                int score = match.Success ? int.Parse(match.Result("${score}")) : 0;
-                failed_section += match.Success ? "" : "score ";
-
-                //标签 tags
-                var str_ptr_tag_all = "<ul\\sclass=\"tags\">(?<tags>.*?)</ul>";
-                var str_ptr_tag_split = "<a\\shref=\"(?<tag_url>[^\"]*?)\"\\sclass=\"text\">(?<tag>.*?)</a>";
-                match = Regex.Match(http_str, str_ptr_tag_all);
-                string tags = "";
-                if (match.Success)
-                {
-                    var tmp_str = match.Result("${tags}");
-                    var match1 = Regex.Match(tmp_str, str_ptr_tag_split);
-                    while (match1.Success)
-                    {
-                        var tag_href_url = match1.Result("${tag_url}");
-                        var tag = match1.Result("${tag}");
-                        tags += tag + multi_data_split_string;
-                        match1 = match1.NextMatch();
-                    }
-                }
-                tags = tags.Length >= multi_data_split_string.Length ? tags.Substring(0, tags.Length - multi_data_split_string.Length) : tags;
-                //failed_section += match.Success ? "" : "tags ";
-
-                //标题 title
-                var str_ptr_title = "<div\\sclass=\"_unit\\s_work-detail-unit\">.*?<h1\\sclass=\"title\">(?<title>.*?)</h1>";
-                match = Regex.Match(http_str, str_ptr_title);
-                string title = match.Success ? match.Result("${title}") : "";
-                failed_section += match.Success ? "" : "title ";
-
-                //描述 description
-                var str_ptr_description = "<div\\sclass=\"_unit\\s_work-detail-unit\">.*?<p\\sclass=\"caption\">(?<description>.*?)</p><div";
-                match = Regex.Match(http_str, str_ptr_description);
-                string description = match.Success ? match.Result("${description}") : "";
-                //failed_section += match.Success ? "" : "description "; //optional
+                illust.Rate_Count = 0;
+                illust.Score = 0;
 
                 #endregion //Parsing
-
-                if (failed_section.Length > 0) throw new Exception("Failed to get the following data: " + failed_section);
-                //making it a full structure
-                illust.Author_ID = user_id;
-                illust.Title = title;
-                illust.Description = description;
-                illust.Tag = tags;
-                illust.Click = click;
-                illust.Submit_Time = submit_unix_timestamp;
-                illust.HTTP_Status = (int)ns.HTTP_Response.StatusCode;
-                illust.Tool = tools;
-                illust.Size = illust_size;
-                illust.Rate_Count = rate_count;
-                illust.Score = score;
+                
+                illust.HTTP_Status = (int)(ns.HTTP_Response.StatusCode);
+                ns.Close();
                 illust.Last_Success_Update = illust.Last_Update;
-                illust.Page = illust_page;
+
             }
             catch (WebException ex)
             {
@@ -1538,99 +1548,50 @@ namespace Pixiv_Background
             user.ID = id;
             user.Last_Update = (ulong)VBUtil.Utils.Others.ToUnixTimestamp(DateTime.Now);
 
-            var ns = new NetStream();
-            ns.RetryTimes = 0;
+            var ns = new NetStream(RetryTimes: 1, readWriteTimeout: 15000);
+            ns.Timeout = 30000;
 
             try
             {
-                var url = "http://www.pixiv.net/member.php?id=" + id;
-                ns.HttpGet(url);
+                var url = "https://app-api.pixiv.net/v1/user/detail?user_id=" + id;
 
-                var http_str = ns.ReadResponseString();
-                http_str = http_str.Replace("\r", "").Replace("\n", "");
+                RefreshToken();
+                var header_param = new Parameters();
+                if (!string.IsNullOrEmpty(_access_token))
+                {
+                    header_param.Add("Authorization", "Bearer " + _access_token);
+                }
 
+                ns.HttpGet(url, headerParam: header_param);
+
+                //解析开始~
                 #region Parsing
+                var str_json = ns.ReadResponseString();
+                var json = JsonConvert.DeserializeObject(str_json) as JObject;
 
-                if (Regex.Match(http_str, "抱歉，您当前所寻找的个用户已经离开了pixiv, 或者这ID不存在。").Success)
-                {
-                    user.HTTP_Status = (int)HttpStatusCode.NotFound;
-                    return;
-                }
-
-                //用户头像 [user_face_url]
-                var str_ptr_user_face_url = "<img\\ssrc=\"(?<user_face_url>[^\"]*?)\"\\salt=\"\"\\sclass=\"user-image\">";
-                var match = Regex.Match(http_str, str_ptr_user_face_url);
-                string user_face_url = match.Success ? match.Result("${user_face_url}") : "";
-
-                //用户头像图片 [user_face]
-                int user_face_http_status = 0;
-                var user_face = _util_download_image_from_url(user_face_url, id, out user_face_http_status);
-
-                //用户名称 [name]
-                var str_ptr_name = "<h1\\sclass=\"user\">(?<name>.*?)</h1>";
-                match = Regex.Match(http_str, str_ptr_name);
-                string name = match.Success ? match.Result("${name}") : "";
-
-                //用户描述 [description]
-                var str_ptr_description = "<tr\\sclass=\"profile-comment\">.*?</td><td\\sclass=\"td2\">(?<description>.*?)</td></tr>";
-                match = Regex.Match(http_str, str_ptr_description);
-                string description = match.Success ? match.Result("${description}") : "";
-
-                //个人主页 [home_page]
-                var str_ptr_home_page = "<tr\\sclass=\"profile-web\">.*?</td><td\\sclass=\"td2\">(?<home_page>.*?)</td></tr>";
-                match = Regex.Match(http_str, str_ptr_home_page);
-                string home_page = match.Success ? match.Result("${home_page}") : "";
-
-                //性别 [gender]
-                var str_ptr_gender = "<tr><td\\sclass=\"td1\">性别</td><td\\sclass=\"td2\">(?<gender>.*?)</td></tr>";
-                match = Regex.Match(http_str, str_ptr_gender);
-                string gender = match.Success ? match.Result("${gender}") : "";
-
-                //地址 [address]
-                var str_ptr_address = "<tr><td\\sclass=\"td1\">地址</td><td\\sclass=\"td2\">(?<address>.*?)</tr>";
-                match = Regex.Match(http_str, str_ptr_address);
-                string address = match.Success ? match.Result("${address}") : "";
-
-                //生日 [Birthday]
-                var str_ptr_birthday = "<tr><td\\sclass=\"td1\">生日</td><td\\sclass=\"td2\">(?<birthday>.*?)</td></tr>";
-                match = Regex.Match(http_str, str_ptr_birthday);
-                string birthday = match.Success ? match.Result("${birthday}") : "";
-
-                //Twitter [twitter]
-                var str_ptr_twitter = "<tr\\sclass=\"profile-twitter\">.*?</td><td\\sclass=\"td2\">(?<twitter>.*?)</td></tr>";
-                match = Regex.Match(http_str, str_ptr_twitter);
-                string twitter = match.Success ? match.Result("${twitter}") : "";
-
-                //个人标签 [tag]
-                var str_ptr_tag = "<tr><td\\sclass=\"td1\">个人标签</td><td\\sclass=\"td2\">(?<tags>.*?)</td></tr>";
-                match = Regex.Match(http_str, str_ptr_tag);
-                string tag = "";
-                if (match.Success)
-                {
-                    var str_ptr_tag_split = "<a\\shref=\"(?<href_url>.*?)\">(?<tag>.*?)</a>";
-                    match = Regex.Match(match.Result("${tags}"), str_ptr_tag_split);
-                    while (match.Success)
-                    {
-                        tag += match.Result("${tag}") + multi_data_split_string;
-                        match = match.NextMatch();
-                    }
-                    if (tag.Length > multi_data_split_string.Length) tag = tag.Substring(0, tag.Length - multi_data_split_string.Length);
-                }
+                user.Birthday = json["profile"].Value<string>("birth");
+                user.Gender = json["profile"].Value<string>("gender");
+                user.Job = json["profile"].Value<string>("job");
+                user.Address = json["profile"].Value<string>("region");
+                user.Follow_Users = json["profile"].Value<int>("total_follow_users");
+                user.Follower = json["profile"].Value<int>("total_follower");
+                user.Illust_Bookmark_Public = json["profile"].Value<int>("total_illust_bookmarks_public");
+                user.Total_Illusts = json["profile"].Value<int>("total_illusts");
+                user.Mypixiv_Users = json["profile"].Value<int>("total_mypixiv_users");
+                user.Total_Novels = json["profile"].Value<int>("total_novels");
+                user.Twitter = json["profile"].Value<string>("twitter_account");
+                user.Home_Page = json["profile"].Value<string>("webpage");
+                user.Name = json["user"].Value<string>("name");
+                user.User_Face_Url = json["user"]["profile_image_urls"].Value<string>("medium");
                 #endregion //Parsing
 
-
-                user.Name = name;
-                user.User_Face_Url = user_face_url;
-                user.User_Face = user_face;
-                user.HTTP_Status = (int)ns.HTTP_Response.StatusCode;
-                user.Home_Page = home_page;
-                user.Gender = gender;
-                user.Address = address;
-                user.Birthday = birthday;
-                user.Twitter = twitter;
-                user.Personal_Tag = tag;
+                //downloading user_image
+                ns.Close();
+                user.User_Face = _util_download_image_from_url(user.User_Face_Url, user.ID, out user.HTTP_Status);
+                //user.HTTP_Status = (int)(ns.HTTP_Response.StatusCode);
+                ns.Close();
                 user.Last_Success_Update = user.Last_Update;
-                user.Description = description;
+
             }
             catch (WebException ex)
             {
@@ -1654,14 +1615,15 @@ namespace Pixiv_Background
         //从指定的url处获取图像
         private Image _util_download_image_from_url(string url, uint user_id, out int http_status)
         {
-            var ns = new NetStream();
+            var ns = new NetStream(RetryTimes: 1, readWriteTimeout: 15000);
+            ns.Timeout = 30000;
             try
             {
                 //using xhr
                 var header_param = new Parameters();
                 header_param.Add("X-Request-With", "XmlHttpRequest");
                 header_param.Add("Origin", "http://www.pixiv.net");
-                header_param.Add("Referer", "http://www.pixiv.net/whitecube/user/" + user_id);
+                header_param.Add("Referer", "http://www.pixiv.net/member.php?id=" + user_id);
 
                 var ss = new MemoryStream();
                 ns.HttpGet(url, header_param);
@@ -1702,6 +1664,41 @@ namespace Pixiv_Background
         //静态函数（登陆接口）
         #region Static Functions
 
+
+        private static string _access_token;
+        private static string _device_token;
+        private static string _refresh_token;
+        private static DateTime _expire_time;
+        private static bool __token_loaded = _loadToken();
+        private static bool _loadToken(string path = "token.dat")
+        {
+            if (__token_loaded) return true;
+
+            var stream = new StreamReader(path, Encoding.UTF8);
+            var str_json = stream.ReadLine();
+            stream.Close();
+
+            var json = JsonConvert.DeserializeObject(str_json) as JObject;
+            _access_token = json.Value<string>("access_token");
+            _device_token = json.Value<string>("device_token");
+            _refresh_token = json.Value<string>("refresh_token");
+            _expire_time = VBUtil.Utils.Others.FromUnixTimeStamp(json.Value<double>("expire_time"));
+            return true;
+        }
+
+        private static bool _saveToken(string path = "token.dat")
+        {
+            var json = new JObject();
+            json.Add("access_token", _access_token);
+            json.Add("device_token", _device_token);
+            json.Add("refresh_token", _refresh_token);
+            json.Add("expire_time", VBUtil.Utils.Others.ToUnixTimestamp(_expire_time));
+
+            var stream = new StreamWriter(path, false, Encoding.UTF8);
+            stream.WriteLine(JsonConvert.SerializeObject(json));
+            stream.Close();
+            return true;
+        }
         //2016-11-01 16:50:30 test succeeded.
         /// <summary>
         /// login to Pixiv.net, using official api (captured by Fiddler)
@@ -1711,63 +1708,95 @@ namespace Pixiv_Background
         /// <remarks>[MTA] [no throw]</remarks>
         public static void Login(string username, string password)
         {
-            string login_main_url = "https://accounts.pixiv.net/login?lang=zh&source=pc&view_type=page&ref=wwwtop_accounts_index";
-            string login_request_url = "https://accounts.pixiv.net/api/login?lang=zh";
+            string login_request_url = "https://oauth.secure.pixiv.net/auth/token";
 
-            var ns = new NetStream();
+            var ns = new NetStream(RetryTimes: 1, readWriteTimeout: 15000);
+            ns.Timeout = 30000;
             try
             {
                 Debug.Print("Initializing login variables.");
+                var post_param = new Parameters();
+                post_param.Add("client_id", M_CLIENT_ID);
+                post_param.Add("client_secret", M_CLIENT_SECRET);
+                post_param.Add("grant_type", "password");
+                post_param.Add("username", username);
+                post_param.Add("password", password);
+                post_param.Add("device_token", "pixiv");
+                post_param.Add("get_secure_url", "true");
 
-                ns.HttpGet(login_main_url);
-                var http_str = ns.ReadResponseString();
-                http_str = http_str.Replace("\r", "").Replace("\n", "");
+                var header_param = new Parameters();
+                header_param.Add("User-Agent", M_APP_USER_AGENT);
+                header_param.Add("Accept-Language", "zh_CN");
+                header_param.Add("App-OS", "android");
+                header_param.Add("App-OS-Version", "6.0.1");
+                header_param.Add("App-Version", "5.0.54");
+                header_param.Add("Accept-Encoding", "gzip");
+
+                Debug.Print("Posting login data");
+                ns.HttpPost(login_request_url, post_param, headerParam: header_param);
+
+                var response_str = ns.ReadResponseString();
+
+                var response_json = JsonConvert.DeserializeObject(response_str) as JObject;
+                
                 ns.Close();
+                _access_token = response_json["response"].Value<string>("access_token");
+                _device_token = response_json["response"].Value<string>("device_token");
+                _refresh_token = response_json["response"].Value<string>("refresh_token");
+                _expire_time = DateTime.Now.AddSeconds(response_json["response"].Value<int>("expires_in"));
 
-                //get the json data
-                string reg_ptr = "<input type=\"hidden\"\\sid=\"init-config\"\\sclass=\"json-data\"\\svalue='(?<json>.*?)'>";
-                var match = Regex.Match(http_str, reg_ptr);
-                if (match.Success)
-                {
-                    var json_str = match.Result("${json}");
-                    var json = (JToken)JsonConvert.DeserializeObject(json_str);
+                _saveToken();
+                Debug.Print("Login succeeded.");
+                LoginSucceeded?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Debug.Print("Login failed: \n" + ex.ToString());
+                LoginFailed?.Invoke(ex.ToString());
+            }
+        }
+        public static void RefreshToken()
+        {
+            if (DateTime.Now < _expire_time) return;
+            if (string.IsNullOrEmpty(_refresh_token) || string.IsNullOrEmpty(_device_token)) return;
 
-                    //check if logged in
-                    var loggedin = json.Value<bool>("pixiv.user.loggedIn");
-                    if (loggedin) return;
-                    var postKey = json.Value<string>("pixivAccount.postKey");
+            string login_request_url = "https://oauth.secure.pixiv.net/auth/token";
 
-                    //building xhr header
-                    var header_param = new Parameters();
-                    header_param.Add("X-Request-With", "XMLHttpRequest");
-                    header_param.Add("Origin", "https://accounts.pixiv.net");
-                    header_param.Add("Referer", login_main_url);
-                    //building form data
-                    var post_param = new Parameters();
-                    post_param.Add("pixiv_id", username);
-                    post_param.Add("password", password);
-                    post_param.Add("captcha", "");
-                    post_param.Add("g_recaptcha_response", "");
-                    post_param.Add("post_key", postKey);
-                    post_param.Add("source", "pc");
+            var ns = new NetStream(RetryTimes: 1, readWriteTimeout: 15000);
+            ns.Timeout = 30000;
+            try
+            {
+                Debug.Print("Initializing login variables.");
+                var post_param = new Parameters();
+                post_param.Add("client_id", M_CLIENT_ID);
+                post_param.Add("client_secret", M_CLIENT_SECRET);
+                post_param.Add("grant_type", "refresh_token");
+                post_param.Add("refresh_token", _refresh_token);
+                post_param.Add("device_token", _device_token);
+                post_param.Add("get_secure_url", "true");
 
-                    Debug.Print("Posting login data.");
-                    //if nothing wrong, sending login data
-                    ns.HttpPost(login_request_url, post_param, "application/x-www-form-urlencoded", header_param);
-                    var login_result_str = ns.ReadResponseString();
-                    ns.Close();
-                    var login_result_json = (JToken)JsonConvert.DeserializeObject(login_result_str);
+                var header_param = new Parameters();
+                header_param.Add("User-Agent", M_APP_USER_AGENT);
+                header_param.Add("Accept-Language", "zh_CN");
+                header_param.Add("App-OS", "android");
+                header_param.Add("App-OS-Version", "6.0.1");
+                header_param.Add("App-Version", "5.0.54");
+                header_param.Add("Accept-Encoding", "gzip");
 
-                    bool error = login_result_json.Value<bool>("error");
-                    if (error)
-                    {
-                        throw new Exception("Login error: " + login_result_json.ToString());
-                    }
-                }
-                else
-                {
-                    throw new Exception("Failed to get the login json data from html!");
-                }
+                Debug.Print("Posting login data");
+                ns.HttpPost(login_request_url, post_param, headerParam: header_param);
+
+                var response_str = ns.ReadResponseString();
+
+                var response_json = JsonConvert.DeserializeObject(response_str) as JObject;
+
+                ns.Close();
+                _access_token = response_json["response"].Value<string>("access_token");
+                _device_token = response_json["response"].Value<string>("device_token");
+                _refresh_token = response_json["response"].Value<string>("refresh_token");
+                _expire_time = DateTime.Now.AddSeconds(response_json["response"].Value<int>("expires_in"));
+
+                _saveToken();
                 Debug.Print("Login succeeded.");
                 LoginSucceeded?.Invoke();
             }
@@ -1952,6 +1981,7 @@ namespace Pixiv_Background
         public int Illust_Count { get { return m_illust_list.Count; } }
         //数据库中的用户数量
         public int User_Count { get { return m_user_list.Count; } }
+        public static bool Is_Logined { get { return (!string.IsNullOrEmpty(_access_token)); } }
         #endregion //Public Properties
     }
 }

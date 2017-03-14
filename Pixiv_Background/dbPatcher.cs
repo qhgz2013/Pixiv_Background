@@ -136,6 +136,46 @@ namespace Pixiv_Background
 
             trans.Commit();
         }
+        private static void _updateDatabase_105_to_106(SQLiteConnection connection)
+        {
+            var trans = connection.BeginTransaction();
+            var cmd = new SQLiteCommand(connection);
+
+            var illust_add_row = "ALTER TABLE Illust ADD COLUMN Bookmark_Count INT NOT NULL DEFAULT 0";
+            cmd.CommandText = illust_add_row;
+            cmd.ExecuteNonQuery();
+            illust_add_row = "ALTER TABLE Illust ADD COLUMN Comment_Count INT NOT NULL DEFAULT 0";
+            cmd.CommandText = illust_add_row;
+            cmd.ExecuteNonQuery();
+
+            var user_add_row = "ALTER TABLE User ADD COLUMN Job VARCHAR";
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+            user_add_row = "ALTER TABLE User ADD COLUMN Follow_Users INT";
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+            user_add_row = "ALTER TABLE User ADD COLUMN Follower INT";
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+            user_add_row = "ALTER TABLE User ADD COLUMN Illust_Bookmark_Public INT";
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+            user_add_row = "ALTER TABLE User ADD COLUMN Mypixiv_Users INT";
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+            user_add_row = "ALTER TABLE User ADD COLUMN Total_Illusts INT";
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+            user_add_row = "ALTER TABLE User ADD COLUMN Total_Novels INT";
+            cmd.CommandText = user_add_row;
+            cmd.ExecuteNonQuery();
+
+            var edit_version = "UPDATE DbVars SET Value='1.0.6' WHERE Key='Version'";
+            cmd.CommandText = edit_version;
+            cmd.ExecuteNonQuery();
+
+            trans.Commit();
+        }
         public static void Patch(string from_version, string to_version, SQLiteConnection connection)
         {
             if (from_version == "1.0.0")
@@ -162,6 +202,11 @@ namespace Pixiv_Background
             {
                 _updateDatabase_104_to_105(connection);
                 from_version = "1.0.5";
+            }
+            if (from_version == "1.0.5")
+            {
+                _updateDatabase_105_to_106(connection);
+                from_version = "1.0.6";
             }
         }
     }

@@ -101,25 +101,26 @@ namespace Pixiv_Background_Form
         {
             _begin_loading_effect(); //显示loading界面
 
-            VBUtil.Utils.NetUtils.Global.LoadCookie();
+            //VBUtil.Utils.NetUtils.Global.LoadCookie();
 
             //login cookie test
-            var cookie = VBUtil.Utils.NetUtils.Global.DefaultCookieContainer.GetCookies(new Uri("http://www.pixiv.net/"))["device_token"];
-            if (cookie == null)
+            this.Dispatcher.Invoke(new NoArgSTA(delegate
             {
-                //login required
-
-                //sta invoke
-                this.Dispatcher.Invoke(new NoArgSTA(delegate
+                bool logged_in = dataUpdater.Is_Logined;
+                while (!logged_in)
                 {
+                    //login required
+
+                    //sta invoke
                     var login_dialog = new frmLogin();
                     login_dialog.ShowDialog();
                     if (login_dialog.canceled) { Close(); return; }
                     dataUpdater.Login(login_dialog.user_name, login_dialog.pass_word);
 
-                    VBUtil.Utils.NetUtils.Global.SaveCookie();
-                }));
-            }
+                    logged_in = dataUpdater.Is_Logined;
+                    //VBUtil.Utils.NetUtils.Global.SaveCookie();
+                }
+            }));
 
             _background_queue = new List<string>();
             _operationLock = new ReaderWriterLock();
