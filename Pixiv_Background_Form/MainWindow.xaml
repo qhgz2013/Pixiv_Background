@@ -331,6 +331,7 @@
                 <RowDefinition/>
                 <RowDefinition/>
                 <RowDefinition/>
+                <RowDefinition/>
             </Grid.RowDefinitions>
             <!--Description (HTML data display area)-->
             <ScrollViewer Grid.Row="0" Grid.Column="1" Height="80" Grid.ColumnSpan="2" HorizontalAlignment="Left" Padding="10,3,3,3" Width="600">
@@ -339,10 +340,14 @@
                 </Grid>
             </ScrollViewer>
             <!--Tag-->
-            <Label x:Name="Tags" Grid.Row="1" Grid.Column="2" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Tags here</Label>
+            <Label x:Name="Tags_lbl" Grid.Row="1" Grid.Column="2" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">
+                <TextBlock x:Name="Tags" TextWrapping="Wrap">Tags here</TextBlock>
+            </Label>
             <Image Source="pack://application:,,,/Resources/Tags.png" Grid.Column="1" Grid.Row="1" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"/>
             <!--Tools-->
-            <Label x:Name="Tools" Grid.Row="2" Grid.Column="2" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Tools here</Label>
+            <Label x:Name="Tools_lbl" Grid.Row="2" Grid.Column="2" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">
+                <TextBlock x:Name="Tools" TextWrapping="Wrap">Tools here</TextBlock>
+            </Label>
             <Image Source="pack://application:,,,/Resources/Tools.png" Grid.Column="1" Grid.Row="2" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"/>
             <Grid Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Width="{Binding ElementName=Detailed_Info_Layout,Path=ActualWidth}">
                 <Grid.ColumnDefinitions>
@@ -359,22 +364,24 @@
                     <RowDefinition/>
                 </Grid.RowDefinitions>
                 <!--Clicks-->
-                <Label x:Name="Click" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Clicks here</Label>
+                <Label x:Name="Click" Grid.Row="0" Grid.Column="1" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Clicks here</Label>
                 <Image Source="pack://application:,,,/Resources/Click.png" Grid.Column="0" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
                 <!--Favors-->
-                <Label x:Name="Favor" Grid.Row="0" Grid.Column="5" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Ranks here</Label>
-                <Image Source="pack://application:,,,/Resources/Star.png" Grid.Column="4" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                <Label x:Name="Favor" Grid.Row="0" Grid.Column="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">Favors here</Label>
+                <Image Source="pack://application:,,,/Resources/Favor.png" Grid.Column="2" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
                 <!--Others-->
+                <Label x:Name="User_stat" Grid.Row="0" Grid.Column="5" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">User statistics here</Label>
+                <Image Source="pack://application:,,,/Resources/Star.png" Grid.Column="4" Grid.Row="0" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,2,0"/>
             </Grid>
 
-            <!--
-            <Label Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Foreground="{StaticResource MyGrayBrush}">用户描述</Label>
-            <ScrollViewer Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Height="80">
-                <Grid x:Name="UserDescription">
-                    <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">User ID and description here</Label>
+            
+            <Label Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Foreground="{StaticResource MyGrayBrush}">用户描述:</Label>
+            <ScrollViewer Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" Height="80" HorizontalAlignment="Left" Padding="10,3,3,3" Width="600">
+                <Grid x:Name="UserDescription" MouseDown="frmMain_MouseDown" HorizontalAlignment="Left">
+                    <Label Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center" HorizontalAlignment="Left">User ID and description here</Label>
                 </Grid>
             </ScrollViewer>
-            -->
+
             <Label x:Name="Update_Time" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" Foreground="{StaticResource MyGrayBrush}" VerticalAlignment="Center">最后更新时间：无 | 最后成功更新时间：无</Label>
         </Grid>
     </Grid>

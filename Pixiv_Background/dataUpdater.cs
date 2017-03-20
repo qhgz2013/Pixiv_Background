@@ -918,49 +918,49 @@ namespace Pixiv_Background
                 m_dbCommand.Parameters.Add("@Origin", DbType.Byte);
                 m_dbCommand.Parameters["@Origin"].Value = illust.Origin;
 
-                if (illust.Click >= 0)
+                if (illust.Click > 0)
                 {
                     update_str += ",Click=@Click";
                     m_dbCommand.Parameters.Add("@Click", DbType.Int32);
                     m_dbCommand.Parameters["@Click"].Value = illust.Click;
                 }
-                if (illust.Bookmark_Count >= 0)
+                if (illust.Bookmark_Count > 0)
                 {
                     update_str += ",Bookmark_Count=@Bookmark_Count";
                     m_dbCommand.Parameters.Add("@Bookmark_Count", DbType.Int32);
                     m_dbCommand.Parameters["@Bookmark_Count"].Value = illust.Bookmark_Count;
                 }
-                if (illust.Comment_Count >= 0)
+                if (illust.Comment_Count > 0)
                 {
                     update_str += ",Comment_Count=@Comment_Count";
                     m_dbCommand.Parameters.Add("@Comment_Count", DbType.Int32);
                     m_dbCommand.Parameters["@Comment_Count"].Value = illust.Comment_Count;
                 }
-                if (illust.Click >= 0)
+                if (illust.Click > 0)
                 {
                     update_str += ",Click=@Click";
                     m_dbCommand.Parameters.Add("@Click", DbType.Int32);
                     m_dbCommand.Parameters["@Click"].Value = illust.Click;
                 }
-                if (illust.Size.Width >= 0)
+                if (illust.Size.Width > 0)
                 {
                     update_str += ",Width=@Width";
                     m_dbCommand.Parameters.Add("@Width", DbType.Int32);
                     m_dbCommand.Parameters["@Width"].Value = illust.Size.Width;
                 }
-                if (illust.Size.Height >= 0)
+                if (illust.Size.Height > 0)
                 {
                     update_str += ",Height=@Height";
                     m_dbCommand.Parameters.Add("@Height", DbType.Int32);
                     m_dbCommand.Parameters["@Height"].Value = illust.Size.Height;
                 }
-                if (illust.Rate_Count >= 0)
+                if (illust.Rate_Count > 0)
                 {
                     update_str += ",Rate_Count=@Rate_Count";
                     m_dbCommand.Parameters.Add("@Rate_Count", DbType.Int32);
                     m_dbCommand.Parameters["@Rate_Count"].Value = illust.Rate_Count;
                 }
-                if (illust.Score >= 0)
+                if (illust.Score > 0)
                 {
                     update_str += ",Score=@Score";
                     m_dbCommand.Parameters.Add("@Score", DbType.Int32);

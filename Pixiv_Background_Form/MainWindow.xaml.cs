@@ -67,10 +67,6 @@ namespace Pixiv_Background_Form
                     _image_solution = data.imageSolution;
                     _background_path = data.backgroundPath;
 
-                    if (string.IsNullOrEmpty(_background_path))
-                    {
-                        this.Dispatcher.Invoke(new NoArgSTA(() => { Update_From_Path.DoClick(); }));
-                    }
                     _show_current_msg();
                 }
                 catch (Exception)
@@ -137,6 +133,11 @@ namespace Pixiv_Background_Form
             _database.FetchUserFailed += _database_FetchDataEnded;
 
             _load_background_info();
+
+            if (string.IsNullOrEmpty(_background_path) || !Directory.Exists(_background_path))
+            {
+                this.Dispatcher.Invoke(new NoArgSTA(() => { Update_From_Path.DoClick(); }));
+            }
 
             //test area
             var callback = new TimerCallback(Timer_callback);
@@ -363,6 +364,24 @@ namespace Pixiv_Background_Form
                         }
 
                         _show_current_msg();
+                    }
+                    else
+                    {
+                        //local file deleted, update file list
+                        if (string.IsNullOrEmpty(_background_path) || !Directory.Exists(_background_path))
+                        {
+                            this.Dispatcher.Invoke(new NoArgSTA(delegate { Update_From_Path.DoClick(); }));
+                        }
+                        else
+                        {
+                            _database.UpdateFileList(_background_path);
+                            _background_queue.Clear();
+                            var dir_info = new DirectoryInfo(_background_path);
+                            foreach (var item in dir_info.GetFiles())
+                            {
+                                _background_queue.Add(item.FullName);
+                            }
+                        }
                     }
 
                     _next_update_time = DateTime.Now.AddMinutes(_time_change_minutes);
@@ -698,30 +717,22 @@ namespace Pixiv_Background_Form
 
                 //click
                 Click.Content = illust.Click.ToString("#,##0");
-                //rating
-                string rating_str;
-                if (illust.Rate_Count > 0)
-                {
-                    rating_str = Math.Round((double)(illust.Score) / illust.Rate_Count, 2).ToString();
-                    rating_str += " (" + illust.Score.ToString("#,##0") + "/" + illust.Rate_Count.ToString("#,##0") + ")";
-                }
-                else
-                    rating_str = "No Rating Data";
-                Favor.Content = rating_str;
+                //favor
+                Favor.Content = illust.Bookmark_Count.ToString("#,##0");
+                //user stat
+                User_stat.Content = "投稿总数: " + (user.Total_Illusts + user.Total_Novels).ToString("#,##0") + ", 粉丝: " + user.Follow_Users.ToString("#,##0") + ", 关注: " + user.Follower.ToString("#,##0");
                 //tags
+                Tags.Inlines.Clear();
                 if (illust.Tag != null)
-                    Tags.Content = _escape_xml_char(illust.Tag);
-                else
-                    Tags.Content = "";
+                    Tags.Inlines.Add(_escape_xml_char(illust.Tag));
                 //tools
+                Tools.Inlines.Clear();
                 if (illust.Tool != null)
-                    Tools.Content = _escape_xml_char(illust.Tool);
-                else
-                    Tools.Content = "";
+                    Tools.Inlines.Add(_escape_xml_char(illust.Tool));
                 //user description
-                //UserDescription.Children.Clear();
-                //if (user.Description != null)
-                //    UserDescription.Children.Add(html_parser.parseHTML(user.Description));
+                UserDescription.Children.Clear();
+                if (user.Description != null)
+                    UserDescription.Children.Add(html_parser.parseHTML(user.Description));
 
                 string str_last_update = (_illust_info.Last_Update > 0) ? VBUtil.Utils.Others.FromUnixTimeStamp(_illust_info.Last_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
                 string str_last_success_update = (_illust_info.Last_Success_Update > 0) ? VBUtil.Utils.Others.FromUnixTimeStamp(_illust_info.Last_Success_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
