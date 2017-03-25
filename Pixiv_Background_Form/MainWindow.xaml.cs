@@ -629,6 +629,45 @@ namespace Pixiv_Background_Form
         [DllImport("user32.dll")]
         private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
         //显示当前投稿信息[MTA]
+        private TextBlock _create_tag_hyperlink(string[] tags)
+        {
+            var ret_tb = new TextBlock();
+            ret_tb.TextWrapping = TextWrapping.Wrap;
+            foreach (var tag in tags)
+            {
+                var hl = new Hyperlink();
+                hl.Inlines.Add(tag);
+                hl.Foreground = new SolidColorBrush((Color)FindResource("HighlightColor"));
+                hl.MouseEnter += delegate
+                {
+                    var brush = new SolidColorBrush((Color)FindResource("HighlightColor"));
+                    var da = new ColorAnimation(Colors.Orange, TimeSpan.FromMilliseconds(300));
+                    hl.Foreground = brush;
+                    brush.BeginAnimation(SolidColorBrush.ColorProperty, da);
+                };
+                hl.MouseLeave += delegate
+                {
+                    var brush = new SolidColorBrush(Colors.Orange);
+                    var da = new ColorAnimation((Color)FindResource("HighlightColor"), TimeSpan.FromMilliseconds(300));
+                    hl.Foreground = brush;
+                    brush.BeginAnimation(SolidColorBrush.ColorProperty, da);
+                };
+                hl.Click += delegate
+                {
+                    Process.Start("http://www.pixiv.net/search.php?s_mode=s_tag_full&word=" + Uri.EscapeDataString(tag));
+                };
+                hl.TextDecorations = null;
+
+                ret_tb.Inlines.Add(hl);
+                var tb = new TextBlock();
+                tb.Inlines.Add(",");
+                tb.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
+                tb.Padding = new Thickness(3, 0, 3, 0);
+                ret_tb.Inlines.Add(tb);
+            }
+            ret_tb.Inlines.Remove(ret_tb.Inlines.LastInline);
+            return ret_tb;
+        }
         private void _show_current_msg()
         {
             //todo: 修改非200时的显示
@@ -720,11 +759,11 @@ namespace Pixiv_Background_Form
                 //favor
                 Favor.Content = illust.Bookmark_Count.ToString("#,##0");
                 //user stat
-                User_stat.Content = "投稿总数: " + (user.Total_Illusts + user.Total_Novels).ToString("#,##0") + ", 粉丝: " + user.Follow_Users.ToString("#,##0") + ", 关注: " + user.Follower.ToString("#,##0");
+                User_stat.Content = "投稿总数: " + (user.Total_Illusts + user.Total_Novels).ToString("#,##0") + ", 粉丝: " + user.Follower.ToString("#,##0") + ", 关注: " + user.Follow_Users.ToString("#,##0");
                 //tags
                 Tags.Inlines.Clear();
                 if (illust.Tag != null)
-                    Tags.Inlines.Add(_escape_xml_char(illust.Tag));
+                    Tags.Inlines.Add(_create_tag_hyperlink(_escape_xml_char(illust.Tag).Split(',')));
                 //tools
                 Tools.Inlines.Clear();
                 if (illust.Tool != null)
@@ -799,8 +838,8 @@ namespace Pixiv_Background_Form
         //test module for slide hide
         private DateTime _last_mouse_move = DateTime.MinValue;
         private Timer _callback_timer;
-        private double _origin_alpha = 1.0;
-        private double _destination_alpha = 0.5;
+        private double _origin_alpha = 0.7;
+        private double _destination_alpha = 0.2;
         private Point _last_cursor;
         //test module for click through
         [DllImport("user32", EntryPoint = "SetWindowLong")]

@@ -6,7 +6,7 @@
         xmlns:s="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Height="166" Width="410" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing" MouseMove="frmMain_MouseMove" WindowStyle="None" AllowsTransparency="True" Loaded="frmMain_Loaded">
+        Height="166" Width="410" x:Name="frmMain" MouseDown="frmMain_MouseDown" ShowInTaskbar="False" Closing="frmMain_Closing" MouseMove="frmMain_MouseMove" WindowStyle="None" AllowsTransparency="True" Loaded="frmMain_Loaded" Opacity="0.7">
     <!--  origin: 410 x 166  -->
     <!--  large: 620 x 460  -->
     <Window.Resources>

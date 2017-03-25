@@ -530,7 +530,10 @@ namespace Pixiv_Background
                 Debug.Print("Started fetching illust id=" + id);
                 FetchIllustStarted?.Invoke(id, (uint)m_query_finished, (uint)m_query_count);
 
-                Illust illust = new Illust();
+                m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                Illust illust = __get_illust(id);
+                m_sqlThreadLock.ReleaseWriterLock();
+                //Illust illust = new Illust();
                 try
                 {
                     //解析
@@ -609,7 +612,10 @@ namespace Pixiv_Background
                 Debug.Print("Started fetching user id=" + id);
                 FetchUserStarted?.Invoke(id, (uint)m_query_finished, (uint)m_query_count);
 
-                User user = new User();
+                m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+                User user = __get_user(id);
+                m_sqlThreadLock.ReleaseWriterLock();
+                //User user = new User();
                 try
                 {
                     //解析
@@ -1582,6 +1588,7 @@ namespace Pixiv_Background
                 user.Twitter = json["profile"].Value<string>("twitter_account");
                 user.Home_Page = json["profile"].Value<string>("webpage");
                 user.Name = json["user"].Value<string>("name");
+                user.Description = json["user"].Value<string>("comment");
                 user.User_Face_Url = json["user"]["profile_image_urls"].Value<string>("medium");
                 #endregion //Parsing
 

@@ -1,4 +1,12 @@
 <p>
+<b>alpha v0.13</b><br/>
+现在新增tag的点击查询功能，把界面改成默认半透明式，还有修复用户描述为空的bug<br/>
+(如不喜欢可在MainWindow.xaml中把第9行的 Opacity="0.7" 去掉和MainWindow.xaml.cs 中第841 842行的值改为 1.0 0.5 即可)<br/>
+<br/>
+<b>alpha v0.12</b><br/>
+更改到安卓端的api调用方式，这里参考了其他人的github项目的api url<br/>
+同步修改了登录验证方式<br/>
+<br/>
 <b>alpha v0.11</b><br/>
 bug修复（感谢室友老韦的鼠标猛搓，果然大力出奇迹）<br/>
 <br/>
