@@ -720,7 +720,7 @@ namespace Pixiv_Background_Form
             ThreadPool.QueueUserWorkItem(delegate
             {
                 _on_wallpaper_changed(sender, e);
-                Settings.NextUpdateTimestamp = util.ToUnixTimestamp(DateTime.Now) + Settings.WallpaperChangeTime;
+                Settings.NextUpdateTimestamp = util.ToUnixTimestamp(DateTime.Now);
                 _refresh_background_working = false;
             });
         }
