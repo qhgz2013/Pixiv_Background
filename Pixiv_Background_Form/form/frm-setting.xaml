@@ -1,0 +1,115 @@
+﻿<Window x:Class="Pixiv_Background_Form.frmSetting"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Pixiv_Background_Form"
+        mc:Ignorable="d"
+        Title="设置" Height="430" Width="500" Loaded="Window_Loaded">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="10"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="10"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25"/>
+            <RowDefinition Height="100"/>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="110"/>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="50"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Label Grid.Row="0" Grid.Column="1" Height="25">❁ 背景路径设置</Label>
+        <Grid Grid.Row="1" Grid.Column="1">
+            <!--Auto created by code-->
+            <Grid.RowDefinitions>
+                <RowDefinition Height="25"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="40"/>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="90"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="90"/>
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Grid.Row="0" HorizontalAlignment="Center">选定</Label>
+            <Label Grid.Column="1" Grid.Row="0" HorizontalAlignment="Center">路径（双击更改）</Label>
+            <Label Grid.Column="2" Grid.Row="0" HorizontalAlignment="Center">包含子文件夹</Label>
+            <Grid Grid.Column="4" Grid.Row="0" Grid.RowSpan="0x7fffffff">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <Button x:Name="AddPath" Margin="5,2" Grid.Row="0" Click="AddPath_Click">增加路径</Button>
+                <Button x:Name="RemoveSelectedPath" Margin="5,2" Grid.Row="1" Click="RemoveSelectedPath_Click">移除选定路径</Button>
+                <Button x:Name="RemoveAllPaths" Margin="5,2" Grid.Row="2" Click="RemoveAllPaths_Click">移除所有路径</Button>
+            </Grid>
+            <ScrollViewer Grid.Column="0" Grid.ColumnSpan="4" Grid.Row="1">
+                <Grid x:Name="PathLayer">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40"/>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="90"/>
+                    </Grid.ColumnDefinitions>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+        <Label Grid.Column="1" Grid.Row="2">❁ 桌面图片设置</Label>
+        <Grid Grid.Column="1" Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="25"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="20"/>
+                <RowDefinition Height="20"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Label>背景图片更换间隔（秒）</Label>
+            <TextBox Grid.Column="1" x:Name="tChangeTime" VerticalAlignment="Center" LostFocus="tChangeTime_LostFocus" KeyUp="tChangeTime_KeyUp">600</TextBox>
+            <CheckBox Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" x:Name="cEnableDiffWallpaper" Click="cEnableDiffWallpaper_Click">多屏不同壁纸</CheckBox>
+            <CheckBox Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2" x:Name="cEnableBuffering" Click="cEnableBuffering_Click">开启缓冲渲染</CheckBox>
+            <CheckBox Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" x:Name="cEnableAnimation" Click="cEnableAnimation_Click">开启更换壁纸动画</CheckBox>
+            <CheckBox Grid.Column="0" Grid.Row="4" Grid.ColumnSpan="2" x:Name="cEnableQueue" Click="cEnableQueue_Click">开启壁纸轮换</CheckBox>
+        </Grid>
+        <Label Grid.Column="1" Grid.Row="4">❁ 插件设置</Label>
+        <Grid Grid.Column="1" Grid.Row="5">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="25"/>
+                <RowDefinition Height="25"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+            <CheckBox Grid.Column="0" x:Name="cEnableWaifu2xUpscaling" Click="cEnableWaifu2xUpscaling_Click" VerticalAlignment="Center">开启Waifu2x</CheckBox>
+            <Grid Grid.Column="1" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Label>启用缩放需要的最小缩放比例</Label>
+                <TextBox x:Name="tWaifu2xScaleThreshold" Grid.Column="1" VerticalAlignment="Center" LostFocus="tWaifu2xScaleThreshold_LostFocus" KeyUp="tWaifu2xScaleThreshold_KeyUp">1.3</TextBox>
+            </Grid>
+            <Label Grid.Column="0" Grid.Row="1">Waifu2x插件目录</Label>
+            <TextBox x:Name="tWaifu2xPath" Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" TextChanged="tWaifu2xPath_TextChanged" LostFocus="tWaifu2xPath_LostFocus"></TextBox>
+        </Grid>
+        <Grid Grid.Column="1" Grid.Row="6" Height="50" VerticalAlignment="Top">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="80"/>
+                <ColumnDefinition Width="80"/>
+            </Grid.ColumnDefinitions>
+            <Button x:Name="bConfirm" Grid.Column="1" Margin="5" Click="bConfirm_Click">确定</Button>
+            <Button x:Name="bCancel" Grid.Column="2" Margin="5" Click="bCancel_Click">取消</Button>
+            <Button x:Name="bApply" Grid.Column="3" Margin="5" IsEnabled="False" Click="bApply_Click">应用</Button>
+        </Grid>
+    </Grid>
+</Window>

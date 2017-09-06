@@ -277,7 +277,7 @@ namespace Pixiv_Background_Form
         private static string parse_html_property(string html, ref int index)
         {
             string ret = "";
-            while (index < html.Length &&  !" !@#$%^&*()-=+[{]}\\|;:'\",<.>/?".Contains(html[index])) //escape special char
+            while (index < html.Length && !" !@#$%^&*()-=+[{]}\\|;:'\",<.>/?".Contains(html[index])) //escape special char
             {
                 ret += html[index++];
             }
@@ -309,7 +309,7 @@ namespace Pixiv_Background_Form
                     skip_char(html, ref index);
                     if (html[index + 1] == '/')
                     {
-                        index+=2;
+                        index += 2;
                         skip_char(html, ref index);
                         var proper_name = parse_html_property(html, ref index);
                         if (!string.IsNullOrEmpty(keyName) && keyName != proper_name) throw new ArgumentException("Unexpected Node End Sign: " + proper_name + " (should be " + keyName + ") : Index = " + index);
@@ -330,7 +330,7 @@ namespace Pixiv_Background_Form
 
             return ret;
         }
-        
+
         //creating visual tree
         private static object convert_object(object html_object)
         {
@@ -384,11 +384,11 @@ namespace Pixiv_Background_Form
                 newString += "0";
             int byteLength = newString.Length / 2;
             byte[] bytes = new byte[byteLength];
-            for (int i = 0; i < byteLength; i ++)
+            for (int i = 0; i < byteLength; i++)
             {
                 bytes[i] = Convert.ToByte(newString.Substring(i * 2, 2), 16);
             }
-            return bytes;       
+            return bytes;
         }
         private static TextBlock convert_strong(HtmlTreeNode node)
         {
@@ -445,9 +445,21 @@ namespace Pixiv_Background_Form
             if (match.Success) request_url = Uri.UnescapeDataString(match.Result("${actual_url}"));
             else
             {
-                match = Regex.Match(request_url, @"http(s?)://.+");
-                if (!match.Success)
-                    request_url = "http://www.pixiv.net" + request_url;
+                match = Regex.Match(request_url, @"pixiv://(?<type>(illusts|users))/(?<id>\d+)");
+                if (match.Success)
+                {
+                    if (match.Result("${type}") == "illusts")
+                        request_url = "https://www.pixiv.net/i/" + match.Result("${id}");
+                    else
+                        request_url = "https://www.pixiv.net/u/" + match.Result("${id}");
+
+                }
+                else
+                {
+                    match = Regex.Match(request_url, @"http(s?)://.+");
+                    if (!match.Success)
+                        request_url = "https://www.pixiv.net" + request_url;
+                }
             }
 
             var uri = new Uri(request_url);
@@ -474,7 +486,7 @@ namespace Pixiv_Background_Form
             Storyboard.SetTargetProperty(ca, new PropertyPath("Foreground.(SolidColorBrush.Color)"));
             ((Hyperlink)sender).BeginStoryboard(sb);
         }
-        
+
         private static void set_object_bold(object uiObject)
         {
             InlineCollection inlines = null;
