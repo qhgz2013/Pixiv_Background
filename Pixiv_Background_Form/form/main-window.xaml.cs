@@ -91,6 +91,7 @@ namespace Pixiv_Background_Form
             frmMain.Left = SystemParameters.WorkArea.Width - frmMain.ActualWidth;
             frmMain.Top = 0;
             _frm_created = true;
+
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -766,6 +767,12 @@ namespace Pixiv_Background_Form
         private void btn_user_image_Click(object sender, RoutedEventArgs e)
         {
             _open_user(_last_data.user.ID);
+        }
+
+        private void Search_Click(object sender, RoutedEventArgs e)
+        {
+            var frm = new frmSearch(_background_queue, _database);
+            frm.Show();
         }
     }
 }

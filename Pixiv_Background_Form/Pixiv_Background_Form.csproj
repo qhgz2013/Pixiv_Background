@@ -108,18 +108,27 @@
     <Compile Include="api\api-struct.cs" />
     <Compile Include="api\api.cs" />
     <Compile Include="api\auth.cs" />
-    <Compile Include="api\Desktop.cs" />
-    <Compile Include="api\WinAPI.cs" />
+    <Compile Include="api\desktop.cs" />
+    <Compile Include="api\winapi.cs" />
     <Compile Include="form\frm-setting.xaml.cs">
       <DependentUpon>frm-setting.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ScreenWatcher.cs" />
+    <Compile Include="form\frm-search.xaml.cs">
+      <DependentUpon>frm-search.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="form\panel-item.xaml.cs">
+      <DependentUpon>panel-item.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="form\frm-detailed.xaml.cs">
+      <DependentUpon>frm-detailed.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="screen-watcher.cs" />
     <Compile Include="settings.cs" />
     <Compile Include="utils\net-util.cs" />
     <Compile Include="utils\tracer.cs" />
     <Compile Include="utils\util.cs" />
     <Compile Include="waifu2x-plugin.cs" />
-    <Page Include="form\frmLogin.xaml">
+    <Page Include="form\frm-login.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -127,11 +136,11 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="form\loading_animation.xaml">
+    <Page Include="form\loading-animation.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="form\MainWindow.xaml">
+    <Page Include="form\main-window.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -142,17 +151,29 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="form\frmLogin.xaml.cs">
-      <DependentUpon>frmLogin.xaml</DependentUpon>
+    <Compile Include="form\frm-login.xaml.cs">
+      <DependentUpon>frm-login.xaml</DependentUpon>
     </Compile>
-    <Compile Include="html_parser.cs" />
-    <Compile Include="form\loading_animation.xaml.cs">
-      <DependentUpon>loading_animation.xaml</DependentUpon>
+    <Compile Include="html-parser.cs" />
+    <Compile Include="form\loading-animation.xaml.cs">
+      <DependentUpon>loading-animation.xaml</DependentUpon>
     </Compile>
-    <Compile Include="form\MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
+    <Compile Include="form\main-window.xaml.cs">
+      <DependentUpon>main-window.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="form\frm-search.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="form\panel-item.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="form\frm-detailed.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

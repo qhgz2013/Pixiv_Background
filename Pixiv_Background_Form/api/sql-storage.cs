@@ -1577,7 +1577,7 @@ namespace Pixiv_Background_Form
         /// <summary>
         /// 根据投稿ID进行模糊查询
         /// </summary>
-        /// <param name="key"></param>
+        /// <param name="id">投稿id</param>
         /// <returns></returns>
         public Illust[] GetIllustByFuzzyID(string id)
         {
@@ -1586,6 +1586,21 @@ namespace Pixiv_Background_Form
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
             var data = __query_illust_by_specified_constraint("CAST(ID AS TEXT) LIKE '%" + id + "%'");
+            m_sqlThreadLock.ReleaseWriterLock();
+            return data.ToArray();
+        }
+        /// <summary>
+        /// 根据投稿ID进行模糊查询
+        /// </summary>
+        /// <param name="id">用户id</param>
+        /// <returns></returns>
+        public User[] GetUserByFuzzyID(string id)
+        {
+            Tracer.GlobalTracer.TraceFunctionEntry();
+            if (string.IsNullOrEmpty(id)) return null;
+
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var data = __query_user_by_specified_constraint("CAST(ID AS TEXT) LIKE '%" + id + "%'");
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
@@ -1641,7 +1656,7 @@ namespace Pixiv_Background_Form
         private uint _id;
         private int _currentTasks, _totalTasks;
         /// <summary>
-        /// 投稿ID
+        /// ID
         /// </summary>
         public uint ID { get { return _id; } set { _id = value; } }
         /// <summary>

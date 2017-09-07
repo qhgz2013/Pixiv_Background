@@ -1,0 +1,80 @@
+﻿<Window x:Class="Pixiv_Background_Form.frmDetailed"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Pixiv_Background_Form"
+        mc:Ignorable="d"
+        Title="frmDetailed" Height="800" Width="1000">
+    <Window.Resources>
+        <ResourceDictionary>
+            <Color x:Key="HighlightColor" x:Shared="False">#FF0078D7</Color>
+            <SolidColorBrush x:Key="HighlightBrush" Color="{StaticResource HighlightColor}" x:Shared="False"/>
+            <Color x:Key="MyGrayColor" x:Shared="False">#FF5B5B5B</Color>
+            <SolidColorBrush x:Key="MyGrayBrush" Color="{StaticResource MyGrayColor}" x:Shared="False"/>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <Image x:Name="iSourceImage" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <!--todo: add data grid-->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" MaxHeight="200">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="10"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="10"/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition Height="10"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+                    <Label x:Name="lTitle" FontSize="20" FontWeight="Bold" Foreground="{StaticResource MyGrayBrush}">Title</Label>
+                    <Grid Grid.Row="1">
+                        <Label x:Name="lDescription">Descriptions</Label>
+                    </Grid>
+                    <Label x:Name="lTag" Grid.Row="2">Tags</Label>
+                    <Label x:Name="lIllustStat" Foreground="{StaticResource MyGrayBrush}" Grid.Row="3">Other data</Label>
+                </Grid>
+                <Grid Grid.Row="2" Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+                    <Image x:Name="iUserImage" Height="{Binding ElementName=iUserImage, Path=Width}"/>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="auto"/>
+                            <RowDefinition Height="auto"/>
+                            <RowDefinition Height="auto"/>
+                        </Grid.RowDefinitions>
+                        <Label x:Name="lUserName" Foreground="{StaticResource MyGrayBrush}">Username</Label>
+                        <Grid Grid.Row="1">
+                            <Label x:Name="lUserID">Userid</Label>
+                        </Grid>
+                    </Grid>
+                    <Label x:Name="lUserDescription" Foreground="{StaticResource MyGrayBrush}" Grid.Row="2" Grid.ColumnSpan="2">Descriptions</Label>
+                    <Label x:Name="lUserStat" Foreground="{StaticResource MyGrayBrush}" Grid.Row="3" Grid.ColumnSpan="2">Other data</Label>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

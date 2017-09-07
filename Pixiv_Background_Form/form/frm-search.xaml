@@ -1,0 +1,39 @@
+﻿<Window x:Class="Pixiv_Background_Form.frmSearch"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Pixiv_Background_Form"
+        mc:Ignorable="d"
+        Title="frmSearch" Height="700" Width="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="10"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="120"/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="10"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Label Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">搜索类型</Label>
+        <ComboBox x:Name="cSearchType" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Width="100">
+            <ComboBoxItem>投稿ID</ComboBoxItem>
+            <ComboBoxItem>投稿标题</ComboBoxItem>
+            <ComboBoxItem>投稿Tag</ComboBoxItem>
+            <ComboBoxItem>投稿作者名称</ComboBoxItem>
+            <ComboBoxItem>用户ID</ComboBoxItem>
+            <ComboBoxItem>用户名称</ComboBoxItem>
+        </ComboBox>
+        <TextBox x:Name="tSearchString" Grid.Column="3" VerticalAlignment="Center" KeyUp="tSearchString_KeyUp"></TextBox>
+
+        <ScrollViewer Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto">
+            <WrapPanel x:Name="lDataPanel">
+
+            </WrapPanel>
+        </ScrollViewer>
+        <Label x:Name="lNotFound" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" HorizontalAlignment="Center" Visibility="Hidden">(未找到相关结果，请更改搜索条件或内容)</Label>
+    </Grid>
+</Window>

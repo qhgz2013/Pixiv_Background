@@ -287,29 +287,29 @@
                 </Label.Triggers>
             </Label>
 
-            <!--
-            <Label x:Name="Slide_Hide_lbl" Grid.Column="3" Grid.Row="0" HorizontalAlignment="Center">
+            
+            <Label Grid.Column="3" Grid.Row="0" HorizontalAlignment="Center">
                 <Label.Content>
-                    <Hyperlink Foreground="{StaticResource HighlightBrush}" x:Name="Slide_Hide" TextDecorations="" Click="Slide_Hide_Click">开启滑动透明</Hyperlink>
+                    <Hyperlink Foreground="{StaticResource HighlightBrush}" x:Name="Search" TextDecorations="" Click="Search_Click">本地搜索</Hyperlink>
                 </Label.Content>
                 <Label.Triggers>
                     <EventTrigger RoutedEvent="MouseEnter">
                         <BeginStoryboard>
                             <Storyboard>
-                                <ColorAnimation To="Orange" Duration="0:0:0.3" Storyboard.TargetName="Slide_Hide" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
+                                <ColorAnimation To="Orange" Duration="0:0:0.3" Storyboard.TargetName="Search" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
                             </Storyboard>
                         </BeginStoryboard>
                     </EventTrigger>
                     <EventTrigger RoutedEvent="MouseLeave">
                         <BeginStoryboard>
                             <Storyboard>
-                                <ColorAnimation To="{StaticResource HighlightColor}" Duration="0:0:0.3" Storyboard.TargetName="Slide_Hide" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
+                                <ColorAnimation To="{StaticResource HighlightColor}" Duration="0:0:0.3" Storyboard.TargetName="Search" Storyboard.TargetProperty="Foreground.(SolidColorBrush.Color)"/>
                             </Storyboard>
                         </BeginStoryboard>
                     </EventTrigger>
                 </Label.Triggers>
             </Label>
-            -->
+            
         </Grid>
 
         <!--Progress bar-->
