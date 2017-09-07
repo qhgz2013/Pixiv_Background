@@ -130,13 +130,16 @@ namespace Pixiv_Background_Form
             tb.TextWrapping = TextWrapping.WrapWithOverflow;
             lUserStat.Content = tb;
             var ms = new MemoryStream();
-            _user.User_Face.Save(ms, _user.User_Face.RawFormat);
-            ms.Seek(0, SeekOrigin.Begin);
-            var imgsrc = new BitmapImage();
-            imgsrc.BeginInit();
-            imgsrc.StreamSource = ms;
-            imgsrc.EndInit();
-            WpfAnimatedGif.ImageBehavior.SetAnimatedSource(iUserImage, imgsrc);
+            if (_user.User_Face != null)
+            {
+                _user.User_Face.Save(ms, _user.User_Face.RawFormat);
+                ms.Seek(0, SeekOrigin.Begin);
+                var imgsrc = new BitmapImage();
+                imgsrc.BeginInit();
+                imgsrc.StreamSource = ms;
+                imgsrc.EndInit();
+                WpfAnimatedGif.ImageBehavior.SetAnimatedSource(iUserImage, imgsrc);
+            }
         }
     }
 }
