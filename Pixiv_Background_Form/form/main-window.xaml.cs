@@ -32,50 +32,57 @@ namespace Pixiv_Background_Form
             _auth = new PixivAuth();
             //API调用部分
             _api = new API(_auth);
-            //数据库保存部分
-            _database = new DataStorage(_api, true, _auth);
-            _background_queue = new Dictionary<IllustKey, string>();
 
             _load_last_data();
             _update_ui_info();
 
-            _auth.LoginFailed += (str =>
-            {
-                Dispatcher.Invoke(new ThreadStart(delegate
-                {
-                    System.Windows.Forms.MessageBox.Show("登陆失败: " + str);
-                    Close();
-                }));
-            });
-
-            if (!_auth.IsLogined)
-            {
-                var frm_login = new frmLogin();
-                frm_login.ShowDialog();
-                if (frm_login.canceled)
-                {
-                    Close();
-                    return;
-                }
-                var user = frm_login.user_name;
-                var pass = frm_login.pass_word;
-                try { _auth.Login(user, pass); }
-                catch { Close(); return; }
-            }
-
-            Settings.WallPaperChangeEvent += _on_wallpaper_changed;
-            Settings.PathsChanged += _on_paths_changed;
-            _database.FetchIllustSucceeded += _on_illust_query_finished;
-            _database.FetchIllustFailed += _on_illust_query_finished;
-            _database.FetchUserSucceeded += _on_user_query_finished;
-            _database.FetchUserFailed += _on_user_query_finished;
-
             ThreadPool.QueueUserWorkItem(delegate
             {
-                foreach (var item in Settings.Paths)
+                //数据库保存部分
+                _database = new DataStorage(_api, true, _auth);
+                _background_queue = new Dictionary<IllustKey, string>();
+
+                _auth.LoginFailed += (str =>
                 {
-                    _load_path(item.Directory, item.IncludingSubDir);
+                    Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        System.Windows.Forms.MessageBox.Show("登陆失败: " + str);
+                        Close();
+                    }));
+                });
+
+                if (!_auth.IsLogined)
+                {
+                    Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        var frm_login = new frmLogin();
+                        frm_login.ShowDialog();
+                        if (frm_login.canceled)
+                        {
+                            Close();
+                            return;
+                        }
+                        var user = frm_login.user_name;
+                        var pass = frm_login.pass_word;
+                        try { _auth.Login(user, pass); }
+                        catch { Close(); return; }
+                    }));
                 }
+
+                Settings.WallPaperChangeEvent += _on_wallpaper_changed;
+                Settings.PathsChanged += _on_paths_changed;
+                _database.FetchIllustSucceeded += _on_illust_query_finished;
+                _database.FetchIllustFailed += _on_illust_query_finished;
+                _database.FetchUserSucceeded += _on_user_query_finished;
+                _database.FetchUserFailed += _on_user_query_finished;
+
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    foreach (var item in Settings.Paths)
+                    {
+                        _load_path(item.Directory, item.IncludingSubDir);
+                    }
+                });
             });
         }
         private bool _frm_created = false;

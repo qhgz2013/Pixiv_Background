@@ -820,11 +820,14 @@ namespace Pixiv_Background_Form
                     HTTP_Response = (HttpWebResponse)HTTP_Request.EndGetResponse(iar);
                     if (HTTP_Response != null)
                     {
-                        _slock.AcquireWriterLock(Timeout.Infinite);
-                        if (!string.IsNullOrEmpty(CookieKey) && !DefaultCookieContainer.ContainsKey(CookieKey))
-                            DefaultCookieContainer.Add(CookieKey, new CookieContainer());
-                        HTTP_Request.CookieContainer = DefaultCookieContainer[CookieKey];
-                        _slock.ReleaseWriterLock();
+                        if (UseCookie)
+                        {
+                            _slock.AcquireWriterLock(Timeout.Infinite);
+                            if (!string.IsNullOrEmpty(CookieKey) && !DefaultCookieContainer.ContainsKey(CookieKey))
+                                DefaultCookieContainer.Add(CookieKey, new CookieContainer());
+                            DefaultCookieContainer[CookieKey].Add(ParseCookie(HTTP_Response.Headers[STR_COOKIE], HTTP_Response.ResponseUri.Host));
+                            _slock.ReleaseWriterLock();
+                        }
 
                         //length calculation
                         _response_protocol_length = 5; //"HTTP/"

@@ -294,6 +294,10 @@ namespace Pixiv_Background_Form
         }
 
         //update local database from the current directory.
+        /// <summary>
+        /// 从文件夹中读取所有图片（文件名为***_p*）的相关信息，并保存到数据库中
+        /// </summary>
+        /// <param name="path"></param>
         public void UpdateFileList(string path)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -644,7 +648,7 @@ namespace Pixiv_Background_Form
 
         private void _join_all_thread(int timeout = int.MaxValue)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             for (int i = 0; i < m_illust_thd.Length; i++)
                 m_illust_thd[i]?.Join(timeout);
             for (int i = 0; i < m_user_thd.Length; i++)
@@ -1253,59 +1257,68 @@ namespace Pixiv_Background_Form
         private User __get_user(uint id)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
+            var data = __query_user_by_specified_constraint("ID = " + id);
+            if (data.Length == 0)
+            {
+                var ret = new User();
+                ret.ID = id;
+                return ret;
+            }
+            else
+                return data[0];
+        }
+        private User[] __query_user_by_specified_constraint(string constraint)
+        {
 
-            var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Job, Follow_Users, Follower, Illust_Bookmark_Public, Mypixiv_Users, Total_Illusts, Total_Novels, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE ID=" + id;
-            var ret = new User();
-            if (id == 0) return ret;
+            Tracer.GlobalTracer.TraceFunctionEntry();
+
+            var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Job, Follow_Users, Follower, Illust_Bookmark_Public, Mypixiv_Users, Total_Illusts, Total_Novels, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE " + constraint;
+            var ret = new List<User>();
             try
             {
                 m_dbCommand.CommandText = get_user_str;
                 var dr = m_dbCommand.ExecuteReader();
-                var suc = dr.Read();
-                if (!suc)
+                while (dr.Read())
                 {
-                    ret.ID = id;
-                    dr.Close();
-                    return ret;
+                    var data = new User();
+                    data.ID = (uint)dr.GetInt32(0);
+                    data.Name = dr.IsDBNull(1) ? "" : dr.GetString(1);
+                    data.Description = dr.IsDBNull(2) ? "" : dr.GetString(2);
+                    if (!dr.IsDBNull(3))
+                    {
+                        byte[] img_buf = (byte[])dr[3];
+                        var mm = new MemoryStream();
+                        mm.Write(img_buf, 0, img_buf.Length);
+                        mm.Position = 0;
+                        data.User_Face = Image.FromStream(mm);
+                    }
+                    data.User_Face_Url = dr.IsDBNull(4) ? "" : dr.GetString(4);
+                    data.Home_Page = dr.IsDBNull(5) ? "" : dr.GetString(5);
+                    data.Gender = dr.IsDBNull(6) ? "" : dr.GetString(6);
+                    data.Personal_Tag = dr.IsDBNull(7) ? "" : dr.GetString(7);
+                    data.Address = dr.IsDBNull(8) ? "" : dr.GetString(8);
+                    data.Birthday = dr.IsDBNull(9) ? "" : dr.GetString(9);
+                    data.Job = dr.IsDBNull(10) ? "" : dr.GetString(10);
+                    data.Follow_Users = dr.IsDBNull(11) ? 0 : dr.GetInt32(11);
+                    data.Follower = dr.IsDBNull(12) ? 0 : dr.GetInt32(12);
+                    data.Illust_Bookmark_Public = dr.IsDBNull(13) ? 0 : dr.GetInt32(13);
+                    data.Mypixiv_Users = dr.IsDBNull(14) ? 0 : dr.GetInt32(14);
+                    data.Total_Illusts = dr.IsDBNull(15) ? 0 : dr.GetInt32(15);
+                    data.Total_Novels = dr.IsDBNull(16) ? 0 : dr.GetInt32(16);
+                    data.Twitter = dr.IsDBNull(17) ? "" : dr.GetString(17);
+                    data.HTTP_Status = dr.IsDBNull(18) ? 0 : dr.GetInt32(18);
+                    data.Last_Update = dr.IsDBNull(19) ? 0 : (ulong)dr.GetInt64(19);
+                    data.Last_Success_Update = dr.IsDBNull(20) ? 0 : (ulong)dr.GetInt64(20);
+                    ret.Add(data);
                 }
-                ret.ID = (uint)dr.GetInt32(0);
-                ret.Name = dr.IsDBNull(1) ? "" : dr.GetString(1);
-                ret.Description = dr.IsDBNull(2) ? "" : dr.GetString(2);
-                if (!dr.IsDBNull(3))
-                {
-                    byte[] img_buf = (byte[])dr[3];
-                    var mm = new MemoryStream();
-                    mm.Write(img_buf, 0, img_buf.Length);
-                    mm.Position = 0;
-                    ret.User_Face = Image.FromStream(mm);
-                }
-                ret.User_Face_Url = dr.IsDBNull(4) ? "" : dr.GetString(4);
-                ret.Home_Page = dr.IsDBNull(5) ? "" : dr.GetString(5);
-                ret.Gender = dr.IsDBNull(6) ? "" : dr.GetString(6);
-                ret.Personal_Tag = dr.IsDBNull(7) ? "" : dr.GetString(7);
-                ret.Address = dr.IsDBNull(8) ? "" : dr.GetString(8);
-                ret.Birthday = dr.IsDBNull(9) ? "" : dr.GetString(9);
-                ret.Job = dr.IsDBNull(10) ? "" : dr.GetString(10);
-                ret.Follow_Users = dr.IsDBNull(11) ? 0 : dr.GetInt32(11);
-                ret.Follower = dr.IsDBNull(12) ? 0 : dr.GetInt32(12);
-                ret.Illust_Bookmark_Public = dr.IsDBNull(13) ? 0 : dr.GetInt32(13);
-                ret.Mypixiv_Users = dr.IsDBNull(14) ? 0 : dr.GetInt32(14);
-                ret.Total_Illusts = dr.IsDBNull(15) ? 0 : dr.GetInt32(15);
-                ret.Total_Novels = dr.IsDBNull(16) ? 0 : dr.GetInt32(16);
-                ret.Twitter = dr.IsDBNull(17) ? "" : dr.GetString(17);
-                ret.HTTP_Status = dr.IsDBNull(18) ? 0 : dr.GetInt32(18);
-                ret.Last_Update = dr.IsDBNull(19) ? 0 : (ulong)dr.GetInt64(19);
-                ret.Last_Success_Update = dr.IsDBNull(20) ? 0 : (ulong)dr.GetInt64(20);
-
                 dr.Close();
             }
             catch (Exception)
             {
 
             }
-            return ret;
+            return ret.ToArray();
         }
-
         #endregion //SQL Operations For User
 
         #endregion //SQL Operations
@@ -1313,7 +1326,12 @@ namespace Pixiv_Background_Form
         //公有函数
         #region Public Functions
 
-        //获取投稿信息 [MTA] [throwable]
+        /// <summary>
+        /// 获取投稿信息
+        /// </summary>
+        /// <param name="id">投稿ID</param>
+        /// <param name="mode">数据更新模式</param>
+        /// <returns></returns>
         public Illust GetIllustInfo(uint id, DataUpdateMode mode = DataUpdateMode.Async_Update)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -1357,7 +1375,12 @@ namespace Pixiv_Background_Form
 
             return info;
         }
-        //获取用户信息 [MTA] [throwable] todo: fixed table section
+        /// <summary>
+        /// 获取用户信息
+        /// </summary>
+        /// <param name="id">用户ID</param>
+        /// <param name="mode">数据更新模式</param>
+        /// <returns></returns>
         public User GetUserInfo(uint id, DataUpdateMode mode = DataUpdateMode.Async_Update)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -1402,7 +1425,10 @@ namespace Pixiv_Background_Form
 
             return info;
         }
-        //中止工作线程
+        /// <summary>
+        /// 中止工作线程
+        /// </summary>
+        /// <param name="wait"></param>
         public void AbortWorkingThread(bool wait = false)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -1410,7 +1436,9 @@ namespace Pixiv_Background_Form
             m_abort_flag = true;
             if (wait) m_monitor_thd.Join();
         }
-        //强制重新更新数据
+        /// <summary>
+        /// 强制重新更新数据（包括成功更新的和未成功的，之前的数据不会删除）
+        /// </summary>
         public void ForceUpdateAllData()
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -1453,6 +1481,10 @@ namespace Pixiv_Background_Form
                 _create_monitor_thread();
             });
         }
+        /// <summary>
+        /// 设置投稿信息
+        /// </summary>
+        /// <param name="illust">投稿信息</param>
         public void SetIllustInfo(Illust illust)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -1466,6 +1498,10 @@ namespace Pixiv_Background_Form
             m_dataThreadLock.ReleaseWriterLock();
             m_sqlThreadLock.ReleaseWriterLock();
         }
+        /// <summary>
+        /// 设置用户信息
+        /// </summary>
+        /// <param name="user">用户信息</param>
         public void SetUserInfo(User user)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -1480,9 +1516,13 @@ namespace Pixiv_Background_Form
             m_sqlThreadLock.ReleaseWriterLock();
         }
 
-        //查找功能
-
-        //根据Tag进行查找
+        //查询功能
+        #region fuzzy query
+        /// <summary>
+        /// 根据Tag进行查询
+        /// </summary>
+        /// <param name="tag">Tag名称</param>
+        /// <returns></returns>
         public Illust[] GetIllustByTag(string tag)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
@@ -1493,18 +1533,30 @@ namespace Pixiv_Background_Form
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
+        /// <summary>
+        /// 根据作者id进行查询
+        /// </summary>
+        /// <param name="id">作者ID</param>
+        /// <returns></returns>
         public Illust[] GetIllustByAuthorID(uint id)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
+            if (id == 0) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
             var data = __query_illust_by_specified_constraint("Author_ID = " + id);
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
+        /// <summary>
+        /// 根据作者名进行模糊查询
+        /// </summary>
+        /// <param name="name">作者名</param>
+        /// <returns></returns>
         public Illust[] GetIllustByAuthorName(string name)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
+            if (string.IsNullOrEmpty(name)) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
             var user_query_sql = "SELECT ID From User WHERE Name LIKE '%" + name + "%'";
@@ -1522,6 +1574,54 @@ namespace Pixiv_Background_Form
                 return GetIllustByAuthorID(userID);
             else return null;
         }
+        /// <summary>
+        /// 根据投稿ID进行模糊查询
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public Illust[] GetIllustByFuzzyID(string id)
+        {
+            Tracer.GlobalTracer.TraceFunctionEntry();
+            if (string.IsNullOrEmpty(id)) return null;
+
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var data = __query_illust_by_specified_constraint("CAST(ID AS TEXT) LIKE '%" + id + "%'");
+            m_sqlThreadLock.ReleaseWriterLock();
+            return data.ToArray();
+        }
+        /// <summary>
+        /// 根据标题进行模糊查询
+        /// </summary>
+        /// <param name="title">标题</param>
+        /// <returns></returns>
+        public Illust[] GetIllustByTitle(string title)
+        {
+            Tracer.GlobalTracer.TraceFunctionEntry();
+            if (string.IsNullOrEmpty(title)) return null;
+
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var data = __query_illust_by_specified_constraint("Title LIKE '%" + title + "%'");
+            m_sqlThreadLock.ReleaseWriterLock();
+            return data.ToArray();
+        }
+        /// <summary>
+        /// 根据画师名称进行模糊查询
+        /// </summary>
+        /// <param name="name">画师名称</param>
+        /// <returns></returns>
+        public User[] GetUserByName(string name)
+        {
+            Tracer.GlobalTracer.TraceFunctionEntry();
+            if (string.IsNullOrEmpty(name)) return null;
+
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var data = __query_user_by_specified_constraint("Name LIKE '%" + name + "%'");
+            m_sqlThreadLock.ReleaseWriterLock();
+            return data.ToArray();
+        }
+        
+        #endregion //fuzzy query
+
         #endregion //Public Functions
 
 

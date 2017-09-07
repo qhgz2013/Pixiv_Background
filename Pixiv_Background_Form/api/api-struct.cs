@@ -115,6 +115,11 @@ namespace Pixiv_Background_Form
         /// 最后成功更新的时间
         /// </summary>
         public ulong Last_Success_Update;
+
+        public override string ToString()
+        {
+            return Name + " (ID:" + ID + ")";
+        }
     }
     /// <summary>
     /// 投稿信息
@@ -194,6 +199,11 @@ namespace Pixiv_Background_Form
         /// 数据来源
         /// </summary>
         public DataOrigin Origin;
+
+        public override string ToString()
+        {
+            return Title + " (" + ID + "p" + Page + ")";
+        }
     }
 
     /// <summary>
