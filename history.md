@@ -1,4 +1,35 @@
 <p>
+<b>alpha v1.21</b><br/>
+API和HTTP请求的bug修复（针对网络离线的情况）<br/>
+改了一下坑爹的搜索时点开题目的响应操作（从搜索该题目变为直接打开该投稿的详细内容）<br/>
+修复详细内容的投稿时间未显示的bug<br/>
+修复多屏显示的壁纸契合方式<br/>
+<br/>
+<b>alpha v1.20</b><br/>
+窗体修正+bug修复<br/>
+<br/>
+<b>alpha v1.19</b><br/>
+bug修复，离线查询更改成分段查询（结果过多时每次只更新一部分，滑动触底更新）<br/>
+<br/>
+<b>alpha v1.18</b><br/>
+离线的数据查询功能实现<br/>
+<br/>
+<b>alpha v1.17</b><br/>
+修复HTTP请求的bug<br/>
+文件命名规范化<br/>
+<br/>
+<b>alpha v1.16</b><br/>
+修复背景更换时间错误的bug<br/>
+<br/>
+<b>alpha v1.15</b><br/>
+修正Readme<br/>
+<br/>
+<b>alpha v1.14</b><br/>
+移除不必要项目，整合到同一个项目里面<br/>
+分离了sql和数据更新以及登陆验证模块<br/>
+支持了更多选项设置<br/>
+支持插件waifu2x<br/>
+<br/>
 <b>alpha v0.13</b><br/>
 现在新增tag的点击查询功能，把界面改成默认半透明式，还有修复用户描述为空的bug<br/>
 (如不喜欢可在MainWindow.xaml中把第9行的 Opacity="0.7" 去掉和MainWindow.xaml.cs 中第841 842行的值改为 1.0 0.5 即可)<br/>

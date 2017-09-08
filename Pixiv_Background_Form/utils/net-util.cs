@@ -1340,6 +1340,11 @@ namespace Pixiv_Background_Form
             public void HttpPost(string url, byte[] data, string contentType = DEFAULT_CONTENT_TYPE_BINARY, Parameters headerParam = null, Parameters urlParam = null, long range = -1)
             {
                 var stream = HttpPost(url, data.Length, contentType, headerParam, urlParam, range);
+                if (stream == null)
+                {
+                    Close();
+                    return;
+                }
                 stream.Write(data, 0, data.Length);
                 stream.Close();
                 HttpPostClose();

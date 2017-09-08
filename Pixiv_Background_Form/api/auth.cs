@@ -187,6 +187,11 @@ namespace Pixiv_Background_Form
                 Tracer.GlobalTracer.TraceInfo("Posting login data");
                 ns.HttpPost(login_request_url, post_param, headerParam: header_param);
 
+                if (ns.ResponseStream == null)
+                {
+                    ns.Close();
+                    return;
+                }
                 var response_str = ns.ReadResponseString();
 
                 var response_json = JsonConvert.DeserializeObject(response_str) as JObject;
@@ -198,13 +203,11 @@ namespace Pixiv_Background_Form
                 _expire_time = DateTime.Now.AddSeconds(response_json["response"].Value<int>("expires_in"));
 
                 SaveToken();
-                Tracer.GlobalTracer.TraceInfo("Login succeeded.");
-                LoginSucceeded?.Invoke();
+                Tracer.GlobalTracer.TraceInfo("Refresh token succeeded.");
             }
             catch (Exception ex)
             {
-                Tracer.GlobalTracer.TraceInfo("Login failed: \n" + ex.ToString());
-                LoginFailed?.Invoke(ex.ToString());
+                Tracer.GlobalTracer.TraceInfo("Refresh token failed: \n" + ex.ToString());
             }
             finally
             {

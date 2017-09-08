@@ -187,13 +187,7 @@ namespace Pixiv_Background_Form
                 var ui = new PanelItem(thumbnail[i], illusts[i].Title, users[illusts[i].Author_ID].Name, true, true);
                 var tag = new _temp_struct { illust = illusts[i], user = users[illusts[i].Author_ID], path = _pathdata[_cached_illustKeys[i + from]] };
                 ui.Tag = tag;
-                ui.SourceImageClick += (sender, e) =>
-                {
-                    var taginfo = (_temp_struct)((PanelItem)((Grid)((Image)sender).Parent).Parent).Tag;
-                    var detail_ui = new frmDetailed(taginfo.illust, taginfo.user, taginfo.path);
-                    detail_ui.TagClicked += _on_info_tag_clicked;
-                    detail_ui.Show();
-                };
+                ui.SourceImageClick += _on_illust_image_clicked;
                 ui.TitleClick += _on_illust_title_clicked;
                 ui.DescriptionClick += _on_illust_user_clicked;
 
@@ -241,15 +235,20 @@ namespace Pixiv_Background_Form
             KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, Keyboard.PrimaryDevice.ActiveSource, 0, Key.Enter) { RoutedEvent = KeyUpEvent };
             tSearchString_KeyUp(tSearchString, ke);
         }
+        private void _on_illust_image_clicked(object sender, EventArgs e)
+        {
+            var taginfo = (_temp_struct)((PanelItem)((Grid)((Image)sender).Parent).Parent).Tag;
+            var detail_ui = new frmDetailed(taginfo.illust, taginfo.user, taginfo.path);
+            detail_ui.TagClicked += _on_info_tag_clicked;
+            detail_ui.Show();
+        }
         //在投稿里点击标题
         private void _on_illust_title_clicked(object sender, EventArgs e)
         {
             var taginfo = (_temp_struct)((PanelItem)((Grid)((Label)sender).Parent).Parent).Tag;
-            cSearchType.SelectedIndex = 1;
-            tSearchString.Text = taginfo.illust.Title.ToString();
-
-            KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, Keyboard.PrimaryDevice.ActiveSource, 0, Key.Enter) { RoutedEvent = KeyUpEvent };
-            tSearchString_KeyUp(tSearchString, ke);
+            var detail_ui = new frmDetailed(taginfo.illust, taginfo.user, taginfo.path);
+            detail_ui.TagClicked += _on_info_tag_clicked;
+            detail_ui.Show();
         }
         //在投稿里点击用户名称
         private void _on_illust_user_clicked(object sender, EventArgs e)

@@ -49,6 +49,11 @@ namespace Pixiv_Background_Form
                 }
 
                 ns.HttpGet(url, headerParam: header_param);
+                if (ns.HTTP_Response == null)
+                {
+                    illust.HTTP_Status = -2;
+                    return;
+                }
                 if (ns.HTTP_Response.StatusCode != HttpStatusCode.OK)
                 {
                     illust.HTTP_Status = (int)ns.HTTP_Response.StatusCode;
@@ -148,6 +153,11 @@ namespace Pixiv_Background_Form
                 }
 
                 ns.HttpGet(url, headerParam: header_param);
+                if (ns.HTTP_Response == null)
+                {
+                    user.HTTP_Status = -2;
+                    return;
+                }
                 if (ns.HTTP_Response.StatusCode != HttpStatusCode.OK)
                 {
                     user.HTTP_Status = (int)ns.HTTP_Response.StatusCode;

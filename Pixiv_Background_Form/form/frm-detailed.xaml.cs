@@ -84,6 +84,21 @@ namespace Pixiv_Background_Form
             return ret_tb;
         }
 
+        private string _get_status_code(int code)
+        {
+            if (code > 0) return ((System.Net.HttpStatusCode)code).ToString();
+            switch (code)
+            {
+                case 0:
+                    return "queueing";
+                case -1:
+                    return "fetching";
+                case -2:
+                    return "network error";
+                default:
+                    return "unknown";
+            }
+        }
         private void _set_illust_info()
         {
             var tbtitle = new TextBlock();
@@ -95,7 +110,8 @@ namespace Pixiv_Background_Form
             lDescription.Content = html_data;
             lTag.Content = _create_tag_hyperlink(_illust.Tag.Split(','));
             var sb = new StringBuilder();
-            sb.AppendFormat("ID: {0}\r\nHTTP状态码: {1} ({2})\r\n数据源: {3} ({4})\r\n", _illust.ID, _illust.HTTP_Status, ((System.Net.HttpStatusCode)_illust.HTTP_Status).ToString(), (int)_illust.Origin, _illust.Origin.ToString());
+            sb.AppendFormat("ID: {0}\r\nHTTP状态码: {1} ({2})\r\n数据源: {3} ({4})\r\n", _illust.ID, _illust.HTTP_Status, _get_status_code(_illust.HTTP_Status), (int)_illust.Origin, _illust.Origin.ToString());
+            sb.AppendFormat("投稿时间: {0} ({1})\r\n", _illust.Submit_Time, util.FromUnixTimestamp(_illust.Submit_Time).ToString());
             sb.AppendFormat("点击数: {0}\r\n收藏数: {1}\r\n评分次数&分数（旧版）: {2} ({3})\r\n评论数: {4}\r\n", _illust.Click, _illust.Bookmark_Count, _illust.Rate_Count, _illust.Score, _illust.Comment_Count);
             sb.AppendFormat("原始图像大小: {0}×{1}\r\n投稿分P: {2}\r\n绘画工具: {3}\r\n", _illust.Size.Width, _illust.Size.Height, _illust.Page, _illust.Tool);
             sb.AppendFormat("最后更新时间戳: {0} ({1})\r\n最后成功更新时间戳: {2} ({3})", _illust.Last_Update, util.FromUnixTimestamp(_illust.Last_Update).ToString(), _illust.Last_Success_Update, util.FromUnixTimestamp(_illust.Last_Success_Update).ToString());
@@ -119,7 +135,7 @@ namespace Pixiv_Background_Form
             html_data.Width = lUserDescription.Width;
             lUserDescription.Content = html_data;
             var sb = new StringBuilder();
-            sb.AppendFormat("HTTP状态码: {0} ({1})\r\n", _user.HTTP_Status, ((System.Net.HttpStatusCode)_user.HTTP_Status).ToString());
+            sb.AppendFormat("HTTP状态码: {0} ({1})\r\n", _user.HTTP_Status, _get_status_code(_user.HTTP_Status));
             sb.AppendFormat("关注着的画师: {0}\r\n关注者: {1}\r\n好P友: {2}\r\n", _user.Follow_Users, _user.Follower, _user.Mypixiv_Users);
             sb.AppendFormat("已投稿的插画: {0}\r\n已投稿的小说: {1}\r\n公开收藏数: {2}\r\n", _user.Total_Illusts, _user.Total_Novels, _user.Illust_Bookmark_Public);
             sb.AppendFormat("性别: {2}\r\n生日: {0}\r\n地址: {1}\r\n职业: {2}\r\n", _user.Birthday, _user.Address, _user.Gender, _user.Job);

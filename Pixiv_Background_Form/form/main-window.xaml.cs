@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Diagnostics;
+using Microsoft.Win32;
 
 namespace Pixiv_Background_Form
 {
@@ -266,6 +267,35 @@ namespace Pixiv_Background_Form
                     //开启缓存渲染
                     if (Settings.EnableBuffering)
                     {
+                        //更改注册表
+                        try
+                        {
+                            var regkey_read = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
+                            var wallpaper_style = regkey_read.GetValue("WallpaperStyle", "1").ToString();
+                            var tile_wallpaper = regkey_read.GetValue("TileWallpaper", "1").ToString();
+                            regkey_read.Close();
+
+                            if (wallpaper_style != "1" || tile_wallpaper != "1")
+                            {
+                                var regkey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
+                                //壁纸的契合模式
+                                //Name(EN)  Name(CN)  WallpaperStyle  TileWallpaper
+                                //Fill      填充      10              0
+                                //Fit       适应      6               0
+                                //Span      跨区      22              0              （Windows 8+ only）
+                                //Stretch   拉伸      2               0
+                                //Tile      平铺      0               1
+                                //Center    居中      0               0
+
+                                regkey.SetValue("WallpaperStyle", "1");
+                                regkey.SetValue("TileWallpaper", "1");
+                                regkey.Close();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
+                        }
                         //缩放壁纸
                         for (int i = 0; i < imgs.Length; i++)
                         {
