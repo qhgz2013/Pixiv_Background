@@ -185,7 +185,7 @@ namespace Pixiv_Background_Form
             for (int i = 0; i < thumbnail.Length; i++)
             {
                 var ui = new PanelItem(thumbnail[i], illusts[i].Title, users[illusts[i].Author_ID].Name, true, true);
-                var tag = new _temp_struct { illust = illusts[i], user = users[illusts[i].Author_ID], path = _pathdata[_cached_illustKeys[i]] };
+                var tag = new _temp_struct { illust = illusts[i], user = users[illusts[i].Author_ID], path = _pathdata[_cached_illustKeys[i + from]] };
                 ui.Tag = tag;
                 ui.SourceImageClick += (sender, e) =>
                 {

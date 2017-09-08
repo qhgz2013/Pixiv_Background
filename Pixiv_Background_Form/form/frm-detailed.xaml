@@ -66,9 +66,9 @@
                             <RowDefinition Height="auto"/>
                             <RowDefinition Height="auto"/>
                         </Grid.RowDefinitions>
-                        <Label x:Name="lUserName" Foreground="{StaticResource MyGrayBrush}">Username</Label>
+                        <Label x:Name="lUserName" Foreground="{StaticResource MyGrayBrush}" FontSize="16">Username</Label>
                         <Grid Grid.Row="1">
-                            <Label x:Name="lUserID">Userid</Label>
+                            <Label x:Name="lUserID" Foreground="{StaticResource MyGrayBrush}">Userid</Label>
                         </Grid>
                     </Grid>
                     <Label x:Name="lUserDescription" Foreground="{StaticResource MyGrayBrush}" Grid.Row="2" Grid.ColumnSpan="2">Descriptions</Label>
