@@ -25,6 +25,7 @@ namespace Pixiv_Background_Form
     {
         //窗体的构造函数以及初始化函数
         #region Form Initialize
+        private Thread _initialize_thread = null;
         public MainWindow()
         {
             InitializeComponent();
@@ -39,6 +40,7 @@ namespace Pixiv_Background_Form
 
             ThreadPool.QueueUserWorkItem(delegate
             {
+                _initialize_thread = Thread.CurrentThread;
                 //数据库保存部分
                 _database = new DataStorage(_api, true, _auth);
                 _background_queue = new Dictionary<IllustKey, string>();
@@ -84,6 +86,8 @@ namespace Pixiv_Background_Form
                         _load_path(item.Directory, item.IncludingSubDir);
                     }
                 });
+
+                _initialize_thread = null;
             });
         }
         private bool _frm_created = false;
@@ -399,7 +403,13 @@ namespace Pixiv_Background_Form
                 try
                 {
                     var ilsinfo = _database.GetIllustInfo(e.ID, DataUpdateMode.No_Update);
-                    if (ilsinfo.ID != 0 && ilsinfo.Origin != DataOrigin.SauceNao_API && (ilsinfo.HTTP_Status == 403 || ilsinfo.HTTP_Status == 404))
+                    //query from Pixiv failure (id = 0 or author id = 0)
+                    var illust_invalid = ilsinfo.ID == 0 || ilsinfo.Author_ID == 0 || (ilsinfo.Size == new System.Drawing.Size(100, 100) && ilsinfo.Origin == DataOrigin.Pixiv_App_API);
+                    //access failure
+                    illust_invalid = illust_invalid || (ilsinfo.Origin != DataOrigin.SauceNao_API && ilsinfo.HTTP_Status == 403 || ilsinfo.HTTP_Status == 404);
+                    //network failure using saucenao
+                    illust_invalid = illust_invalid || (ilsinfo.Origin == DataOrigin.SauceNao_API && ilsinfo.HTTP_Status != 200);
+                    if (illust_invalid)
                     {
                         var key = _background_queue.Keys.FirstOrDefault(o => o.id == ilsinfo.ID);
                         if (key.id != 0)
@@ -826,6 +836,15 @@ namespace Pixiv_Background_Form
 
         private void Search_Click(object sender, RoutedEventArgs e)
         {
+            //wait for initialization completed
+            if (_initialize_thread != null)
+            {
+                try
+                {
+                    _initialize_thread.Join();
+                }
+                catch (Exception) { }
+            }
             var frm = new frmSearch(_background_queue, _database);
             frm.Show();
         }

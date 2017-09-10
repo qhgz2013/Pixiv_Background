@@ -22,7 +22,6 @@ namespace Pixiv_Background_Form
     {
         private Illust _illust;
         private User _user;
-        private System.Drawing.Image _image;
         public frmDetailed(Illust illustInfo, User userInfo, string imagePath)
         {
             InitializeComponent();

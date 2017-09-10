@@ -150,7 +150,7 @@ namespace Pixiv_Background_Form
                 var from = _data_offset;
                 var to = Math.Min(_data_offset + DEFAULT_FETCH_COUNT, _cached_illustKeys.Length);
 
-                if (from == to) return;
+                if (from == to) { _background_working = false; return; }
 
                 var thumbnail = new System.Drawing.Image[to - from];
 
@@ -194,6 +194,7 @@ namespace Pixiv_Background_Form
 
                 for (int i = 0; i < thumbnail.Length; i++)
                 {
+                    if ((i % 10) == 0) Thread.Sleep(100);
                     Dispatcher.Invoke(new ThreadStart(delegate
                     {
                         var ui = new PanelItem(thumbnail[i], illusts[i].Title, users[illusts[i].Author_ID].Name, true, true);
@@ -239,13 +240,14 @@ namespace Pixiv_Background_Form
                 }));
                 var from = _data_offset;
                 var to = Math.Min(_cached_users.Length, _data_offset + DEFAULT_FETCH_COUNT);
-                if (from == to) return;
+                if (from == to) { _background_working = false; return; }
                 for (int i = from; i < to; i++)
                 {
                     var item = _cached_users[i];
                     var face = item.User_Face;
                     if (face == null) face = new System.Drawing.Bitmap(1, 1);
 
+                    if ((i % 10) == 0) Thread.Sleep(100);
                     Dispatcher.Invoke(new ThreadStart(delegate
                     {
                         var ui = new PanelItem(face, item.Name, null, true, false);

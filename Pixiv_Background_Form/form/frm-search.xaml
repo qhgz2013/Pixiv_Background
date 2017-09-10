@@ -27,7 +27,7 @@
             <ComboBoxItem>用户ID</ComboBoxItem>
             <ComboBoxItem>用户名称</ComboBoxItem>
         </ComboBox>
-        <TextBox x:Name="tSearchString" Grid.Column="3" VerticalAlignment="Center" KeyUp="tSearchString_KeyUp"></TextBox>
+        <TextBox x:Name="tSearchString" Grid.Column="3" VerticalAlignment="Center" KeyUp="tSearchString_KeyUp" ToolTip="输入 &quot;%&quot; 搜索全部"></TextBox>
 
         <ScrollViewer x:Name="scrollViewer" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" ScrollChanged="ScrollViewer_ScrollChanged">
             <WrapPanel x:Name="lDataPanel">

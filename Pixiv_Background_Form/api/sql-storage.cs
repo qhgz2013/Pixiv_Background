@@ -48,7 +48,7 @@ namespace Pixiv_Background_Form
         private Thread[] m_user_thd;
         private Thread m_monitor_thd;
         //操作终止标识
-        private bool m_abort_flag;
+        private volatile bool m_abort_flag;
         //线程数统计，用于确保线程数量正确
         private int m_illust_working_thd_count;
         private int m_user_working_thd_count;

@@ -12,6 +12,7 @@ namespace Pixiv_Background_Form
     {
         private string _path;
         private bool _exec_success;
+        public bool ExecutionSuccess { get { return _exec_success; } }
         public Waifu2xPlugin(string path)
         {
             if (string.IsNullOrEmpty(path))
