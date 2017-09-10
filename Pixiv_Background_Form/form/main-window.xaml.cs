@@ -238,7 +238,7 @@ namespace Pixiv_Background_Form
 
                     //加载所需的壁纸到内存中
                     var imgs = new System.Drawing.Image[cur_wallpaper.Length];
-                    var ratios = new double[cur_wallpaper.Length];
+                    var ratios = new double[System.Windows.Forms.Screen.AllScreens.Length];
                     var screens = ScreenWatcher.GetTransformedScreenBoundary();
                     for (int i = 0; i < imgs.Length; i++)
                     {
@@ -297,26 +297,29 @@ namespace Pixiv_Background_Form
                             Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
                         }
                         //缩放壁纸
-                        for (int i = 0; i < imgs.Length; i++)
+                        var tmp_imgs = new System.Drawing.Image[screens.Length];
+                        for (int i = 0; i < tmp_imgs.Length; i++)
                         {
-                            var src_width = imgs[i].Width;
-                            var src_height = imgs[i].Height;
+                            var index = Settings.EnableMultiMonitorDifferentWallpaper ? i : 0;
+                            var src_width = imgs[index].Width;
+                            var src_height = imgs[index].Height;
                             var dst_width = screens[i].Width;
                             var dst_height = screens[i].Height;
 
                             ratios[i] = Math.Min(dst_width * 1.0 / src_width, dst_height * 1.0 / src_height);
                             if (Settings.EnableWaifu2xUpscaling && ratios[i] >= Settings.Waifu2xUpscaleThreshold)
-                                imgs[i] = _upscaling_using_waifu2x(imgs[i], ratios[i]);
+                                tmp_imgs[i] = _upscaling_using_waifu2x(imgs[i], ratios[i]);
                             else
                             {
-                                var new_img = new System.Drawing.Bitmap((int)(imgs[i].Width * ratios[i]), (int)(imgs[i].Height * ratios[i]));
+                                var new_img = new System.Drawing.Bitmap((int)(imgs[index].Width * ratios[i]), (int)(imgs[index].Height * ratios[i]));
                                 var gr1 = System.Drawing.Graphics.FromImage(new_img);
 
-                                gr1.DrawImage(imgs[i], new System.Drawing.Rectangle(0, 0, new_img.Width, new_img.Height), new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[i].Size), System.Drawing.GraphicsUnit.Pixel);
-                                imgs[i] = new_img;
+                                gr1.DrawImage(imgs[index], new System.Drawing.Rectangle(0, 0, new_img.Width, new_img.Height), new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[index].Size), System.Drawing.GraphicsUnit.Pixel);
+                                tmp_imgs[i] = new_img;
                             }
 
                         }
+                        imgs = tmp_imgs;
 
                         var bmp_size = ScreenWatcher.GetTotalSize();
                         if (bmp_size.Width < 0 || bmp_size.Height < 0) return;
@@ -329,17 +332,16 @@ namespace Pixiv_Background_Form
                         //多屏壁纸
                         for (int i = 0; i < screens.Length; i++)
                         {
-                            var index = Settings.EnableMultiMonitorDifferentWallpaper ? i : 1;
-                            var screen_rect = screens[index];
+                            var screen_rect = screens[i];
                             var destRect = new System.Drawing.Rectangle(
-                                screen_rect.X + (screen_rect.Width - imgs[index].Width) / 2,
-                                screen_rect.Y + (screen_rect.Height - imgs[index].Height) / 2,
-                                imgs[index].Width,
-                                imgs[index].Height
+                                screen_rect.X + (screen_rect.Width - imgs[i].Width) / 2,
+                                screen_rect.Y + (screen_rect.Height - imgs[i].Height) / 2,
+                                imgs[i].Width,
+                                imgs[i].Height
                                 );
-                            gr.DrawImage(imgs[index],
+                            gr.DrawImage(imgs[i],
                                 destRect, //destRect
-                                new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[index].Size), //srcRect
+                                new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[i].Size), //srcRect
                                 System.Drawing.GraphicsUnit.Pixel);
                         }
 
@@ -351,6 +353,26 @@ namespace Pixiv_Background_Form
                         //没有开启缓存渲染的话就直接复制到该目录下
                         imgs[0].Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
 
+                        //更改注册表
+                        try
+                        {
+                            var regkey_read = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
+                            var wallpaper_style = regkey_read.GetValue("WallpaperStyle", "6").ToString();
+                            var tile_wallpaper = regkey_read.GetValue("TileWallpaper", "0").ToString();
+                            regkey_read.Close();
+
+                            if (wallpaper_style != "6" || tile_wallpaper != "0")
+                            {
+                                var regkey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
+                                regkey.SetValue("WallpaperStyle", "6");
+                                regkey.SetValue("TileWallpaper", "0");
+                                regkey.Close();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
+                        }
                     }
 
                     //动画效果
@@ -422,11 +444,14 @@ namespace Pixiv_Background_Form
                 try
                 {
                     var usrinfo = _database.GetUserInfo(e.ID, DataUpdateMode.No_Update);
-                    _last_data.user = usrinfo;
-                    Dispatcher.Invoke(new ThreadStart(delegate
+                    if (usrinfo.ID == _last_data.illust.ID)
                     {
-                        _update_ui_info();
-                    }));
+                        _last_data.user = usrinfo;
+                        Dispatcher.Invoke(new ThreadStart(delegate
+                        {
+                            _update_ui_info();
+                        }));
+                    }
                 }
                 catch (Exception ex)
                 {

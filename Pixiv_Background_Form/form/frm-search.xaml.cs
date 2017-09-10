@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -132,69 +133,89 @@ namespace Pixiv_Background_Form
             lDataPanel.Visibility = Visibility.Hidden;
             lNotFound.Visibility = Visibility.Visible;
         }
+
+        private bool _background_working = false;
         //输出投稿数据
         private void _show_data_illust()
         {
-            lDataPanel.Visibility = Visibility.Visible;
-            lNotFound.Visibility = Visibility.Hidden;
-            var from = _data_offset;
-            var to = Math.Min(_data_offset + DEFAULT_FETCH_COUNT, _cached_illustKeys.Length);
-
-            if (from == to) return;
-
-            var thumbnail = new System.Drawing.Image[to - from];
-
-            var illusts = new Illust[to - from];
-            var users = new Dictionary<uint, User>();
-
-            var user_lock = new object();
-            //parallel execution
-            var future = Parallel.For(from, to, i =>
-            //for (int i = from; i < to; i++)
+            if (_background_working) return;
+            _background_working = true;
+            ThreadPool.QueueUserWorkItem(delegate
             {
-                var item = _cached_illustKeys[i];
+                Dispatcher.Invoke(new ThreadStart(delegate
+                {
+                    lDataPanel.Visibility = Visibility.Visible;
+                    lNotFound.Visibility = Visibility.Hidden;
+                }));
+                var from = _data_offset;
+                var to = Math.Min(_data_offset + DEFAULT_FETCH_COUNT, _cached_illustKeys.Length);
 
-                var path = _pathdata[item];
-                Stream img = File.OpenRead(path);
-                var bytes = util.ReadBytes(img, (int)img.Length);
-                img.Close();
-                img = new MemoryStream(bytes);
-                img.Seek(0, SeekOrigin.Begin);
-                var imgdata = System.Drawing.Image.FromStream(img);
+                if (from == to) return;
+
+                var thumbnail = new System.Drawing.Image[to - from];
+
+                var illusts = new Illust[to - from];
+                var users = new Dictionary<uint, User>();
+
+                var user_lock = new object();
+                //parallel execution
+                var future = Parallel.For(from, to, i =>
+                //for (int i = from; i < to; i++)
+                {
+                    var item = _cached_illustKeys[i];
+
+                    var path = _pathdata[item];
+                    Stream img = File.OpenRead(path);
+                    var bytes = util.ReadBytes(img, (int)img.Length);
+                    img.Close();
+                    img = new MemoryStream(bytes);
+                    img.Seek(0, SeekOrigin.Begin);
+                    var imgdata = System.Drawing.Image.FromStream(img);
 
                 //rendering thumbnail
                 var ratio = 200.0 / imgdata.Height;
-                var width = (int)(imgdata.Width * ratio);
-                var thumb = new System.Drawing.Bitmap(width, 200);
-                var gr = System.Drawing.Graphics.FromImage(thumb);
-                gr.DrawImage(imgdata, new System.Drawing.Rectangle(new System.Drawing.Point(), thumb.Size), new System.Drawing.Rectangle(new System.Drawing.Point(), imgdata.Size), System.Drawing.GraphicsUnit.Pixel);
+                    var width = (int)(imgdata.Width * ratio);
+                    var thumb = new System.Drawing.Bitmap(width, 200);
+                    var gr = System.Drawing.Graphics.FromImage(thumb);
+                    gr.DrawImage(imgdata, new System.Drawing.Rectangle(new System.Drawing.Point(), thumb.Size), new System.Drawing.Rectangle(new System.Drawing.Point(), imgdata.Size), System.Drawing.GraphicsUnit.Pixel);
 
-                gr.Dispose();
-                imgdata.Dispose();
+                    gr.Dispose();
+                    imgdata.Dispose();
 
-                thumbnail[i - from] = thumb;
-                illusts[i - from] = _cached_illusts.First(o => o.ID == _cached_illustKeys[i].id);
+                    thumbnail[i - from] = thumb;
+                    illusts[i - from] = _cached_illusts.First(o => o.ID == _cached_illustKeys[i].id);
 
-                lock (user_lock)
+                    lock (user_lock)
+                    {
+                        if (!users.ContainsKey(illusts[i - from].Author_ID))
+                            users.Add(illusts[i - from].Author_ID, _sqldata.GetUserInfo(illusts[i - from].Author_ID, DataUpdateMode.No_Update));
+                    }
+                });
+
+                for (int i = 0; i < thumbnail.Length; i++)
                 {
-                    if (!users.ContainsKey(illusts[i - from].Author_ID))
-                        users.Add(illusts[i - from].Author_ID, _sqldata.GetUserInfo(illusts[i - from].Author_ID, DataUpdateMode.No_Update));
+                    Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        var ui = new PanelItem(thumbnail[i], illusts[i].Title, users[illusts[i].Author_ID].Name, true, true);
+                        var tag = new _temp_struct { illust = illusts[i], user = users[illusts[i].Author_ID], path = _pathdata[_cached_illustKeys[i + from]] };
+                        ui.Tag = tag;
+                        ui.SourceImageClick += _on_illust_image_clicked;
+                        ui.TitleClick += _on_illust_title_clicked;
+                        ui.DescriptionClick += _on_illust_user_clicked;
+                        lDataPanel.Children.Add(ui);
+                    }));
+
                 }
+
+                _data_offset = to;
+                if (to == _cached_illustKeys.Length)
+                    Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        _add_bottom_control();
+                    }));
+
+                _background_working = false;
             });
-
-            for (int i = 0; i < thumbnail.Length; i++)
-            {
-                var ui = new PanelItem(thumbnail[i], illusts[i].Title, users[illusts[i].Author_ID].Name, true, true);
-                var tag = new _temp_struct { illust = illusts[i], user = users[illusts[i].Author_ID], path = _pathdata[_cached_illustKeys[i + from]] };
-                ui.Tag = tag;
-                ui.SourceImageClick += _on_illust_image_clicked;
-                ui.TitleClick += _on_illust_title_clicked;
-                ui.DescriptionClick += _on_illust_user_clicked;
-
-                lDataPanel.Children.Add(ui);
-            }
-
-            _data_offset = to;
         }
 
         private struct _temp_struct
@@ -206,24 +227,57 @@ namespace Pixiv_Background_Form
         //输出用户数据
         private void _show_data_user()
         {
-            lDataPanel.Visibility = Visibility.Visible;
-            lNotFound.Visibility = Visibility.Hidden;
-            var from = _data_offset;
-            var to = Math.Min(_cached_users.Length, _data_offset + DEFAULT_FETCH_COUNT);
-            if (from == to) return;
-            for (int i = from; i < to; i++)
+            if (_background_working) return;
+            _background_working = true;
+
+            ThreadPool.QueueUserWorkItem(delegate
             {
-                var item = _cached_users[i];
-                var face = item.User_Face;
-                if (face == null) face = new System.Drawing.Bitmap(1, 1);
-                var ui = new PanelItem(face, item.Name, null, true, false);
-                ui.Tag = item;
-                ui.SourceImageClick += _on_user_clicked;
-                ui.DescriptionClick += _on_user_clicked;
-                ui.TitleClick += _on_user_clicked;
-                lDataPanel.Children.Add(ui);
-            }
-            _data_offset = to;
+                Dispatcher.Invoke(new ThreadStart(delegate
+                {
+                    lDataPanel.Visibility = Visibility.Visible;
+                    lNotFound.Visibility = Visibility.Hidden;
+                }));
+                var from = _data_offset;
+                var to = Math.Min(_cached_users.Length, _data_offset + DEFAULT_FETCH_COUNT);
+                if (from == to) return;
+                for (int i = from; i < to; i++)
+                {
+                    var item = _cached_users[i];
+                    var face = item.User_Face;
+                    if (face == null) face = new System.Drawing.Bitmap(1, 1);
+
+                    Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        var ui = new PanelItem(face, item.Name, null, true, false);
+                        ui.Tag = item;
+                        ui.SourceImageClick += _on_user_clicked;
+                        ui.DescriptionClick += _on_user_clicked;
+                        ui.TitleClick += _on_user_clicked;
+                        lDataPanel.Children.Add(ui);
+                    }));
+                }
+                _data_offset = to;
+                if (to == _cached_users.Length)
+                    Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        _add_bottom_control();
+                    }));
+
+                _background_working = false;
+            });
+        }
+
+        private void _add_bottom_control()
+        {
+            var grid = new Grid();
+            grid.Width = lDataPanel.ActualWidth;
+            grid.Background = new LinearGradientBrush(Colors.White, Colors.LightGray, 90);
+            var lbl = new Label();
+            lbl.Content = "(我还是有底线的)";
+            lbl.HorizontalAlignment = HorizontalAlignment.Center;
+            //lbl.Width = grid.ActualWidth;
+            grid.Children.Add(lbl);
+            lDataPanel.Children.Add(grid);
         }
         //点击用户信息
         private void _on_user_clicked(object sender, MouseEventArgs e)
@@ -272,7 +326,8 @@ namespace Pixiv_Background_Form
         //移动到底部触发更新事件
         private void ScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            if (Math.Abs(scrollViewer.VerticalOffset - scrollViewer.ScrollableHeight) < 0.01)
+            double trigger_offset = scrollViewer.ActualHeight * 3;
+            if (Math.Abs(scrollViewer.VerticalOffset - scrollViewer.ScrollableHeight) < trigger_offset)
             {
                 if (_cached_illusts != null && _cached_illusts.Length > 0)
                     _show_data_illust();

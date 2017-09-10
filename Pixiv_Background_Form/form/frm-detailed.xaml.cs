@@ -124,14 +124,14 @@ namespace Pixiv_Background_Form
         private void _set_user_info()
         {
             var tbname = new TextBlock();
-            tbname.Inlines.Add(_user.Name);
+            tbname.Inlines.Add(_user.Name != null ? _user.Name : string.Empty);
             tbname.TextWrapping = TextWrapping.WrapWithOverflow;
             lUserName.Content = tbname;
             var tbid = new TextBlock();
             tbid.Inlines.Add("ID: " + _user.ID);
             tbid.TextWrapping = TextWrapping.WrapWithOverflow;
             lUserID.Content = tbid;
-            var html_data = html_parser.parseHTML(_user.Description);
+            var html_data = html_parser.parseHTML(_user.Description != null ? _user.Description : string.Empty);
             html_data.Width = lUserDescription.Width;
             lUserDescription.Content = html_data;
             var sb = new StringBuilder();
