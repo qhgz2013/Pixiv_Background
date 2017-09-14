@@ -10,6 +10,24 @@ namespace Pixiv_Background_Form
 {
     public class ScreenWatcher
     {
+        static ScreenWatcher()
+        {
+            _temp_form = new System.Windows.Window();
+            _temp_form.Opacity = 0;
+            _temp_form.ShowInTaskbar = false;
+            _temp_form.AllowsTransparency = true;
+            _temp_form.WindowStyle = System.Windows.WindowStyle.None;
+            _temp_form.Visibility = System.Windows.Visibility.Hidden;
+            _temp_form.Loaded += (sender, e) =>
+            {
+                var helper = new System.Windows.Interop.WindowInteropHelper((System.Windows.Window)sender);
+                int exStyle = (int)WinAPI.GetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE);
+                exStyle |= (int)WinAPI.ExtendedWindowStyles.WS_EX_TOOLWINDOW;
+                WinAPI.SetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE, exStyle);
+            };
+            _temp_form.Show();
+        }
+        //todo: 取消dpi测试
         private enum PROCESS_DPI_AWARENESS
         {
             PROCESS_DPI_UNAWARE,
@@ -26,13 +44,34 @@ namespace Pixiv_Background_Form
         /// <returns></returns>
         public static Rectangle[] GetScreenBoundary()
         {
-            var frm = new testForm();
-            var data = frm.data;
+            var data = Screen.AllScreens;
 
             var ret = new Rectangle[data.Length];
             for (int i = 0; i < data.Length; i++)
             {
                 ret[i] = data[i].Bounds;
+            }
+            return ret;
+        }
+        private static System.Windows.Window _temp_form = null;
+        /// <summary>
+        /// 获取原始的显示器分辨率（无dpi响应）
+        /// </summary>
+        /// <returns></returns>
+        public static RectangleF[] GetScreenBoundaryNoDpiAware()
+        {
+            var data = Screen.AllScreens;
+            var ret = new RectangleF[data.Length];
+
+            System.Windows.PresentationSource source = System.Windows.PresentationSource.FromVisual(_temp_form);
+            double scale = source.CompositionTarget.TransformToDevice.M11;
+            for (int i = 0; i < ret.Length; i++)
+            {
+                ret[i] = data[i].Bounds;
+                ret[i].Width = (float)(ret[i].Width / scale);
+                ret[i].X = (float)(ret[i].X / scale);
+                ret[i].Y = (float)(ret[i].Y / scale);
+                ret[i].Height = (float)(ret[i].Height / scale);
             }
             return ret;
         }
@@ -42,8 +81,7 @@ namespace Pixiv_Background_Form
         /// <returns></returns>
         public static Rectangle GetPrimaryScreenBoundary()
         {
-            var frm = new testForm();
-            var data = frm.data;
+            var data = Screen.AllScreens;
             foreach (var item in data)
             {
                 if (item.Primary)
@@ -99,16 +137,7 @@ namespace Pixiv_Background_Form
             }
             return ret;
         }
-        //一个测试用的窗体，用于获取原始分辨率，todo：支持多屏不同dpi
-        private class testForm : Form
-        {
-            public testForm()
-            {
-                SetProcessDpiAwareness(PROCESS_DPI_AWARENESS.PROCESS_PER_MONITOR_DPI_AWARE);
-                data = Screen.AllScreens;
-            }
-            public Screen[] data;
-        }
 
+        
     }
 }

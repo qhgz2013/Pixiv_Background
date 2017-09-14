@@ -485,5 +485,23 @@ namespace Pixiv_Background_Form
         public static extern int SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr result);
         #endregion
 
+        #region Window Styles
+        [Flags]
+        public enum ExtendedWindowStyles
+        {
+            WS_EX_TOOLWINDOW = 0x00000080
+        }
+        [Flags]
+        public enum GetWindowLongFields
+        {
+            GWL_EXSTYLE = (-20)
+        }
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetWindowLong(IntPtr hWnd, int nIndex);
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+        #endregion
     }
 }

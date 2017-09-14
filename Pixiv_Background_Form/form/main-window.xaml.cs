@@ -29,14 +29,19 @@ namespace Pixiv_Background_Form
         public MainWindow()
         {
             InitializeComponent();
-
+            ScreenWatcher.GetPrimaryScreenBoundary(); //initialize, executing static constructor
             //登陆部分
             _auth = new PixivAuth();
             //API调用部分
             _api = new API(_auth);
 
             _load_last_data();
-            _update_ui_info();
+
+            _drag_thd = new Thread(__drag_thd_callback);
+            _drag_thd.Name = "Drag Thread";
+            _drag_thd.IsBackground = true;
+            _drag_thd.SetApartmentState(ApartmentState.STA);
+            _drag_thd.Start();
 
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -91,16 +96,28 @@ namespace Pixiv_Background_Form
             });
         }
         private bool _frm_created = false;
+        private double _form_scale;
         private void frmMain_Loaded(object sender, RoutedEventArgs e)
         {
-            frmMain.Left = SystemParameters.WorkArea.Width - frmMain.ActualWidth;
-            frmMain.Top = 0;
+            MainWindow_Layout.ColumnDefinitions[0].Width = GridLength.Auto;
+            Width = 129 + 8;
+            Height = 26;
+            Left = SystemParameters.WorkArea.Width - frmMain.ActualWidth;
+            Top = 20;
             _frm_created = true;
+            var source = PresentationSource.FromVisual(this);
+            _form_scale = source.CompositionTarget.TransformToDevice.M11;
 
+            //hide in alt+tab
+            var helper = new System.Windows.Interop.WindowInteropHelper((System.Windows.Window)sender);
+            int exStyle = (int)WinAPI.GetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE);
+            exStyle |= (int)WinAPI.ExtendedWindowStyles.WS_EX_TOOLWINDOW;
+            WinAPI.SetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE, exStyle);
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             if (_database != null) _database.AbortWorkingThread();
+            Environment.Exit(0);
         }
 
         //当前壁纸的信息
@@ -265,7 +282,7 @@ namespace Pixiv_Background_Form
                     //更新当前信息
                     Dispatcher.Invoke(new ThreadStart(delegate
                     {
-                        _update_ui_info();
+                        //_update_ui_info();
                     }));
 
                     //开启缓存渲染
@@ -436,7 +453,7 @@ namespace Pixiv_Background_Form
                         _last_data.illust = ilsinfo;
                         Dispatcher.Invoke(new ThreadStart(delegate
                         {
-                            _update_ui_info();
+                            //_update_ui_info();
                         }));
                     }
                 }
@@ -459,7 +476,7 @@ namespace Pixiv_Background_Form
                         _last_data.user = usrinfo;
                         Dispatcher.Invoke(new ThreadStart(delegate
                         {
-                            _update_ui_info();
+                            //_update_ui_info();
                         }));
                     }
                 }
@@ -520,7 +537,6 @@ namespace Pixiv_Background_Form
         }
         #endregion
 
-
         //变量定义
         #region Member Definations
         //背景图片的候选列表
@@ -530,32 +546,6 @@ namespace Pixiv_Background_Form
         private API _api;
         private PixivAuth _auth;
         #endregion //Member Definations
-
-
-        //开始的加载动画[STA]
-        #region Loading Animation
-        //用于加载loading界面的几个变量，一个用于保存目前的页面内容
-        private loading_animation _uc_loading;
-        private object _last_content;
-        private void _begin_loading_effect()
-        {
-            var del = new ThreadStart(() =>
-              {
-                  _uc_loading = new loading_animation();
-                  _last_content = this.Content;
-                  this.Content = _uc_loading;
-              });
-            this.Dispatcher.Invoke(del);
-        }
-        private void _stop_loading_effect()
-        {
-            var del = new ThreadStart(() =>
-            {
-                this.Content = _last_content;
-            });
-            this.Dispatcher.Invoke(del);
-        }
-        #endregion //Loading Animation
 
         //通用函数
         #region Utility Functions
@@ -631,187 +621,176 @@ namespace Pixiv_Background_Form
         /// <summary>
         /// update ui, call by main thread
         /// </summary>
-        private void _update_ui_info()
-        {
-            //_external_save_lock.AcquireWriterLock(Timeout.Infinite);
-            //image solution
-            Image_Size.Content = _last_data.imageSolution.Width + "×" + _last_data.imageSolution.Height;
-            if (_last_data.illust.Page == 1 && (_last_data.illust.Size.Width != _last_data.imageSolution.Width && _last_data.illust.Size.Height != _last_data.imageSolution.Height)) { Image_Size.Content += " [Origin: " + _last_data.illust.Size.Width + "×" + _last_data.illust.Size.Height + "]"; }
+        //private void _update_ui_info()
+        //{
+        //    //_external_save_lock.AcquireWriterLock(Timeout.Infinite);
+        //    //image solution
+        //    Image_Size.Content = _last_data.imageSolution.Width + "×" + _last_data.imageSolution.Height;
+        //    if (_last_data.illust.Page == 1 && (_last_data.illust.Size.Width != _last_data.imageSolution.Width && _last_data.illust.Size.Height != _last_data.imageSolution.Height)) { Image_Size.Content += " [Origin: " + _last_data.illust.Size.Width + "×" + _last_data.illust.Size.Height + "]"; }
 
-            //_last_data.illust id
-            illust_id_open.Inlines.Clear();
-            illust_id_open.Inlines.Add("ID=" + _last_data.illust.ID + " #" + (_last_data.page + 1) + "/" + _last_data.illust.Page);
+        //    //_last_data.illust id
+        //    illust_id_open.Inlines.Clear();
+        //    illust_id_open.Inlines.Add("ID=" + _last_data.illust.ID + " #" + (_last_data.page + 1) + "/" + _last_data.illust.Page);
 
-            //title
-            illust_open.Inlines.Clear();
-            if (!string.IsNullOrEmpty(_last_data.illust.Title))
-                illust_open.Inlines.Add(_escape_xml_char(_last_data.illust.Title));
-            else
-            {
-                string title_reason;
-                switch (_last_data.illust.HTTP_Status)
-                {
-                    case 404:
-                        title_reason = "[404] " + _random_text(new string[] { "该投稿已被删除", "嗷～～投稿它～消失了～", "You are late :-(", "再怎么找它都不会出现了……" });
-                        break;
-                    case 403:
-                        title_reason = "[403] " + _random_text(new string[] { "该投稿无法浏览", "该投稿仅好p友可见哦～", "明明……它都在那了……你却无法触摸它" });
-                        break;
-                    case -2:
-                    case 0:
-                        title_reason = "获取投稿信息中...";
-                        break;
-                    case 200: //status correct but empty/null
-                        title_reason = "";
-                        break;
-                    default:
-                        title_reason = "[" + _last_data.illust.HTTP_Status + "]: 未知错误";
-                        break;
-                }
-                illust_open.Inlines.Add(title_reason);
-            }
-            //post time
-            if (_last_data.illust.Submit_Time != 0)
-            {
-                var time = util.FromUnixTimestamp(_last_data.illust.Submit_Time);
-                Post_Time.Content = time.ToString("yyyy-MM-dd HH:mm");
-            }
-            else
-                Post_Time.Content = "";
+        //    //title
+        //    illust_open.Inlines.Clear();
+        //    if (!string.IsNullOrEmpty(_last_data.illust.Title))
+        //        illust_open.Inlines.Add(_escape_xml_char(_last_data.illust.Title));
+        //    else
+        //    {
+        //        string title_reason;
+        //        switch (_last_data.illust.HTTP_Status)
+        //        {
+        //            case 404:
+        //                title_reason = "[404] " + _random_text(new string[] { "该投稿已被删除", "嗷～～投稿它～消失了～", "You are late :-(", "再怎么找它都不会出现了……" });
+        //                break;
+        //            case 403:
+        //                title_reason = "[403] " + _random_text(new string[] { "该投稿无法浏览", "该投稿仅好p友可见哦～", "明明……它都在那了……你却无法触摸它" });
+        //                break;
+        //            case -2:
+        //            case 0:
+        //                title_reason = "获取投稿信息中...";
+        //                break;
+        //            case 200: //status correct but empty/null
+        //                title_reason = "";
+        //                break;
+        //            default:
+        //                title_reason = "[" + _last_data.illust.HTTP_Status + "]: 未知错误";
+        //                break;
+        //        }
+        //        illust_open.Inlines.Add(title_reason);
+        //    }
+        //    //post time
+        //    if (_last_data.illust.Submit_Time != 0)
+        //    {
+        //        var time = util.FromUnixTimestamp(_last_data.illust.Submit_Time);
+        //        Post_Time.Content = time.ToString("yyyy-MM-dd HH:mm");
+        //    }
+        //    else
+        //        Post_Time.Content = "";
 
-            //author name
-            user_open.Inlines.Clear();
-            if (_last_data.user.Name != null)
-                user_open.Inlines.Add(_escape_xml_char(_last_data.user.Name));
-            else
-                user_open.Inlines.Add("");
+        //    //author name
+        //    user_open.Inlines.Clear();
+        //    if (_last_data.user.Name != null)
+        //        user_open.Inlines.Add(_escape_xml_char(_last_data.user.Name));
+        //    else
+        //        user_open.Inlines.Add("");
 
-            //description
-            Description.Children.Clear();
-            if (_last_data.illust.Description != null)
-                Description.Children.Add(html_parser.parseHTML(_last_data.illust.Description));
+        //    //description
+        //    Description.Children.Clear();
+        //    if (_last_data.illust.Description != null)
+        //        Description.Children.Add(html_parser.parseHTML(_last_data.illust.Description));
 
-            //status
-            if (_last_data.illust.HTTP_Status == 200)
-                Border1.Background = Brushes.AliceBlue;
-            else
-                Border1.Background = Brushes.Red;
+        //    //status
+        //    if (_last_data.illust.HTTP_Status == 200)
+        //        Border1.Background = Brushes.AliceBlue;
+        //    else
+        //        Border1.Background = Brushes.Red;
 
-            //author image
-            if (_last_data.user.User_Face != null)
-            {
-                var ss = new MemoryStream();
-                _last_data.user.User_Face.Save(ss, _last_data.user.User_Face.RawFormat);
-                ss.Position = 0;
+        //    //author image
+        //    if (_last_data.user.User_Face != null)
+        //    {
+        //        var ss = new MemoryStream();
+        //        _last_data.user.User_Face.Save(ss, _last_data.user.User_Face.RawFormat);
+        //        ss.Position = 0;
 
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.StreamSource = ss;
-                bmp.EndInit();
+        //        var bmp = new BitmapImage();
+        //        bmp.BeginInit();
+        //        bmp.StreamSource = ss;
+        //        bmp.EndInit();
 
-                WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Author_Image, bmp);
-            }
-            else
-                Author_Image.Source = null;
+        //        WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Author_Image, bmp);
+        //    }
+        //    else
+        //        Author_Image.Source = null;
 
-            //click
-            Click.Content = _last_data.illust.Click.ToString("#,##0");
+        //    //click
+        //    Click.Content = _last_data.illust.Click.ToString("#,##0");
 
-            //bookmark
-            Favor.Content = _last_data.illust.Bookmark_Count.ToString("#,##0");
+        //    //bookmark
+        //    Favor.Content = _last_data.illust.Bookmark_Count.ToString("#,##0");
 
-            //tags
-            Tags.Inlines.Clear();
-            if (_last_data.illust.Tag != null)
-                Tags.Inlines.Add(_create_tag_hyperlink(_escape_xml_char(_last_data.illust.Tag).Split(',')));
+        //    //tags
+        //    Tags.Inlines.Clear();
+        //    if (_last_data.illust.Tag != null)
+        //        Tags.Inlines.Add(_create_tag_hyperlink(_escape_xml_char(_last_data.illust.Tag).Split(',')));
 
-            //tools
-            Tools.Inlines.Clear();
-            if (_last_data.illust.Tool != null)
-                Tools.Inlines.Add(_escape_xml_char(_last_data.illust.Tool));
+        //    //tools
+        //    Tools.Inlines.Clear();
+        //    if (_last_data.illust.Tool != null)
+        //        Tools.Inlines.Add(_escape_xml_char(_last_data.illust.Tool));
 
-            //update time
-            string str_last_update = (_last_data.illust.Last_Update > 0) ? util.FromUnixTimestamp(_last_data.illust.Last_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
-            string str_last_success_update = (_last_data.illust.Last_Success_Update > 0) ? util.FromUnixTimestamp(_last_data.illust.Last_Success_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
-            Update_Time.Content = string.Format("最后更新时间：{0} | 最后成功更新时间：{1}", str_last_update, str_last_success_update);
+        //    //update time
+        //    string str_last_update = (_last_data.illust.Last_Update > 0) ? util.FromUnixTimestamp(_last_data.illust.Last_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
+        //    string str_last_success_update = (_last_data.illust.Last_Success_Update > 0) ? util.FromUnixTimestamp(_last_data.illust.Last_Success_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
+        //    Update_Time.Content = string.Format("最后更新时间：{0} | 最后成功更新时间：{1}", str_last_update, str_last_success_update);
 
-            //_last_data.user id
-            UserID.Content = "用户描述: (ID: " + _last_data.user.ID + ")";
+        //    //_last_data.user id
+        //    UserID.Content = "用户描述: (ID: " + _last_data.user.ID + ")";
 
-            //_last_data.user description
-            UserDescription.Children.Clear();
-            if (_last_data.user.Description != null)
-                UserDescription.Children.Add(html_parser.parseHTML(_last_data.user.Description));
+        //    //_last_data.user description
+        //    UserDescription.Children.Clear();
+        //    if (_last_data.user.Description != null)
+        //        UserDescription.Children.Add(html_parser.parseHTML(_last_data.user.Description));
 
-            //_last_data.user data
-            UserData.Content = "关注着: " + _last_data.user.Follow_Users.ToString("#,##0") + ", 关注者: " + _last_data.user.Follower.ToString("#,##0") + ", 好P友: " + _last_data.user.Mypixiv_Users.ToString("#,##0") + "\r\n"
-            + "投稿漫画数: " + _last_data.user.Total_Novels.ToString("#,##0") + ", 投稿插画数: " + _last_data.user.Total_Illusts.ToString("#,##0") + ", 公开收藏数: " + _last_data.user.Illust_Bookmark_Public.ToString("#,##0");
+        //    //_last_data.user data
+        //    UserData.Content = "关注着: " + _last_data.user.Follow_Users.ToString("#,##0") + ", 关注者: " + _last_data.user.Follower.ToString("#,##0") + ", 好P友: " + _last_data.user.Mypixiv_Users.ToString("#,##0") + "\r\n"
+        //    + "投稿漫画数: " + _last_data.user.Total_Novels.ToString("#,##0") + ", 投稿插画数: " + _last_data.user.Total_Illusts.ToString("#,##0") + ", 公开收藏数: " + _last_data.user.Illust_Bookmark_Public.ToString("#,##0");
 
-            //updating height
-            if (_frm_created)
-            {
-                var fact = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
-                double height_pro = MainWindow_Layout.ActualHeight;
-                height_pro = Math.Round(height_pro * fact) / fact;
+        //    //updating height
+        //    if (_frm_created)
+        //    {
+        //        var fact = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
+        //        double height_pro = MainWindow_Layout.ActualHeight;
+        //        height_pro = Math.Round(height_pro * fact) / fact;
 
-                if (((Run)Show_More_Click.Inlines.FirstInline).Text == "简略信息")
-                {
-                    Height = height_pro;
-                }
-            }
-            //_external_save_lock.ReleaseWriterLock();
-        }
+        //        if (((Run)Show_More_Click.Inlines.FirstInline).Text == "简略信息")
+        //        {
+        //            Height = height_pro;
+        //        }
+        //    }
+        //    //_external_save_lock.ReleaseWriterLock();
+        //}
         #endregion //Utility Functions
 
-        private void Show_More_Click_click(object sender, RoutedEventArgs e)
+        private enum DockStatus
         {
-            var fact = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
-            double height_mini = 166;// 168;
-            double height_pro = MainWindow_Layout.ActualHeight;
-            height_mini = Math.Round(height_mini * fact) / fact;
-            height_pro = Math.Round(height_pro * fact) / fact;
-
-            if (Math.Abs(Height - height_mini) < 0.01)
+            DockFailed, DockLeft, DockRight, DockTop = 4, DockBottom = 8
+        }
+        private DockStatus _dock_check(Point input_pos, out Point dock_pos)
+        {
+            const int dock_size = 30;
+            var screens = ScreenWatcher.GetScreenBoundaryNoDpiAware(); //todo: multi screen supports
+            dock_pos = input_pos;
+            DockStatus ret = DockStatus.DockFailed;
+            foreach (var item in screens)
             {
-                Height = height_pro;
-                Show_More_Click.Inlines.Clear();
-                Show_More_Click.Inlines.Add("简略信息");
+                //左边缘
+                if (input_pos.X <= item.Left + dock_size && input_pos.X >= item.Left)
+                {
+                    dock_pos.X = item.Left;
+                    ret |= DockStatus.DockLeft;
+                }
+                //右边缘
+                if (input_pos.X + Width <= item.Right && input_pos.X + Width >= item.Right - dock_size)
+                {
+                    dock_pos.X = item.Right - Width;
+                    ret |= DockStatus.DockRight;
+                }
+                //上边缘
+                if (input_pos.Y <= item.Top + dock_size && input_pos.Y >= item.Top)
+                {
+                    dock_pos.Y = item.Top;
+                    ret |= DockStatus.DockTop;
+                }
+                //下边缘
+                if (input_pos.Y + Height <= item.Bottom && input_pos.Y + Height >= item.Bottom - dock_size)
+                {
+                    dock_pos.Y = item.Bottom - Height;
+                    ret |= DockStatus.DockBottom;
+                }
             }
-            else if (Math.Abs(Height - height_pro) < 0.01)
-            {
-                Height = height_mini;
-                Show_More_Click.Inlines.Clear();
-                Show_More_Click.Inlines.Add("详细信息");
-            }
-        }
-
-        private bool _refresh_background_working = false;
-        private void Refresh_Background_Click(object sender, RoutedEventArgs e)
-        {
-            if (_refresh_background_working) return;
-            _refresh_background_working = true;
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-                _on_wallpaper_changed(sender, e);
-                Settings.NextUpdateTimestamp = util.ToUnixTimestamp(DateTime.Now);
-                _refresh_background_working = false;
-            });
-        }
-
-        private void Settings_Click(object sender, RoutedEventArgs e)
-        {
-            var frmsetting = new frmSetting();
-            frmsetting.ShowDialog();
-        }
-
-        private void frmMain_MouseMove(object sender, MouseEventArgs e)
-        {
-
-        }
-
-        private void frmMain_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-
+            return ret;
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)
@@ -819,34 +798,304 @@ namespace Pixiv_Background_Form
             Close();
         }
 
-        private void illust_open_Click(object sender, RoutedEventArgs e)
-        {
-            _open_illust(_last_data.illust.ID);
-        }
 
-        private void user_open_Click(object sender, RoutedEventArgs e)
+        #region custom drag move implement
+        //魔改版: https://www.codeproject.com/Questions/284995/DragMove-problem-help-pls
+        bool _in_drag = false;
+        //鼠标按下的位置（dpi aware）
+        Point _anchor_point;
+        //窗体的左上角位置（dpi aware）
+        Point _src_location;
+        //捕获窗体外部的MouseMove事件的线程以及回调函数
+        Thread _drag_thd;
+        object _mouse_down_sender;
+        private void __drag_thd_callback()
         {
-            _open_user(_last_data.user.ID);
-        }
-
-        private void btn_user_image_Click(object sender, RoutedEventArgs e)
-        {
-            _open_user(_last_data.user.ID);
-        }
-
-        private void Search_Click(object sender, RoutedEventArgs e)
-        {
-            //wait for initialization completed
-            if (_initialize_thread != null)
+            do
             {
-                try
+                if (_in_drag)
                 {
-                    _initialize_thread.Join();
+                    var mouse_pos = System.Windows.Forms.Cursor.Position;
+
+                    var scaled_pos = new Point(mouse_pos.X / _form_scale, mouse_pos.Y / _form_scale);
+                    Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        if (scaled_pos.X < Left || scaled_pos.Y < Top || scaled_pos.X > Left + Width || scaled_pos.Y > Top + Height)
+                        {
+                            __customDragMouseMove(scaled_pos);
+                            //Debug.Print("capture outside window");
+                        }
+
+                        if (Mouse.LeftButton == MouseButtonState.Released && _mouse_down_sender != null)
+                        {
+                            _customDragMoveEnd(_mouse_down_sender, null);
+                        }
+                    }));
                 }
-                catch (Exception) { }
+                Thread.Sleep(25);
+            } while (true);
+        }
+        private void _customDragMoveStart(object sender, MouseButtonEventArgs e)
+        {
+            _anchor_point = PointToScreen(e.GetPosition(this));
+            _in_drag = true;
+            _src_location = new Point(Left, Top);
+            _anchor_point = new Point(_anchor_point.X / _form_scale, _anchor_point.Y / _form_scale);
+            _mouse_down_sender = sender;
+            if (e != null) e.Handled = true;
+            //Debug.Print("src point: " + _src_location.ToString() + ", anchor_point: " + _anchor_point.ToString());
+        }
+        private void _customDragMoveEnd(object sender, MouseButtonEventArgs e)
+        {
+            _in_drag = false;
+            _mouse_down_sender = null;
+            if (e != null) e.Handled = true;
+        }
+        private void __customDragMouseMove(Point screenPos)
+        {
+            var vec = screenPos - _anchor_point;
+            var dst = _src_location + vec;
+            Point dock_pos;
+            var stat = _dock_check(dst, out dock_pos);
+
+            //Debug.Print(dst.ToString() + " ==> " + dock_pos.ToString());
+            Left = dock_pos.X;
+            Top = dock_pos.Y;
+            if (stat != DockStatus.DockFailed)
+            {
+
+                if ((stat & DockStatus.DockTop) != 0)
+                {
+                    if (MainWindow_Layout.ColumnDefinitions[0].Width.Value != 0)
+                        MainWindow_Layout.ColumnDefinitions[0].Width = new GridLength(0);
+                    if (MainWindow_Layout.ColumnDefinitions[6].Width.Value != 0)
+                        MainWindow_Layout.ColumnDefinitions[6].Width = new GridLength(0);
+                    if (MainWindow_Layout.RowDefinitions[0].Height.Value != 0)
+                        MainWindow_Layout.RowDefinitions[0].Height = new GridLength(0);
+                    if (!MainWindow_Layout.RowDefinitions[2].Height.IsAuto)
+                        MainWindow_Layout.RowDefinitions[2].Height = GridLength.Auto;
+                    if (Math.Abs(Width - 129) > 0.5)
+                        Width = 129;
+                    if (Math.Abs(Height - 26 - 8) > 0.5)
+                        Height = 26 + 8;
+                }
+                else if ((stat & DockStatus.DockBottom) != 0)
+                {
+                    if (MainWindow_Layout.ColumnDefinitions[0].Width.Value != 0)
+                        MainWindow_Layout.ColumnDefinitions[0].Width = new GridLength(0);
+                    if (MainWindow_Layout.ColumnDefinitions[6].Width.Value != 0)
+                        MainWindow_Layout.ColumnDefinitions[6].Width = new GridLength(0);
+                    if (!MainWindow_Layout.RowDefinitions[0].Height.IsAuto)
+                        MainWindow_Layout.RowDefinitions[0].Height = GridLength.Auto;
+                    if (MainWindow_Layout.RowDefinitions[2].Height.Value != 0)
+                        MainWindow_Layout.RowDefinitions[2].Height = new GridLength(0);
+                    if (Math.Abs(Width - 129) > 0.5)
+                        Width = 129;
+                    if (Math.Abs(Height - 26 - 8) > 0.5)
+                        Height = 26 + 8;
+                }
+                else if ((stat & DockStatus.DockLeft) != 0)
+                {
+                    if (MainWindow_Layout.ColumnDefinitions[0].Width.Value != 0)
+                        MainWindow_Layout.ColumnDefinitions[0].Width = new GridLength(0);
+                    if (!MainWindow_Layout.ColumnDefinitions[6].Width.IsAuto)
+                        MainWindow_Layout.ColumnDefinitions[6].Width = GridLength.Auto;
+                    if (MainWindow_Layout.RowDefinitions[0].Height.Value != 0)
+                        MainWindow_Layout.RowDefinitions[0].Height = new GridLength(0);
+                    if (MainWindow_Layout.RowDefinitions[2].Height.Value != 0)
+                        MainWindow_Layout.RowDefinitions[2].Height = new GridLength(0);
+                    if (Math.Abs(Width - 129 - 8) > 0.5)
+                        Width = 129 + 8;
+                    if (Math.Abs(Height - 26) > 0.5)
+                        Height = 26;
+                }
+                else if ((stat & DockStatus.DockRight) != 0)
+                {
+                    if (!MainWindow_Layout.ColumnDefinitions[0].Width.IsAuto)
+                        MainWindow_Layout.ColumnDefinitions[0].Width = GridLength.Auto;
+                    if (MainWindow_Layout.ColumnDefinitions[6].Width.Value != 0)
+                        MainWindow_Layout.ColumnDefinitions[6].Width = new GridLength(0);
+                    if (MainWindow_Layout.RowDefinitions[0].Height.Value != 0)
+                        MainWindow_Layout.RowDefinitions[0].Height = new GridLength(0);
+                    if (MainWindow_Layout.RowDefinitions[2].Height.Value != 0)
+                        MainWindow_Layout.RowDefinitions[2].Height = new GridLength(0);
+                    if (Math.Abs(Width - 129 - 8) > 0.5)
+                        Width = 129 + 8;
+                    if (Math.Abs(Height - 26) > 0.5)
+                        Height = 26;
+                }
             }
-            var frm = new frmSearch(_background_queue, _database);
-            frm.Show();
+            else
+            {
+                if (MainWindow_Layout.ColumnDefinitions[0].Width.Value != 0)
+                    MainWindow_Layout.ColumnDefinitions[0].Width = new GridLength(0);
+                if (MainWindow_Layout.ColumnDefinitions[6].Width.Value != 0)
+                    MainWindow_Layout.ColumnDefinitions[6].Width = new GridLength(0);
+                if (MainWindow_Layout.RowDefinitions[0].Height.Value != 0)
+                    MainWindow_Layout.RowDefinitions[0].Height = new GridLength(0);
+                if (MainWindow_Layout.RowDefinitions[2].Height.Value != 0)
+                    MainWindow_Layout.RowDefinitions[2].Height = new GridLength(0);
+                if (Math.Abs(Width - 129) > 0.5)
+                    Width = 129;
+                if (Math.Abs(Height - 26) > 0.5)
+                    Height = 26;
+            }
+        }
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            //base.OnMouseMove(e);
+            Point current = PointToScreen(e.GetPosition(this));
+            current = new Point(current.X / _form_scale, current.Y / _form_scale);
+            if (_in_drag)
+            {
+                __customDragMouseMove(current);
+            }
+        }
+        #endregion
+
+
+        private void bInfo_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ((Button)sender).Tag = e.Timestamp;
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                _customDragMoveStart(sender, e);
+            }
+        }
+        private void bInfo_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (((Button)sender).Tag == null) return;
+            var last_ts = (int)((Button)sender).Tag;
+            _customDragMoveEnd(sender, e);
+            if (e.Timestamp - last_ts < 500)
+            {
+                //handling as click
+                var frmInfo = new frmDetailed(_last_data.illust, _last_data.user, _background_queue[new IllustKey { id = _last_data.illust.ID, page = (uint)_last_data.page }]);
+                frmInfo.Show();
+            }
+        }
+
+        private void bNext_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ((Button)sender).Tag = e.Timestamp;
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                _customDragMoveStart(sender, e);
+            }
+        }
+        private bool _refresh_background_working = false;
+        private void bNext_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+
+            if (((Button)sender).Tag == null) return;
+            var last_ts = (int)((Button)sender).Tag;
+            if (e.Timestamp - last_ts < 500)
+            {
+                //handling as click
+                if (_refresh_background_working) return;
+                _refresh_background_working = true;
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    _on_wallpaper_changed(sender, e);
+                    Settings.NextUpdateTimestamp = util.ToUnixTimestamp(DateTime.Now);
+                    _refresh_background_working = false;
+                });
+            }
+        }
+
+        private void bSearch_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ((Button)sender).Tag = e.Timestamp;
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                _customDragMoveStart(sender, e);
+            }
+        }
+        private void bSearch_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (((Button)sender).Tag == null) return;
+            var last_ts = (int)((Button)sender).Tag;
+            if (e.Timestamp - last_ts < 500)
+            {
+                //handling as click
+                //wait for initialization completed
+                if (_initialize_thread != null)
+                {
+                    try
+                    {
+                        _initialize_thread.Join();
+                    }
+                    catch (Exception) { }
+                }
+                var frm = new frmSearch(_background_queue, _database);
+                frm.Show();
+            }
+        }
+
+        private void bSetting_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            ((Button)sender).Tag = e.Timestamp;
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                _customDragMoveStart(sender, e);
+            }
+        }
+        private void bSetting_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+
+            if (((Button)sender).Tag == null) return;
+            var last_ts = (int)((Button)sender).Tag;
+            if (e.Timestamp - last_ts < 500)
+            {
+                //handling as click
+                var frmsetting = new frmSetting();
+                frmsetting.ShowDialog();
+            }
+        }
+
+        private void bTopLayout_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainWindow_Layout.RowDefinitions[1].Height == GridLength.Auto)
+            {
+                MainWindow_Layout.RowDefinitions[1].Height = new GridLength(0);
+                Top += 26;
+            }
+            else
+            {
+                MainWindow_Layout.RowDefinitions[1].Height = GridLength.Auto;
+                Top -= 26;
+            }
+        }
+        private void bBottomLayout_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainWindow_Layout.RowDefinitions[1].Height == GridLength.Auto)
+                MainWindow_Layout.RowDefinitions[1].Height = new GridLength(0);
+            else
+                MainWindow_Layout.RowDefinitions[1].Height = GridLength.Auto;
+        }
+        private void bRightLayout_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainWindow_Layout.ColumnDefinitions[1].Width == GridLength.Auto)
+                for (int i = 1; i < 6; i++)
+                    MainWindow_Layout.ColumnDefinitions[i].Width = new GridLength(0);
+            else
+                for (int i = 1; i < 6; i++)
+                    MainWindow_Layout.ColumnDefinitions[i].Width = GridLength.Auto;
+        }
+        private void bLeftLayout_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainWindow_Layout.ColumnDefinitions[1].Width == GridLength.Auto)
+            {
+                for (int i = 1; i < 6; i++)
+                    MainWindow_Layout.ColumnDefinitions[i].Width = new GridLength(0);
+                Left += 129;
+            }
+            else
+            {
+                for (int i = 1; i < 6; i++)
+                    MainWindow_Layout.ColumnDefinitions[i].Width = GridLength.Auto;
+                Left -= 129;
+            }
         }
     }
 }

@@ -15,6 +15,7 @@
     <WarningLevel>4</WarningLevel>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -27,7 +28,6 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
@@ -203,49 +203,35 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="api\pixiv-app-api抓包.txt" />
-    <Content Include="Resources\Tags.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Tags.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Tools.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Search.png" />
+    <Resource Include="Resources\Next.png" />
+    <Resource Include="Resources\Setting.png" />
+    <Resource Include="Resources\Info.png" />
+    <Resource Include="Resources\Tools.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Click.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Click.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Comment.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Comment.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Favor.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Favor.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Star.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Star.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Sync.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Sync.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\DateTime.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\DateTime.png" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\Size.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="Resources\Size.png" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">

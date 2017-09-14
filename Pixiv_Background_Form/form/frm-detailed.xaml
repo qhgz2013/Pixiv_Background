@@ -45,7 +45,14 @@
                     <Grid Grid.Row="1">
                         <Label x:Name="lDescription">Descriptions</Label>
                     </Grid>
-                    <Label x:Name="lTag" Grid.Row="2">Tags</Label>
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Label x:Name="lTag" Grid.Column="1">Tags</Label>
+                        <Image Source="pack://application:,,,/Resources/Tags.png" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
                     <Label x:Name="lIllustStat" Foreground="{StaticResource MyGrayBrush}" Grid.Row="3">Other data</Label>
                 </Grid>
                 <Grid Grid.Row="2" Grid.Column="1">
