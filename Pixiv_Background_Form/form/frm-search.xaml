@@ -5,10 +5,57 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="frmSearch" Height="700" Width="1000">
+        Title="frmSearch" Height="700" Width="1000" Unloaded="Window_Unloaded">
+
+    <Window.Resources>
+        <ResourceDictionary>
+
+            <Color x:Key="HighlightColor" x:Shared="False">#FF0078D7</Color>
+            <SolidColorBrush x:Key="HighlightBrush" Color="{StaticResource HighlightColor}" x:Shared="False"/>
+            <Color x:Key="MyGrayColor" x:Shared="False">#FF5B5B5B</Color>
+            <SolidColorBrush x:Key="MyGrayBrush" Color="{StaticResource MyGrayColor}" x:Shared="False"/>
+            <Style x:Key="MyImageButtonStyle" TargetType="Button">
+                <Setter Property="OverridesDefaultStyle" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Name="border" 
+                            BorderThickness="1"
+                            Padding="0,0" 
+                            BorderBrush="DarkGray" 
+                            CornerRadius="0" 
+                            Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Trigger.EnterActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation To="{StaticResource HighlightColor}" Duration="0:0:0.3" Storyboard.TargetProperty="BorderBrush.(SolidColorBrush.Color)" Storyboard.TargetName="border" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.EnterActions>
+                                    <Trigger.ExitActions>
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <ColorAnimation To="DarkGray" Duration="0:0:0.3" Storyboard.TargetProperty="BorderBrush.(SolidColorBrush.Color)" Storyboard.TargetName="border" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </Trigger.ExitActions>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="10"/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="120"/>
             <ColumnDefinition/>
@@ -18,8 +65,15 @@
             <RowDefinition Height="30"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
-        <Label Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center">搜索类型</Label>
-        <ComboBox x:Name="cSearchType" Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Center" Width="100">
+
+        <Button x:Name="bPrev" Style="{StaticResource MyImageButtonStyle}" Grid.Column="1" IsEnabled="False" Width="24" Height="24">
+            <Image Source="pack://application:,,,/Resources/Previous.png"/>
+        </Button>
+        <Button x:Name="bNext" Style="{StaticResource MyImageButtonStyle}" Grid.Column="2" IsEnabled="False" Width="24" Height="24">
+            <Image Source="pack://application:,,,/Resources/Next.png"/>
+        </Button>
+        <Label Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">搜索类型</Label>
+        <ComboBox x:Name="cSearchType" Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center" Width="100">
             <ComboBoxItem>投稿ID</ComboBoxItem>
             <ComboBoxItem>投稿标题</ComboBoxItem>
             <ComboBoxItem>投稿Tag</ComboBoxItem>
@@ -27,13 +81,13 @@
             <ComboBoxItem>用户ID</ComboBoxItem>
             <ComboBoxItem>用户名称</ComboBoxItem>
         </ComboBox>
-        <TextBox x:Name="tSearchString" Grid.Column="3" VerticalAlignment="Center" KeyUp="tSearchString_KeyUp" ToolTip="输入 &quot;%&quot; 搜索全部"></TextBox>
+        <TextBox x:Name="tSearchString" Grid.Column="5" VerticalAlignment="Center" KeyUp="tSearchString_KeyUp" ToolTip="输入 &quot;%&quot; 搜索全部"></TextBox>
 
-        <ScrollViewer x:Name="scrollViewer" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" VerticalScrollBarVisibility="Auto" ScrollChanged="ScrollViewer_ScrollChanged">
+        <ScrollViewer x:Name="scrollViewer" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="5" VerticalScrollBarVisibility="Auto" ScrollChanged="ScrollViewer_ScrollChanged">
             <WrapPanel x:Name="lDataPanel">
 
             </WrapPanel>
         </ScrollViewer>
-        <Label x:Name="lNotFound" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" HorizontalAlignment="Center" Visibility="Hidden">(未找到相关结果，请更改搜索条件或内容)</Label>
+        <Label x:Name="lNotFound" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="5" HorizontalAlignment="Center" Visibility="Hidden">(未找到相关结果，请更改搜索条件或内容)</Label>
     </Grid>
 </Window>

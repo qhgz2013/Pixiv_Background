@@ -10,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
@@ -21,10 +22,42 @@ namespace Pixiv_Background_Form
     /// </summary>
     public partial class frmSearch : Window
     {
+        #region static module (single instantiation)
+        private static frmSearch _single_inst = null;
+        /// <summary>
+        /// 实例化搜索窗口（仅允许单实例化）
+        /// </summary>
+        /// <param name="pathData"></param>
+        /// <param name="sqlData"></param>
+        public static void Instantiate(Dictionary<IllustKey, string> pathData, DataStorage sqlData)
+        {
+            lock (_instantiate_lock)
+            {
+                if (_single_inst != null) return;
+                //STA thread
+                var tmp_thd = new Thread(new ThreadStart(delegate
+                {
+                    Tracer.GlobalTracer.TraceInfo("instantiating frmSearching");
+                    _single_inst = new frmSearch(pathData, sqlData);
+                    _single_inst.Closed += (_sender, _e) => { _single_inst.Dispatcher.InvokeShutdown(); };
+                    _single_inst.Closing += (_sender, _e) => { _e.Cancel = true; _single_inst.Hide(); }; //closing override
+                System.Windows.Threading.Dispatcher.Run();
+                }));
+                tmp_thd.SetApartmentState(ApartmentState.STA);
+                tmp_thd.IsBackground = true;
+                tmp_thd.Start();
+            }
+        }
+        private static object _instantiate_lock = new object();
+        public static frmSearch SingleInstantiation { get { return _single_inst; } }
+        #endregion
+
         private DataStorage _sqldata;
         private Dictionary<IllustKey, string> _pathdata;
-        public frmSearch(Dictionary<IllustKey, string> pathData, DataStorage sqlData)
+        private object _extern_lock = new object();
+        protected frmSearch(Dictionary<IllustKey, string> pathData, DataStorage sqlData)
         {
+            Tracer.GlobalTracer.TraceFunctionEntry();
             InitializeComponent();
             _pathdata = pathData;
             _sqldata = sqlData;
@@ -158,39 +191,39 @@ namespace Pixiv_Background_Form
                 var users = new Dictionary<uint, User>();
 
                 var user_lock = new object();
-                //parallel execution
-                var future = Parallel.For(from, to, i =>
-                //for (int i = from; i < to; i++)
-                {
-                    var item = _cached_illustKeys[i];
+            //parallel execution
+            var future = Parallel.For(from, to, i =>
+            //for (int i = from; i < to; i++)
+            {
+                        var item = _cached_illustKeys[i];
 
-                    var path = _pathdata[item];
-                    Stream img = File.OpenRead(path);
-                    var bytes = util.ReadBytes(img, (int)img.Length);
-                    img.Close();
-                    img = new MemoryStream(bytes);
-                    img.Seek(0, SeekOrigin.Begin);
-                    var imgdata = System.Drawing.Image.FromStream(img);
+                        var path = _pathdata[item];
+                        Stream img = File.OpenRead(path);
+                        var bytes = util.ReadBytes(img, (int)img.Length);
+                        img.Close();
+                        img = new MemoryStream(bytes);
+                        img.Seek(0, SeekOrigin.Begin);
+                        var imgdata = System.Drawing.Image.FromStream(img);
 
-                //rendering thumbnail
-                var ratio = 200.0 / imgdata.Height;
-                    var width = (int)(imgdata.Width * ratio);
-                    var thumb = new System.Drawing.Bitmap(width, 200);
-                    var gr = System.Drawing.Graphics.FromImage(thumb);
-                    gr.DrawImage(imgdata, new System.Drawing.Rectangle(new System.Drawing.Point(), thumb.Size), new System.Drawing.Rectangle(new System.Drawing.Point(), imgdata.Size), System.Drawing.GraphicsUnit.Pixel);
+                    //rendering thumbnail
+                    var ratio = 200.0 / imgdata.Height;
+                        var width = (int)(imgdata.Width * ratio);
+                        var thumb = new System.Drawing.Bitmap(width, 200);
+                        var gr = System.Drawing.Graphics.FromImage(thumb);
+                        gr.DrawImage(imgdata, new System.Drawing.Rectangle(new System.Drawing.Point(), thumb.Size), new System.Drawing.Rectangle(new System.Drawing.Point(), imgdata.Size), System.Drawing.GraphicsUnit.Pixel);
 
-                    gr.Dispose();
-                    imgdata.Dispose();
+                        gr.Dispose();
+                        imgdata.Dispose();
 
-                    thumbnail[i - from] = thumb;
-                    illusts[i - from] = _cached_illusts.First(o => o.ID == _cached_illustKeys[i].id);
+                        thumbnail[i - from] = thumb;
+                        illusts[i - from] = _cached_illusts.First(o => o.ID == _cached_illustKeys[i].id);
 
-                    lock (user_lock)
-                    {
-                        if (!users.ContainsKey(illusts[i - from].Author_ID))
-                            users.Add(illusts[i - from].Author_ID, _sqldata.GetUserInfo(illusts[i - from].Author_ID, DataUpdateMode.No_Update));
-                    }
-                });
+                        lock (user_lock)
+                        {
+                            if (!users.ContainsKey(illusts[i - from].Author_ID))
+                                users.Add(illusts[i - from].Author_ID, _sqldata.GetUserInfo(illusts[i - from].Author_ID, DataUpdateMode.No_Update));
+                        }
+                    });
 
                 for (int i = 0; i < thumbnail.Length; i++)
                 {
@@ -295,7 +328,6 @@ namespace Pixiv_Background_Form
         {
             var taginfo = (_temp_struct)((PanelItem)((Grid)((Image)sender).Parent).Parent).Tag;
             var detail_ui = new frmDetailed(taginfo.illust, taginfo.user, taginfo.path);
-            detail_ui.TagClicked += _on_info_tag_clicked;
             detail_ui.Show();
         }
         //在投稿里点击标题
@@ -303,7 +335,6 @@ namespace Pixiv_Background_Form
         {
             var taginfo = (_temp_struct)((PanelItem)((Grid)((Label)sender).Parent).Parent).Tag;
             var detail_ui = new frmDetailed(taginfo.illust, taginfo.user, taginfo.path);
-            detail_ui.TagClicked += _on_info_tag_clicked;
             detail_ui.Show();
         }
         //在投稿里点击用户名称
@@ -335,6 +366,28 @@ namespace Pixiv_Background_Form
                     _show_data_illust();
                 else if (_cached_users != null && _cached_users.Length > 0)
                     _show_data_user();
+            }
+        }
+
+        private void Window_Unloaded(object sender, RoutedEventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// 搜索特定类型
+        /// </summary>
+        /// <param name="type">类型序号</param>
+        /// <param name="str">搜索的字符串</param>
+        public void Search(int type, string str)
+        {
+            lock (_extern_lock)
+            {
+                if (type < 0 || type > 5 || string.IsNullOrEmpty(str)) return;
+                cSearchType.SelectedIndex = type;
+                tSearchString.Text = str;
+
+                KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, new HwndSource(0, 0, 0, 0, 0, "", IntPtr.Zero), 0, Key.Enter) { RoutedEvent = KeyUpEvent };
+                tSearchString_KeyUp(tSearchString, ke);
             }
         }
     }

@@ -131,7 +131,7 @@
             <RowDefinition Height="0"/>
         </Grid.RowDefinitions>
         <!--Form closing area-->
-        <Grid x:Name="cancel_grid" Grid.Column="5" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Background="White" Width="24" Height="24">
+        <Grid x:Name="cancel_grid" Grid.Column="5" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Background="White" Width="24" Height="24" ToolTip="关闭窗体">
             <Button Background="Transparent" BorderThickness="0" OverridesDefaultStyle="True" Click="Close_Click">
                 <Button.Template>
                     <ControlTemplate>
@@ -171,16 +171,16 @@
             </Button>
         </Grid>
         <!--Main buttons area-->
-        <Button x:Name="bInfo" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="1" Grid.Row="1" PreviewMouseDown="bInfo_PreviewMouseDown" PreviewMouseUp="bInfo_PreviewMouseUp">
+        <Button x:Name="bInfo" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="1" Grid.Row="1" PreviewMouseDown="bInfo_PreviewMouseDown" PreviewMouseUp="bInfo_PreviewMouseUp" ToolTip="详细信息">
             <Image Source="pack://application:,,,/Resources/Info.png" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
-        <Button x:Name="bNext" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="2" Grid.Row="1" PreviewMouseDown="bNext_PreviewMouseDown" PreviewMouseUp="bNext_PreviewMouseUp">
+        <Button x:Name="bNext" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="2" Grid.Row="1" PreviewMouseDown="bNext_PreviewMouseDown" PreviewMouseUp="bNext_PreviewMouseUp" ToolTip="下一个背景">
             <Image Source="pack://application:,,,/Resources/Next.png" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
-        <Button x:Name="bSearch" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="3" Grid.Row="1" PreviewMouseDown="bSearch_PreviewMouseDown" PreviewMouseUp="bSearch_PreviewMouseUp">
+        <Button x:Name="bSearch" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="3" Grid.Row="1" PreviewMouseDown="bSearch_PreviewMouseDown" PreviewMouseUp="bSearch_PreviewMouseUp" ToolTip="本地搜索">
             <Image Source="pack://application:,,,/Resources/Search.png" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
-        <Button x:Name="bSetting" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="4" Grid.Row="1" PreviewMouseDown="bSetting_PreviewMouseDown" PreviewMouseUp="bSetting_PreviewMouseUp">
+        <Button x:Name="bSetting" HorizontalAlignment="Center" VerticalAlignment="Center" Style="{StaticResource MyImageButtonStyle}" Grid.Column="4" Grid.Row="1" PreviewMouseDown="bSetting_PreviewMouseDown" PreviewMouseUp="bSetting_PreviewMouseUp" ToolTip="设置">
             <Image Source="pack://application:,,,/Resources/Setting.png" Width="24" Height="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </Button>
         <!--Expander Layout-->

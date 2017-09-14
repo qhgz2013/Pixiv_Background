@@ -91,6 +91,7 @@ namespace Pixiv_Background_Form
                         _load_path(item.Directory, item.IncludingSubDir);
                     }
                 });
+                frmSearch.Instantiate(_background_queue, _database);
 
                 _initialize_thread = null;
             });
@@ -549,35 +550,6 @@ namespace Pixiv_Background_Form
 
         //通用函数
         #region Utility Functions
-        /// <summary>
-        /// 在网页中打开指定的pixiv投稿id
-        /// </summary>
-        /// <param name="id">投稿id</param>
-        private void _open_illust(uint id)
-        {
-            if (id == 0) return;
-            Process.Start("http://www.pixiv.net/i/" + id);
-        }
-        /// <summary>
-        /// 在网页中打开指定的pixiv画师id
-        /// </summary>
-        /// <param name="id">画师id</param>
-        private void _open_user(uint id)
-        {
-            if (id == 0) return;
-            Process.Start("http://www.pixiv.net/u/" + id);
-        }
-        //随机显示字符串数组中的任意字符串
-        private string _random_text(string[] origin)
-        {
-            var r = new Random();
-            return origin[r.Next(origin.Length)];
-        }
-        //html反转义字符
-        private string _escape_xml_char(string str_in)
-        {
-            return System.Net.WebUtility.HtmlDecode(str_in);
-        }
         //根据Tag创建相应的链接和地址
         private TextBlock _create_tag_hyperlink(string[] tags)
         {
@@ -970,6 +942,8 @@ namespace Pixiv_Background_Form
             if (e.Timestamp - last_ts < 500)
             {
                 //handling as click
+                if (_background_queue == null && _initialize_thread != null)
+                    _initialize_thread.Join();
                 var frmInfo = new frmDetailed(_last_data.illust, _last_data.user, _background_queue[new IllustKey { id = _last_data.illust.ID, page = (uint)_last_data.page }]);
                 frmInfo.Show();
             }
@@ -1027,8 +1001,7 @@ namespace Pixiv_Background_Form
                     }
                     catch (Exception) { }
                 }
-                var frm = new frmSearch(_background_queue, _database);
-                frm.Show();
+                frmSearch.SingleInstantiation?.Show();
             }
         }
 
