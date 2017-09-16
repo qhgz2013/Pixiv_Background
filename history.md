@@ -1,4 +1,7 @@
-<p>
+<p
+<b>alpha v1.28</b><br/>
+增加搜索窗口的历史回溯功能<br/>
+<br/>
 <b>alpha v1.27</b><br/>
 waifu2x从DeadSix27/waifu2x-converter-cpp转为lltcggie/waifu2x-caffe<br/>
 <br/>

@@ -66,10 +66,10 @@
             <RowDefinition/>
         </Grid.RowDefinitions>
 
-        <Button x:Name="bPrev" Style="{StaticResource MyImageButtonStyle}" Grid.Column="1" IsEnabled="False" Width="24" Height="24">
+        <Button x:Name="bPrev" Style="{StaticResource MyImageButtonStyle}" Grid.Column="1" IsEnabled="False" Width="24" Height="24" Click="bPrev_Click">
             <Image Source="pack://application:,,,/Resources/Previous.png"/>
         </Button>
-        <Button x:Name="bNext" Style="{StaticResource MyImageButtonStyle}" Grid.Column="2" IsEnabled="False" Width="24" Height="24">
+        <Button x:Name="bNext" Style="{StaticResource MyImageButtonStyle}" Grid.Column="2" IsEnabled="False" Width="24" Height="24" Click="bNext_Click">
             <Image Source="pack://application:,,,/Resources/Next.png"/>
         </Button>
         <Label Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">搜索类型</Label>

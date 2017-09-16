@@ -1,2 +1,2 @@
-﻿Fixing form resize for (我还是有底线的)
-Adding function: search tracing (backward and forward)
+﻿Adding function: detail info for multi-monitors
+Decode all illust and user name in sql (next version)

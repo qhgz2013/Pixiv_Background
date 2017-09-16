@@ -16,7 +16,7 @@
     </UserControl.Resources>
     <Grid x:Name="mainLayout">
         <Grid.RowDefinitions>
-            <RowDefinition Height="200"/>
+            <RowDefinition Height="auto"/>
             <RowDefinition Height="25"/>
             <RowDefinition Height="25"/>
         </Grid.RowDefinitions>

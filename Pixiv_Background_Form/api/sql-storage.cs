@@ -1558,21 +1558,14 @@ namespace Pixiv_Background_Form
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(name)) return null;
 
-            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var user_query_sql = "SELECT ID From User WHERE Name LIKE '%" + name + "%'";
-            m_dbCommand.CommandText = user_query_sql;
-            var dr = m_dbCommand.ExecuteReader();
-            uint userID = 0;
-            if (dr.Read())
+            var authors = GetUserByName(name);
+            var ret_list = new List<Illust>();
+            foreach (var item in authors)
             {
-                userID = (uint)dr.GetInt32(0);
+                if (item.ID != 0)
+                    ret_list.AddRange(GetIllustByAuthorID(item.ID));
             }
-            dr.Close();
-            m_sqlThreadLock.ReleaseWriterLock();
-
-            if (userID != 0)
-                return GetIllustByAuthorID(userID);
-            else return null;
+            return ret_list.ToArray();
         }
         /// <summary>
         /// 根据投稿ID进行模糊查询
@@ -1634,7 +1627,7 @@ namespace Pixiv_Background_Form
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
-        
+
         #endregion //fuzzy query
 
         #endregion //Public Functions

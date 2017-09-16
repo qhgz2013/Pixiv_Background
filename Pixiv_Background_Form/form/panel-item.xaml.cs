@@ -21,7 +21,7 @@ namespace Pixiv_Background_Form
     /// </summary>
     public partial class PanelItem : UserControl
     {
-        public PanelItem(System.Drawing.Image show_image, string title = null, string desc = null, bool show_title = false, bool show_desc = false)
+        public PanelItem(System.Drawing.Image show_image, string title = null, string desc = null, bool show_title = false, bool show_desc = false, int default_height = 200)
         {
             InitializeComponent();
             var ss = new MemoryStream();
@@ -39,7 +39,7 @@ namespace Pixiv_Background_Form
             WpfAnimatedGif.ImageBehavior.SetAnimatedSource(iSourceImage, bmp);
 
             var img_wh_ratio = 1.0 * show_image.Width / show_image.Height;
-            Width = 200 * img_wh_ratio;
+            Width = default_height * img_wh_ratio;
 
             if (!string.IsNullOrEmpty(title))
                 lMainTitle.Content = title;
@@ -50,26 +50,28 @@ namespace Pixiv_Background_Form
             switch (flag)
             {
                 case 0:
-                    Height = 200;
+                    Height = default_height;
                     lMainTitle.Visibility = Visibility.Hidden;
                     lDescription.Visibility = Visibility.Hidden;
                     break;
                 case 1:
-                    Height = 225;
+                    Height = default_height + 25;
                     lMainTitle.Visibility = Visibility.Hidden;
                     mainLayout.RowDefinitions.RemoveAt(1);
                     break;
                 case 2:
-                    Height = 225;
+                    Height = default_height + 25;
                     lDescription.Visibility = Visibility.Hidden;
                     mainLayout.RowDefinitions.RemoveAt(2);
                     break;
                 case 3:
-                    Height = 250;
+                    Height = default_height + 50;
                     break;
                 default:
                     break;
             }
+
+            mainLayout.RowDefinitions[0].Height = new GridLength(default_height);
         }
 
         private DateTime downTime;

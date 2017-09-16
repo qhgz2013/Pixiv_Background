@@ -40,8 +40,14 @@ namespace Pixiv_Background_Form
                     Tracer.GlobalTracer.TraceInfo("instantiating frmSearching");
                     _single_inst = new frmSearch(pathData, sqlData);
                     _single_inst.Closed += (_sender, _e) => { _single_inst.Dispatcher.InvokeShutdown(); };
-                    _single_inst.Closing += (_sender, _e) => { _e.Cancel = true; _single_inst.Hide(); }; //closing override
-                System.Windows.Threading.Dispatcher.Run();
+                    _single_inst.Closing += (_sender, _e) => 
+                    {
+                        _e.Cancel = true;
+                        _single_inst.Hide();
+                        _single_inst._history.Clear();
+                        _single_inst._current_history_index = 0;
+                    }; //closing override
+                    System.Windows.Threading.Dispatcher.Run();
                 }));
                 tmp_thd.SetApartmentState(ApartmentState.STA);
                 tmp_thd.IsBackground = true;
@@ -63,6 +69,7 @@ namespace Pixiv_Background_Form
             _sqldata = sqlData;
             cSearchType.SelectedIndex = 0;
             tSearchString.Focus();
+            _history = new List<KeyValuePair<int, string>>();
         }
 
         private IllustKey[] _tokey(Illust[] data)
@@ -85,6 +92,8 @@ namespace Pixiv_Background_Form
         //每次读取的数据量
         private const int DEFAULT_FETCH_COUNT = 100;
 
+        #region slice search
+        private bool _queue_history = true;
         //输入回调
         private void tSearchString_KeyUp(object sender, KeyEventArgs e)
         {
@@ -157,6 +166,7 @@ namespace Pixiv_Background_Form
                 {
                     _show_not_found();
                 }
+                if (_queue_history) _append_history(cSearchType.SelectedIndex, tSearchString.Text);
             }
         }
 
@@ -191,46 +201,46 @@ namespace Pixiv_Background_Form
                 var users = new Dictionary<uint, User>();
 
                 var user_lock = new object();
-            //parallel execution
-            var future = Parallel.For(from, to, i =>
-            //for (int i = from; i < to; i++)
-            {
-                        var item = _cached_illustKeys[i];
+                //parallel execution
+                var future = Parallel.For(from, to, i =>
+                //for (int i = from; i < to; i++)
+                {
+                    var item = _cached_illustKeys[i];
 
-                        var path = _pathdata[item];
-                        Stream img = File.OpenRead(path);
-                        var bytes = util.ReadBytes(img, (int)img.Length);
-                        img.Close();
-                        img = new MemoryStream(bytes);
-                        img.Seek(0, SeekOrigin.Begin);
-                        var imgdata = System.Drawing.Image.FromStream(img);
+                    var path = _pathdata[item];
+                    Stream img = File.OpenRead(path);
+                    var bytes = util.ReadBytes(img, (int)img.Length);
+                    img.Close();
+                    img = new MemoryStream(bytes);
+                    img.Seek(0, SeekOrigin.Begin);
+                    var imgdata = System.Drawing.Image.FromStream(img);
 
                     //rendering thumbnail
-                    var ratio = 200.0 / imgdata.Height;
-                        var width = (int)(imgdata.Width * ratio);
-                        var thumb = new System.Drawing.Bitmap(width, 200);
-                        var gr = System.Drawing.Graphics.FromImage(thumb);
-                        gr.DrawImage(imgdata, new System.Drawing.Rectangle(new System.Drawing.Point(), thumb.Size), new System.Drawing.Rectangle(new System.Drawing.Point(), imgdata.Size), System.Drawing.GraphicsUnit.Pixel);
+                    var ratio = 200.0 / imgdata.Height * ScreenWatcher.Scale;
+                    var width = (int)(imgdata.Width * ratio);
+                    var thumb = new System.Drawing.Bitmap(width, (int)(200 * ScreenWatcher.Scale));
+                    var gr = System.Drawing.Graphics.FromImage(thumb);
+                    gr.DrawImage(imgdata, new System.Drawing.Rectangle(new System.Drawing.Point(), thumb.Size), new System.Drawing.Rectangle(new System.Drawing.Point(), imgdata.Size), System.Drawing.GraphicsUnit.Pixel);
 
-                        gr.Dispose();
-                        imgdata.Dispose();
+                    gr.Dispose();
+                    imgdata.Dispose();
 
-                        thumbnail[i - from] = thumb;
-                        illusts[i - from] = _cached_illusts.First(o => o.ID == _cached_illustKeys[i].id);
+                    thumbnail[i - from] = thumb;
+                    illusts[i - from] = _cached_illusts.First(o => o.ID == _cached_illustKeys[i].id);
 
-                        lock (user_lock)
-                        {
-                            if (!users.ContainsKey(illusts[i - from].Author_ID))
-                                users.Add(illusts[i - from].Author_ID, _sqldata.GetUserInfo(illusts[i - from].Author_ID, DataUpdateMode.No_Update));
-                        }
-                    });
+                    lock (user_lock)
+                    {
+                        if (!users.ContainsKey(illusts[i - from].Author_ID))
+                            users.Add(illusts[i - from].Author_ID, _sqldata.GetUserInfo(illusts[i - from].Author_ID, DataUpdateMode.No_Update));
+                    }
+                });
 
                 for (int i = 0; i < thumbnail.Length; i++)
                 {
                     if ((i % 10) == 0) Thread.Sleep(100);
                     Dispatcher.Invoke(new ThreadStart(delegate
                     {
-                        var ui = new PanelItem(thumbnail[i], illusts[i].Title, users[illusts[i].Author_ID].Name, true, true);
+                        var ui = new PanelItem(thumbnail[i], System.Net.WebUtility.HtmlDecode(illusts[i].Title), System.Net.WebUtility.HtmlDecode(users[illusts[i].Author_ID].Name), true, true);
                         var tag = new _temp_struct { illust = illusts[i], user = users[illusts[i].Author_ID], path = _pathdata[_cached_illustKeys[i + from]] };
                         ui.Tag = tag;
                         ui.SourceImageClick += _on_illust_image_clicked;
@@ -283,11 +293,11 @@ namespace Pixiv_Background_Form
                     if ((i % 10) == 0) Thread.Sleep(100);
                     Dispatcher.Invoke(new ThreadStart(delegate
                     {
-                        var ui = new PanelItem(face, item.Name, null, true, false);
+                        var ui = new PanelItem(face, System.Net.WebUtility.HtmlDecode(item.Name), null, true, false, 100);
                         ui.Tag = item;
-                        ui.SourceImageClick += _on_user_clicked;
-                        ui.DescriptionClick += _on_user_clicked;
-                        ui.TitleClick += _on_user_clicked;
+                        ui.SourceImageClick += _on_user_image_clicked;
+                        ui.DescriptionClick += _on_user_label_clicked;
+                        ui.TitleClick += _on_user_label_clicked;
                         lDataPanel.Children.Add(ui);
                     }));
                 }
@@ -310,14 +320,31 @@ namespace Pixiv_Background_Form
             var lbl = new Label();
             lbl.Content = "(我还是有底线的)";
             lbl.HorizontalAlignment = HorizontalAlignment.Center;
-            //lbl.Width = grid.ActualWidth;
             grid.Children.Add(lbl);
             lDataPanel.Children.Add(grid);
+
+            var rel_src = new RelativeSource(RelativeSourceMode.FindAncestor, typeof(WrapPanel), 1);
+            var binding = new Binding();
+            binding.RelativeSource = rel_src;
+            binding.Path = new PropertyPath("ActualWidth");
+            grid.SetBinding(WidthProperty, binding);
         }
+        #endregion
+
+        #region UI interact
         //点击用户信息
-        private void _on_user_clicked(object sender, MouseEventArgs e)
+        private void _on_user_image_clicked(object sender, MouseEventArgs e)
         {
             var taginfo = (User)((PanelItem)((Grid)((Image)sender).Parent).Parent).Tag;
+            cSearchType.SelectedIndex = 3;
+            tSearchString.Text = taginfo.Name.ToString();
+
+            KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, Keyboard.PrimaryDevice.ActiveSource, 0, Key.Enter) { RoutedEvent = KeyUpEvent };
+            tSearchString_KeyUp(tSearchString, ke);
+        }
+        private void _on_user_label_clicked(object sender, MouseEventArgs e)
+        {
+            var taginfo = (User)((PanelItem)((Grid)((Label)sender).Parent).Parent).Tag;
             cSearchType.SelectedIndex = 3;
             tSearchString.Text = taginfo.Name.ToString();
 
@@ -372,6 +399,61 @@ namespace Pixiv_Background_Form
         private void Window_Unloaded(object sender, RoutedEventArgs e)
         {
         }
+        #endregion
+
+        #region history
+        private int _current_history_index;
+        private List<KeyValuePair<int, string>> _history;
+        private void _move_last_history()
+        {
+            if (_current_history_index <= 0 || _background_working) return;
+            var data = _history[--_current_history_index];
+            cSearchType.SelectedIndex = data.Key;
+            tSearchString.Text = data.Value;
+            KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, new HwndSource(0, 0, 0, 0, 0, "", IntPtr.Zero), 0, Key.Enter) { RoutedEvent = KeyUpEvent };
+            _queue_history = false;
+            tSearchString_KeyUp(tSearchString, ke);
+            _queue_history = true;
+            _update_ui();
+        }
+        private void _move_next_history()
+        {
+            if (_current_history_index >= _history.Count - 1 || _background_working) return;
+            var data = _history[++_current_history_index];
+            cSearchType.SelectedIndex = data.Key;
+            tSearchString.Text = data.Value;
+            KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, new HwndSource(0, 0, 0, 0, 0, "", IntPtr.Zero), 0, Key.Enter) { RoutedEvent = KeyUpEvent };
+            _queue_history = false;
+            tSearchString_KeyUp(tSearchString, ke);
+            _queue_history = true;
+            _update_ui();
+        }
+        private void _update_ui()
+        {
+            bPrev.IsEnabled = _can_move_last();
+            if (_can_move_last()) bPrev.ToolTip = "[" + ((ComboBoxItem)cSearchType.Items[_history[_current_history_index - 1].Key]).Content.ToString() + "]: " + _history[_current_history_index - 1].Value;
+            else bPrev.ToolTip = "";
+            bNext.IsEnabled = _can_move_next();
+            if (_can_move_next()) bNext.ToolTip = "[" + ((ComboBoxItem)cSearchType.Items[_history[_current_history_index + 1].Key]).Content.ToString() + "]: " + _history[_current_history_index + 1].Value;
+            else bNext.ToolTip = "";
+        }
+        private bool _can_move_last()
+        {
+            return _current_history_index > 0;
+        }
+        private bool _can_move_next()
+        {
+            return _current_history_index < _history.Count - 1;
+        }
+        private void _append_history(int mode, string str)
+        {
+            while (_history.Count > _current_history_index + 1)
+                _history.RemoveAt(_current_history_index + 1);
+            _history.Add(new KeyValuePair<int, string>(mode, str));
+            _current_history_index = _history.Count - 1;
+            _update_ui();
+        }
+        #endregion
 
         /// <summary>
         /// 搜索特定类型
@@ -388,7 +470,18 @@ namespace Pixiv_Background_Form
 
                 KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, new HwndSource(0, 0, 0, 0, 0, "", IntPtr.Zero), 0, Key.Enter) { RoutedEvent = KeyUpEvent };
                 tSearchString_KeyUp(tSearchString, ke);
+                //_append_history(type, str);
             }
+        }
+
+        private void bPrev_Click(object sender, RoutedEventArgs e)
+        {
+            _move_last_history();
+        }
+
+        private void bNext_Click(object sender, RoutedEventArgs e)
+        {
+            _move_next_history();
         }
     }
 }

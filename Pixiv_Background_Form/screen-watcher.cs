@@ -26,7 +26,12 @@ namespace Pixiv_Background_Form
                 WinAPI.SetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE, exStyle);
             };
             _temp_form.Show();
+
+            System.Windows.PresentationSource source = System.Windows.PresentationSource.FromVisual(_temp_form);
+            _scale = source.CompositionTarget.TransformToDevice.M11;
         }
+        private static double _scale;
+        public static double Scale { get { return _scale; } }
         //todo: 取消dpi测试
         private enum PROCESS_DPI_AWARENESS
         {
@@ -63,15 +68,13 @@ namespace Pixiv_Background_Form
             var data = Screen.AllScreens;
             var ret = new RectangleF[data.Length];
 
-            System.Windows.PresentationSource source = System.Windows.PresentationSource.FromVisual(_temp_form);
-            double scale = source.CompositionTarget.TransformToDevice.M11;
             for (int i = 0; i < ret.Length; i++)
             {
                 ret[i] = data[i].Bounds;
-                ret[i].Width = (float)(ret[i].Width / scale);
-                ret[i].X = (float)(ret[i].X / scale);
-                ret[i].Y = (float)(ret[i].Y / scale);
-                ret[i].Height = (float)(ret[i].Height / scale);
+                ret[i].Width = (float)(ret[i].Width / _scale);
+                ret[i].X = (float)(ret[i].X / _scale);
+                ret[i].Y = (float)(ret[i].Y / _scale);
+                ret[i].Height = (float)(ret[i].Height / _scale);
             }
             return ret;
         }

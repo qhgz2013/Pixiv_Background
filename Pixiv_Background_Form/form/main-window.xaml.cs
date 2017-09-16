@@ -97,7 +97,6 @@ namespace Pixiv_Background_Form
             });
         }
         private bool _frm_created = false;
-        private double _form_scale;
         private void frmMain_Loaded(object sender, RoutedEventArgs e)
         {
             MainWindow_Layout.ColumnDefinitions[0].Width = GridLength.Auto;
@@ -107,7 +106,6 @@ namespace Pixiv_Background_Form
             Top = 20;
             _frm_created = true;
             var source = PresentationSource.FromVisual(this);
-            _form_scale = source.CompositionTarget.TransformToDevice.M11;
 
             //hide in alt+tab
             var helper = new System.Windows.Interop.WindowInteropHelper((System.Windows.Window)sender);
@@ -789,7 +787,7 @@ namespace Pixiv_Background_Form
                 {
                     var mouse_pos = System.Windows.Forms.Cursor.Position;
 
-                    var scaled_pos = new Point(mouse_pos.X / _form_scale, mouse_pos.Y / _form_scale);
+                    var scaled_pos = new Point(mouse_pos.X / ScreenWatcher.Scale, mouse_pos.Y / ScreenWatcher.Scale);
                     Dispatcher.Invoke(new ThreadStart(delegate
                     {
                         if (scaled_pos.X < Left || scaled_pos.Y < Top || scaled_pos.X > Left + Width || scaled_pos.Y > Top + Height)
@@ -812,7 +810,7 @@ namespace Pixiv_Background_Form
             _anchor_point = PointToScreen(e.GetPosition(this));
             _in_drag = true;
             _src_location = new Point(Left, Top);
-            _anchor_point = new Point(_anchor_point.X / _form_scale, _anchor_point.Y / _form_scale);
+            _anchor_point = new Point(_anchor_point.X / ScreenWatcher.Scale, _anchor_point.Y / ScreenWatcher.Scale);
             _mouse_down_sender = sender;
             if (e != null) e.Handled = true;
             //Debug.Print("src point: " + _src_location.ToString() + ", anchor_point: " + _anchor_point.ToString());
@@ -917,7 +915,7 @@ namespace Pixiv_Background_Form
         {
             //base.OnMouseMove(e);
             Point current = PointToScreen(e.GetPosition(this));
-            current = new Point(current.X / _form_scale, current.Y / _form_scale);
+            current = new Point(current.X / ScreenWatcher.Scale, current.Y / ScreenWatcher.Scale);
             if (_in_drag)
             {
                 __customDragMouseMove(current);
@@ -1001,7 +999,13 @@ namespace Pixiv_Background_Form
                     }
                     catch (Exception) { }
                 }
-                frmSearch.SingleInstantiation?.Show();
+                if (frmSearch.SingleInstantiation != null)
+                {
+                    frmSearch.SingleInstantiation.Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        frmSearch.SingleInstantiation.Show();
+                    }));
+                }
             }
         }
 
