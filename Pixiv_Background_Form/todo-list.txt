@@ -1,0 +1,2 @@
+﻿Fixing form resize for (我还是有底线的)
+Adding function: search tracing (backward and forward)

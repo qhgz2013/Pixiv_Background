@@ -1,4 +1,22 @@
 <p>
+<b>alpha v1.27</b><br/>
+waifu2x从DeadSix27/waifu2x-converter-cpp转为lltcggie/waifu2x-caffe<br/>
+<br/>
+<b>alpha v1.26</b><br/>
+实现搜索窗体的单实例化（即不会弹出多个搜索框）<br/>
+<br/>
+<b>alpha v1.25</b><br/>
+主窗体改版，简洁模式，只含几个按钮<br/>
+<br/>
+<b>alpha v1.24</b><br/>
+修复投稿查询的回调成功后仍然调用saucenao api的逻辑bug<br/>
+<br/>
+<b>alpha v1.23</b><br/>
+修复搜索的线程操作bug<br/>
+<br/>
+<b>alpha v1.22</b><br/>
+将搜索的计算从主线程转移到线程池的工作线程<br/>
+<br/>
 <b>alpha v1.21</b><br/>
 API和HTTP请求的bug修复（针对网络离线的情况）<br/>
 改了一下坑爹的搜索时点开题目的响应操作（从搜索该题目变为直接打开该投稿的详细内容）<br/>

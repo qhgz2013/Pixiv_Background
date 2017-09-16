@@ -225,7 +225,7 @@ namespace Pixiv_Background_Form
             if (string.IsNullOrEmpty(tWaifu2xPath.Text) || !File.Exists(tWaifu2xPath.Text))
             {
                 var ofd = new System.Windows.Forms.OpenFileDialog();
-                ofd.Filter = "可执行文件|*.exe|所有文件|*.*";
+                ofd.Filter = "waifu2x caffe|waifu2x-caffe-cui.exe|可执行文件|*.exe|所有文件|*.*";
                 if (ofd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
                     tWaifu2xPath.Text = ofd.FileName;

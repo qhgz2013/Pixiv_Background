@@ -154,7 +154,7 @@
     <Compile Include="form\frm-login.xaml.cs">
       <DependentUpon>frm-login.xaml</DependentUpon>
     </Compile>
-    <Compile Include="html-parser.cs" />
+    <Compile Include="utils\html-parser.cs" />
     <Compile Include="form\loading-animation.xaml.cs">
       <DependentUpon>loading-animation.xaml</DependentUpon>
     </Compile>
@@ -252,6 +252,9 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Resources\Previous.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="todo-list.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.105.2\build\net40\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.105.2\build\net40\System.Data.SQLite.Core.targets')" />

@@ -13,7 +13,7 @@
 - 按确定就OK了
 
 ### 插件内容
-- 支持Waifu2x放缩图片 [DeadSix27/waifu2x-converter-cpp](https://github.com/DeadSix27/waifu2x-converter-cpp) [(Release Download)](https://github.com/DeadSix27/waifu2x-converter-cpp/releases)
+- 支持Waifu2x放缩图片 [lltcggie/waifu2x-caffe](https://github.com/lltcggie/waifu2x-caffe) [(Release Download)](https://github.com/lltcggie/waifu2x-caffe/releases)
 > 使用方法<br>
 > A. 在release下下载最新的Windows预编译版本，解压之后在设置的路径里选择waifu2x-converter-cpp.exe即可<br>
 > B. 或者下载源代码重新编译生成可执行文件，再在设置里选择文件路径即可
