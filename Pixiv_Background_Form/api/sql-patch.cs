@@ -176,6 +176,78 @@ namespace Pixiv_Background_Form
 
             trans.Commit();
         }
+        private static void _updateDatabase_106_to_107(SQLiteConnection connection)
+        {
+            var trans = connection.BeginTransaction();
+            var cmd = new SQLiteCommand(connection);
+
+            var illust_id = new List<uint>();
+            var illust_title = new List<string>();
+            var illust_tag = new List<string>();
+            var illust_tool = new List<string>();
+            var user_name = new List<string>();
+            var user_id = new List<uint>();
+
+            cmd.CommandText = "SELECT ID, Title, Tag, Tool FROM Illust";
+            var dr = cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                illust_id.Add((uint)dr.GetInt32(0));
+                illust_title.Add(dr.IsDBNull(1) ? "" : (string)dr[1]);
+                illust_tag.Add(dr.IsDBNull(2) ? "" : (string)dr[2]);
+                illust_tool.Add(dr.IsDBNull(3) ? "" : (string)dr[3]);
+            }
+            dr.Close();
+            cmd.CommandText = "SELECT ID, Name FROM User";
+            dr = cmd.ExecuteReader();
+            while (dr.Read())
+            {
+                user_id.Add((uint)dr.GetInt32(0));
+                user_name.Add(dr.IsDBNull(1) ? "" : (string)dr[1]);
+            }
+            dr.Close();
+
+            cmd.CommandText = "UPDATE Illust SET Title = @Title, Tag = @Tag, Tool = @Tool WHERE ID = @ID";
+            cmd.Parameters.Clear();
+            cmd.Parameters.Add("@Title", System.Data.DbType.String);
+            cmd.Parameters.Add("@Tag", System.Data.DbType.String);
+            cmd.Parameters.Add("@Tool", System.Data.DbType.String);
+            cmd.Parameters.Add("@ID", System.Data.DbType.Int32);
+
+            for (int i = 0; i < illust_id.Count; i++)
+            {
+                illust_title[i] = System.Net.WebUtility.HtmlDecode(illust_title[i]);
+                illust_tag[i] = System.Net.WebUtility.HtmlDecode(illust_tag[i]);
+                illust_tool[i] = System.Net.WebUtility.HtmlDecode(illust_tool[i]);
+
+                cmd.Parameters["@Title"].Value = illust_title[i];
+                cmd.Parameters["@Tag"].Value = illust_tag[i];
+                cmd.Parameters["@Tool"].Value = illust_tool[i];
+                cmd.Parameters["@ID"].Value = illust_id[i];
+
+                cmd.ExecuteNonQuery();
+            }
+            cmd.Parameters.Clear();
+            cmd.CommandText = "UPDATE User SET Name = @Name WHERE ID = @ID";
+            cmd.Parameters.Add("@Name", System.Data.DbType.String);
+            cmd.Parameters.Add("@ID", System.Data.DbType.Int32);
+
+            for (int i = 0; i < user_id.Count; i++)
+            {
+                user_name[i] = System.Net.WebUtility.HtmlDecode(user_name[i]);
+
+                cmd.Parameters["@Name"].Value = user_name[i];
+                cmd.Parameters["@ID"].Value = user_id[i];
+
+                cmd.ExecuteNonQuery();
+            }
+
+            var edit_version = "UPDATE DbVars SET Value='1.0.7' WHERE Key='Version'";
+            cmd.CommandText = edit_version;
+            cmd.ExecuteNonQuery();
+
+            trans.Commit();
+        }
         public static void Patch(string from_version, string to_version, SQLiteConnection connection)
         {
             if (from_version == "1.0.0")
@@ -207,6 +279,11 @@ namespace Pixiv_Background_Form
             {
                 _updateDatabase_105_to_106(connection);
                 from_version = "1.0.6";
+            }
+            if (from_version == "1.0.6")
+            {
+                _updateDatabase_106_to_107(connection);
+                to_version = "1.0.7";
             }
         }
     }

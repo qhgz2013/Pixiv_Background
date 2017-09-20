@@ -115,6 +115,7 @@ namespace Pixiv_Background_Form
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            Hide();
             if (_database != null) _database.AbortWorkingThread();
             Environment.Exit(0);
         }
@@ -523,6 +524,10 @@ namespace Pixiv_Background_Form
                     var key = new IllustKey { id = id, page = (uint)page };
                     if (!_background_queue.ContainsKey(key))
                         _background_queue.Add(key, item.FullName);
+                    else
+                    {
+                        Tracer.GlobalTracer.TraceInfo("key " + key.ToString() + " has already existed in path " + _background_queue[key] + " (current: " + item.FullName + ")");
+                    }
                 }
             }
 

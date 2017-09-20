@@ -59,7 +59,7 @@ namespace Pixiv_Background_Form
         #region Constant Definations
 
         //常量定义：当前版本和最大获取投稿信息的线程数
-        private const string M_CURRENT_DBVERSION = "1.0.6";
+        private const string M_CURRENT_DBVERSION = "1.0.7";
         //最大获取投稿信息的线程数
         private const int M_MAX_ILLUST_SYNC_THREAD = 2;
         //最大获取用户信息的线程数
@@ -664,7 +664,7 @@ namespace Pixiv_Background_Form
         //向sql中自动插入投稿数据
         private bool __insert_illust(Illust illust)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             var insert_str = "INSERT INTO Illust(ID, Author_ID, Page, Origin, Title, Description, Tag, Tool, Click, Bookmark_Count, Comment_Count, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID, @Author_ID, @Page, @Origin";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = illust.ID;
@@ -679,7 +679,7 @@ namespace Pixiv_Background_Form
             {
                 insert_str += ", @Title";
                 m_dbCommand.Parameters.Add("@Title", DbType.String);
-                m_dbCommand.Parameters["@Title"].Value = illust.Title;
+                m_dbCommand.Parameters["@Title"].Value = WebUtility.HtmlDecode(illust.Title); //illust.Title;
             }
             else
                 insert_str += ", NULL";
@@ -695,7 +695,7 @@ namespace Pixiv_Background_Form
             {
                 insert_str += ", @Tag";
                 m_dbCommand.Parameters.Add("@Tag", DbType.String);
-                m_dbCommand.Parameters["@Tag"].Value = illust.Tag;
+                m_dbCommand.Parameters["@Tag"].Value = WebUtility.HtmlDecode(illust.Tag); //illust.Tag;
             }
             else
                 insert_str += ", NULL";
@@ -704,7 +704,7 @@ namespace Pixiv_Background_Form
             {
                 insert_str += ", @Tool";
                 m_dbCommand.Parameters.Add("@Tool", DbType.String);
-                m_dbCommand.Parameters["@Tool"].Value = illust.Tool;
+                m_dbCommand.Parameters["@Tool"].Value = WebUtility.HtmlDecode(illust.Tool); //illust.Tool;
             }
             else
                 insert_str += ", NULL";
@@ -753,7 +753,7 @@ namespace Pixiv_Background_Form
         }
         private bool __update_illust(Illust illust, bool force_mode = false)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             var update_str = "UPDATE Illust SET HTTP_Status=@HTTP_Status, Last_Update=@Last_Update";
             m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
             m_dbCommand.Parameters["@HTTP_Status"].Value = illust.HTTP_Status;
@@ -834,7 +834,7 @@ namespace Pixiv_Background_Form
                 {
                     update_str += ",Title=@Title";
                     m_dbCommand.Parameters.Add("@Title", DbType.String);
-                    m_dbCommand.Parameters["@Title"].Value = illust.Title;
+                    m_dbCommand.Parameters["@Title"].Value = WebUtility.HtmlDecode(illust.Title); //illust.Title;
                 }
                 if (!string.IsNullOrEmpty(illust.Description))
                 {
@@ -846,13 +846,13 @@ namespace Pixiv_Background_Form
                 {
                     update_str += ",Tag=@Tag";
                     m_dbCommand.Parameters.Add("@Tag", DbType.String);
-                    m_dbCommand.Parameters["@Tag"].Value = illust.Tag;
+                    m_dbCommand.Parameters["@Tag"].Value = WebUtility.HtmlDecode(illust.Tag); //illust.Tag;
                 }
                 if (!string.IsNullOrEmpty(illust.Tool))
                 {
                     update_str += ",Tool=@Tool";
                     m_dbCommand.Parameters.Add("@Tool", DbType.String);
-                    m_dbCommand.Parameters["@Tool"].Value = illust.Tool;
+                    m_dbCommand.Parameters["@Tool"].Value = WebUtility.HtmlDecode(illust.Tool); //illust.Tool;
                 }
 
             }
@@ -880,7 +880,7 @@ namespace Pixiv_Background_Form
         }
         private bool __auto_insert_illust(Illust illust)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             if (m_illust_list.ContainsKey(illust.ID))
                 return __update_illust(illust);
             else
@@ -888,7 +888,7 @@ namespace Pixiv_Background_Form
         }
         private Illust __get_illust(uint id)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             var data = __query_illust_by_specified_constraint("ID = " + id);
             if (data.Length == 0)
             {
@@ -902,7 +902,7 @@ namespace Pixiv_Background_Form
         //根据特定的sql where约束来获取数据
         private Illust[] __query_illust_by_specified_constraint(string constraint)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Bookmark_Count, Comment_Count, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Page, Origin FROM Illust WHERE " + constraint;
             var list = new List<Illust>();
             m_dbCommand.CommandText = get_value_str;
@@ -941,7 +941,7 @@ namespace Pixiv_Background_Form
         //插入用户信息到sql和内存列表中（自动跳过null参数） [STA]
         private bool __insert_user(User user)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             var insert_user_data = "INSERT INTO User(ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Job, Follow_Users, Follower, Illust_Bookmark_Public, Mypixiv_Users, Total_Illusts, Total_Novels, Twitter, HTTP_Status, Last_Update, Last_Success_Update) VALUES(@ID";
             m_dbCommand.Parameters.Add("@ID", DbType.Int32);
             m_dbCommand.Parameters["@ID"].Value = user.ID;
@@ -949,7 +949,7 @@ namespace Pixiv_Background_Form
             {
                 insert_user_data += ",@Name";
                 m_dbCommand.Parameters.Add("@Name", DbType.String);
-                m_dbCommand.Parameters["@Name"].Value = user.Name;
+                m_dbCommand.Parameters["@Name"].Value = WebUtility.HtmlDecode(user.Name); //user.Name;
             }
             else
                 insert_user_data += ",NULL";
@@ -1092,7 +1092,7 @@ namespace Pixiv_Background_Form
         //更新用户信息到sql和内存中（自动跳过null参数） [STA]
         private bool __update_user(User user, bool force_mode = false)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             var update_user_data = "UPDATE User SET HTTP_Status=@HTTP_Status, Last_Update=@Last_Update";
             m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
             m_dbCommand.Parameters["@HTTP_Status"].Value = user.HTTP_Status;
@@ -1110,7 +1110,7 @@ namespace Pixiv_Background_Form
                 {
                     update_user_data += ",Name=@Name";
                     m_dbCommand.Parameters.Add("@Name", DbType.String);
-                    m_dbCommand.Parameters["@Name"].Value = user.Name;
+                    m_dbCommand.Parameters["@Name"].Value = WebUtility.HtmlDecode(user.Name); //user.Name;
                 }
 
                 if (!string.IsNullOrEmpty(user.Description))
@@ -1248,7 +1248,7 @@ namespace Pixiv_Background_Form
         //自动选择插入还是更新用户信息了额 [STA]
         private bool __auto_insert_user(User user)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             if (m_user_list.ContainsKey(user.ID))
                 return __update_user(user);
             else
@@ -1256,7 +1256,7 @@ namespace Pixiv_Background_Form
         }
         private User __get_user(uint id)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             var data = __query_user_by_specified_constraint("ID = " + id);
             if (data.Length == 0)
             {
@@ -1270,7 +1270,7 @@ namespace Pixiv_Background_Form
         private User[] __query_user_by_specified_constraint(string constraint)
         {
 
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
 
             var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Job, Follow_Users, Follower, Illust_Bookmark_Public, Mypixiv_Users, Total_Illusts, Total_Novels, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE " + constraint;
             var ret = new List<User>();

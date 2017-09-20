@@ -105,6 +105,7 @@ namespace Pixiv_Background_Form
                 };
                 hl.TextDecorations = null;
 
+                ret_tb.TextWrapping = TextWrapping.WrapWithOverflow;
                 ret_tb.Inlines.Add(hl);
                 var tb = new TextBlock();
                 tb.Inlines.Add(",");
@@ -154,13 +155,13 @@ namespace Pixiv_Background_Form
             switch (code)
             {
                 case 0:
-                    return "queueing";
+                    return "Queueing";
                 case -1:
-                    return "fetching";
+                    return "Fetching";
                 case -2:
-                    return "network error";
+                    return "NetworkError";
                 default:
-                    return "unknown";
+                    return "Unknown";
             }
         }
         private void _set_illust_info()
@@ -218,7 +219,7 @@ namespace Pixiv_Background_Form
                     frmSearch.SingleInstantiation.Show();
                     frmSearch.SingleInstantiation.BringIntoView();
                     frmSearch.SingleInstantiation.Focus();
-                    frmSearch.SingleInstantiation.Search(3, _user.Name);
+                    frmSearch.SingleInstantiation.Search(4, _user.ID.ToString());
                 }));
             };
             hlname.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
@@ -257,6 +258,16 @@ namespace Pixiv_Background_Form
                 imgsrc.EndInit();
                 WpfAnimatedGif.ImageBehavior.SetAnimatedSource(iUserImage, imgsrc);
             }
+        }
+
+        private void bTitle_Click(object sender, RoutedEventArgs e)
+        {
+            _open_illust(_illust.ID);
+        }
+
+        private void bUserName_Click(object sender, RoutedEventArgs e)
+        {
+            _open_user(_user.ID);
         }
     }
 }

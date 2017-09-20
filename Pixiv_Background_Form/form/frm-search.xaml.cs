@@ -46,6 +46,7 @@ namespace Pixiv_Background_Form
                         _single_inst.Hide();
                         _single_inst._history.Clear();
                         _single_inst._current_history_index = 0;
+                        _single_inst._update_ui();
                     }; //closing override
                     System.Windows.Threading.Dispatcher.Run();
                 }));
@@ -436,6 +437,8 @@ namespace Pixiv_Background_Form
             bNext.IsEnabled = _can_move_next();
             if (_can_move_next()) bNext.ToolTip = "[" + ((ComboBoxItem)cSearchType.Items[_history[_current_history_index + 1].Key]).Content.ToString() + "]: " + _history[_current_history_index + 1].Value;
             else bNext.ToolTip = "";
+
+            Tracer.GlobalTracer.TraceInfo(string.Format("updating searching history: count = {0}, index = {1}", _history.Count, _current_history_index));
         }
         private bool _can_move_last()
         {

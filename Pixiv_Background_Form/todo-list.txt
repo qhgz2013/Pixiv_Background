@@ -1,2 +1,2 @@
 ﻿Adding function: detail info for multi-monitors
-Decode all illust and user name in sql (next version)
+Fixing unexpected html node in html parser

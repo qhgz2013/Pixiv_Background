@@ -2,7 +2,7 @@
 using System.Drawing;
 
 /*
-* 目前数据库的表格变量定义 [v1.0.6]
+* 目前数据库的表格变量定义 [v1.0.7]
 * 
 * TABLE DbVars(string Key [PRIMARY KEY], string Value)
 *       用于存放数据库相关信息，如版本，路径等。 Key:数值名称 Value:数值内容
