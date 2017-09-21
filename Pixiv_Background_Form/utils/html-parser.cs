@@ -60,28 +60,45 @@ namespace Pixiv_Background_Form
             public override string ToString()
             {
                 var sb = new StringBuilder();
-                if (!string.IsNullOrEmpty(Name))
+                if (Document != null && Document.Count > 0)
                 {
-                    sb.Append("<");
-                    sb.Append(Name);
-                    if (Attribute != null && Attribute.Count > 0)
+                    if (!string.IsNullOrEmpty(Name))
                     {
-                        sb.Append(" ");
-                        sb.Append(Attribute.ToString());
+                        sb.Append("<");
+                        sb.Append(Name);
+                        if (Attribute != null && Attribute.Count > 0)
+                        {
+                            sb.Append(" ");
+                            sb.Append(Attribute.ToString());
+                        }
+                        sb.Append(">");
                     }
-                    sb.Append(">");
-                }
 
-                foreach (var item in Document)
-                {
-                    sb.Append(item.ToString());
-                }
+                    foreach (var item in Document)
+                    {
+                        sb.Append(item.ToString());
+                    }
 
-                if (!string.IsNullOrEmpty(Name))
+                    if (!string.IsNullOrEmpty(Name))
+                    {
+                        sb.Append("</");
+                        sb.Append(Name);
+                        sb.Append(">");
+                    }
+                }
+                else
                 {
-                    sb.Append("</");
-                    sb.Append(Name);
-                    sb.Append(">");
+                    if (!string.IsNullOrEmpty(Name))
+                    {
+                        sb.Append("<");
+                        sb.Append(Name);
+                        if (Attribute != null && Attribute.Count > 0)
+                        {
+                            sb.Append(" ");
+                            sb.Append(Attribute.ToString());
+                        }
+                        sb.Append(" />");
+                    }
                 }
                 return sb.ToString();
             }
@@ -322,6 +339,7 @@ namespace Pixiv_Background_Form
                 }
                 else
                 {
+                    //一般的文字，非html标签
                     str += html[index];
                     index++;
                 }

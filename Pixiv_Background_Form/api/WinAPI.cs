@@ -263,7 +263,7 @@ namespace Pixiv_Background_Form
             [PreserveSig]
             int GetDesktopItemBySource([MarshalAs(UnmanagedType.LPWStr)] string pwszSource, ref COMPONENT pcomp, int dwReserved);
         }
-        
+
         public class ActiveDesktopWrapper
         {
             static readonly Guid CLSID_ActiveDesktop = new Guid("{75048700-EF1F-11D0-9888-006097DEACF9}");
@@ -503,5 +503,76 @@ namespace Pixiv_Background_Form
         [DllImport("user32.dll")]
         public static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
         #endregion
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int left;
+            public int top;
+            public int right;
+            public int bottom;
+        }
+        [StructLayout(LayoutKind.Sequential)]
+        public struct APPBARDATA
+        {
+            public int cbSize;
+            public IntPtr hWnd;
+            public int uCallbackMessage;
+            public int uEdge;
+            public RECT rc;
+            public IntPtr lParam;
+        }
+
+        public enum ABMsg : int
+        {
+            ABM_NEW,
+            ABM_REMOVE,
+            ABM_QUERYPOS,
+            ABM_SETPOS,
+            ABM_GETSTATE,
+            ABM_GETTASKBARPOS,
+            ABM_ACTIVATE,
+            ABM_GETAUTOHIDEBAR,
+            ABM_SETAUTOHIDEBAR,
+            ABM_WINDOWPOSCHANGED,
+            ABM_SETSTATE
+        }
+        public enum ABNotify : int
+        {
+            ABN_STATECHANGE,
+            ABN_POSCHANGED,
+            ABN_FULLSCREENAPP,
+            ABN_WINDOWARRANGE
+        }
+        public enum ABEdge : int
+        {
+            ABE_LEFT,
+            ABE_TOP,
+            ABE_RIGHT,
+            ABE_BOTTOM
+        }
+        [DllImport("shell32.dll", CallingConvention = CallingConvention.StdCall)]
+
+        private static extern uint SHAppBarMessage(int dwMessage, ref APPBARDATA pData);
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int RegisterWindowMessage(string msg);
+        public static uint RegisterAppBar(IntPtr handle, out int registeredWindowMessage)
+        {
+            APPBARDATA abd = new APPBARDATA();
+            abd.cbSize = Marshal.SizeOf(abd);
+            abd.hWnd = handle;
+            registeredWindowMessage = RegisterWindowMessage("APPBARMSG_PIXIV_HELPER");
+            abd.uCallbackMessage = registeredWindowMessage;
+            var ret = SHAppBarMessage((int)ABMsg.ABM_NEW, ref abd);
+            return ret;
+        }
+        public static uint UnregisterAppBar(IntPtr handle)
+        {
+            APPBARDATA abd = new APPBARDATA();
+            abd.cbSize = Marshal.SizeOf(abd);
+            abd.hWnd = handle;
+            var ret = SHAppBarMessage((int)ABMsg.ABM_REMOVE, ref abd);
+            return ret;
+        }
     }
 }

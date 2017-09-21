@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="设置" Height="430" Width="500" Loaded="Window_Loaded">
+        Title="设置" Height="455" Width="500" Loaded="Window_Loaded">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="10"/>
@@ -18,7 +18,7 @@
             <RowDefinition Height="30"/>
             <RowDefinition Height="110"/>
             <RowDefinition Height="30"/>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="75"/>
             <RowDefinition/>
         </Grid.RowDefinitions>
         <Label Grid.Row="0" Grid.Column="1" Height="25">❁ 背景路径设置</Label>
@@ -83,6 +83,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="25"/>
                 <RowDefinition Height="25"/>
+                <RowDefinition Height="25"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
@@ -97,8 +98,9 @@
                 <Label>启用缩放需要的最小缩放比例</Label>
                 <TextBox x:Name="tWaifu2xScaleThreshold" Grid.Column="1" VerticalAlignment="Center" LostFocus="tWaifu2xScaleThreshold_LostFocus" KeyUp="tWaifu2xScaleThreshold_KeyUp">1.3</TextBox>
             </Grid>
-            <Label Grid.Column="0" Grid.Row="1">Waifu2x插件目录</Label>
-            <TextBox x:Name="tWaifu2xPath" Grid.Column="1" Grid.Row="1" VerticalAlignment="Center" TextChanged="tWaifu2xPath_TextChanged" LostFocus="tWaifu2xPath_LostFocus"></TextBox>
+            <CheckBox x:Name="cDisableWaifu2xWhileFullScreen" Grid.Row="1" Grid.ColumnSpan="2" VerticalAlignment="Center" Click="cDisableWaifu2xWhileFullScreen_Click">在全屏模式下禁用Waifu2x插件</CheckBox>
+            <Label Grid.Column="0" Grid.Row="2">Waifu2x插件目录</Label>
+            <TextBox x:Name="tWaifu2xPath" Grid.Column="1" Grid.Row="2" VerticalAlignment="Center" TextChanged="tWaifu2xPath_TextChanged" LostFocus="tWaifu2xPath_LostFocus"></TextBox>
         </Grid>
         <Grid Grid.Column="1" Grid.Row="6" Height="50" VerticalAlignment="Top">
             <Grid.ColumnDefinitions>

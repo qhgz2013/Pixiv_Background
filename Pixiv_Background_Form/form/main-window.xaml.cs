@@ -96,7 +96,9 @@ namespace Pixiv_Background_Form
                 _initialize_thread = null;
             });
         }
-        private bool _frm_created = false;
+        //private bool _frm_created = false;
+        private int _register_appbar_message;
+        private bool _is_on_full_screen;
         private void frmMain_Loaded(object sender, RoutedEventArgs e)
         {
             MainWindow_Layout.ColumnDefinitions[0].Width = GridLength.Auto;
@@ -104,30 +106,60 @@ namespace Pixiv_Background_Form
             Height = 26;
             Left = SystemParameters.WorkArea.Width - frmMain.ActualWidth;
             Top = 20;
-            _frm_created = true;
+            //_frm_created = true;
             var source = PresentationSource.FromVisual(this);
 
             //hide in alt+tab
-            var helper = new System.Windows.Interop.WindowInteropHelper((System.Windows.Window)sender);
+            var helper = new System.Windows.Interop.WindowInteropHelper((Window)sender);
             int exStyle = (int)WinAPI.GetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE);
             exStyle |= (int)WinAPI.ExtendedWindowStyles.WS_EX_TOOLWINDOW;
             WinAPI.SetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE, exStyle);
+
+            //registering full screen message dispatch
+            WinAPI.RegisterAppBar(helper.Handle, out _register_appbar_message);
+            var hwndsrc = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
+            hwndsrc.AddHook(new System.Windows.Interop.HwndSourceHook(handling_appbar));
+
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             Hide();
+            var helper = new System.Windows.Interop.WindowInteropHelper((Window)sender);
+            WinAPI.UnregisterAppBar(helper.Handle);
+
             if (_database != null) _database.AbortWorkingThread();
             Environment.Exit(0);
         }
-
+        //overriding WndProc
+        private IntPtr handling_appbar(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == _register_appbar_message)
+            {
+                if (wParam.ToInt32() == (int)WinAPI.ABNotify.ABN_FULLSCREENAPP)
+                {
+                    if ((int)lParam == 1)
+                    {
+                        _is_on_full_screen = true;
+                        Tracer.GlobalTracer.TraceInfo("Entering full screen mode");
+                    }
+                    else
+                    {
+                        _is_on_full_screen = false;
+                        Tracer.GlobalTracer.TraceInfo("Leaving full screen mode");
+                    }
+                    handled = true;
+                }
+            }
+            return IntPtr.Zero;
+        }
         //当前壁纸的信息
         [Serializable]
         public struct _temp_serialize_struct
         {
-            public Illust illust;
-            public User user;
-            public System.Drawing.Size imageSolution;
-            public int page;
+            public Illust[] illust;
+            public User[] user;
+            public System.Drawing.Size[] imageSolution;
+            public int[] page;
         }
         private _temp_serialize_struct _last_data;
         private void _load_last_data()
@@ -273,17 +305,18 @@ namespace Pixiv_Background_Form
                     }
 
                     //更新信息
-                    _last_data.illust = _database.GetIllustInfo(cur_wallpaper[0].id);
-                    _last_data.user = _database.GetUserInfo(_last_data.illust.Author_ID);
-                    _last_data.imageSolution = imgs[0].Size;
-                    _last_data.page = (int)cur_wallpaper[0].page;
-                    _save_last_data();
-
-                    //更新当前信息
-                    Dispatcher.Invoke(new ThreadStart(delegate
+                    _last_data.illust = new Illust[cur_wallpaper.Length];
+                    _last_data.user = new User[cur_wallpaper.Length];
+                    _last_data.imageSolution = new System.Drawing.Size[cur_wallpaper.Length];
+                    _last_data.page = new int[cur_wallpaper.Length];
+                    for (int i = 0; i < cur_wallpaper.Length; i++)
                     {
-                        //_update_ui_info();
-                    }));
+                        _last_data.illust[i] = _database.GetIllustInfo(cur_wallpaper[i].id);
+                        _last_data.user[i] = _database.GetUserInfo(_last_data.illust[i].Author_ID);
+                        _last_data.imageSolution[i] = imgs[i].Size;
+                        _last_data.page[i] = (int)cur_wallpaper[i].page;
+                    }
+                    _save_last_data();
 
                     //开启缓存渲染
                     if (Settings.EnableBuffering)
@@ -328,7 +361,7 @@ namespace Pixiv_Background_Form
                             var dst_height = screens[i].Height;
 
                             ratios[i] = Math.Min(dst_width * 1.0 / src_width, dst_height * 1.0 / src_height);
-                            if (Settings.EnableWaifu2xUpscaling && ratios[i] >= Settings.Waifu2xUpscaleThreshold)
+                            if (Settings.EnableWaifu2xUpscaling && (!Settings.DisableWaifu2xWhileFullScreen || !_is_on_full_screen) && ratios[i] >= Settings.Waifu2xUpscaleThreshold)
                                 tmp_imgs[i] = _upscaling_using_waifu2x(imgs[i], ratios[i]);
                             else
                             {
@@ -443,18 +476,24 @@ namespace Pixiv_Background_Form
                             if (new_user.ID != 0)
                             {
                                 var usrinfo = _database.GetUserInfo(new_user.ID);
-                                if (_last_data.user.ID == usrinfo.ID)
-                                    _last_data.user = usrinfo;
+                                for (int i = 0; _last_data.user != null && i < _last_data.user.Length; i++)
+                                {
+                                    if (_last_data.user[i].ID == usrinfo.ID)
+                                    {
+                                        _last_data.user[i] = usrinfo;
+                                        _save_last_data();
+                                    }
+                                }
                             }
                         }
                     }
-                    if (_last_data.illust.ID == ilsinfo.ID)
+                    for (int i = 0; _last_data.illust != null && i < _last_data.illust.Length; i++)
                     {
-                        _last_data.illust = ilsinfo;
-                        Dispatcher.Invoke(new ThreadStart(delegate
+                        if (_last_data.illust[i].ID == ilsinfo.ID)
                         {
-                            //_update_ui_info();
-                        }));
+                            _last_data.illust[i] = ilsinfo;
+                            _save_last_data();
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -471,13 +510,13 @@ namespace Pixiv_Background_Form
                 try
                 {
                     var usrinfo = _database.GetUserInfo(e.ID, DataUpdateMode.No_Update);
-                    if (usrinfo.ID == _last_data.illust.ID)
+                    for (int i = 0; _last_data.user != null && i < _last_data.user.Length; i++)
                     {
-                        _last_data.user = usrinfo;
-                        Dispatcher.Invoke(new ThreadStart(delegate
+                        if (usrinfo.ID == _last_data.illust[i].Author_ID)
                         {
-                            //_update_ui_info();
-                        }));
+                            _last_data.user[i] = usrinfo;
+                            _save_last_data();
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -947,8 +986,11 @@ namespace Pixiv_Background_Form
                 //handling as click
                 if (_background_queue == null && _initialize_thread != null)
                     _initialize_thread.Join();
-                var frmInfo = new frmDetailed(_last_data.illust, _last_data.user, _background_queue[new IllustKey { id = _last_data.illust.ID, page = (uint)_last_data.page }]);
-                frmInfo.Show();
+                for (int i = 0; _last_data.illust != null && i < _last_data.illust.Length; i++)
+                {
+                    var frmInfo = new frmDetailed(_last_data.illust[i], _last_data.user[i], _background_queue[new IllustKey { id = _last_data.illust[i].ID, page = (uint)_last_data.page[i] }]);
+                    frmInfo.Show();
+                }
             }
         }
 

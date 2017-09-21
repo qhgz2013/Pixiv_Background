@@ -100,6 +100,7 @@ namespace Pixiv_Background_Form
             else
                 tWaifu2xPath.Foreground = new SolidColorBrush(Colors.Black);
 
+            cDisableWaifu2xWhileFullScreen.IsChecked = Settings.DisableWaifu2xWhileFullScreen;
             _form_loaded = true;
         }
 
@@ -218,6 +219,11 @@ namespace Pixiv_Background_Form
             bApply.IsEnabled = true;
         }
 
+        private void cDisableWaifu2xWhileFullScreen_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_form_loaded) return;
+            bApply.IsEnabled = true;
+        }
         private void cEnableWaifu2xUpscaling_Click(object sender, RoutedEventArgs e)
         {
             if (!_form_loaded) return;
@@ -286,7 +292,8 @@ namespace Pixiv_Background_Form
             double result2;
             if (!string.IsNullOrEmpty(tWaifu2xScaleThreshold.Text) && double.TryParse(tWaifu2xScaleThreshold.Text, out result2) && result2 > 0 && result2 != Settings.Waifu2xUpscaleThreshold)
                 Settings.Waifu2xUpscaleThreshold = result2;
-
+            if (Settings.DisableWaifu2xWhileFullScreen != cDisableWaifu2xWhileFullScreen.IsChecked)
+                Settings.DisableWaifu2xWhileFullScreen = (bool)cDisableWaifu2xWhileFullScreen.IsChecked;
             //最后修改这个值，不然会有其他约束
             if (Settings.EnableBuffering != cEnableBuffering.IsChecked)
                 Settings.EnableBuffering = (bool)cEnableBuffering.IsChecked;
@@ -399,5 +406,6 @@ namespace Pixiv_Background_Form
         {
             bApply.IsEnabled = true;
         }
+        
     }
 }
