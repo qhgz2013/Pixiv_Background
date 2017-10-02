@@ -402,7 +402,7 @@ namespace Pixiv_Background_Form
                 ServicePointManager.MaxServicePointIdleTime = 2000;
                 ServicePointManager.SetTcpKeepAlive(false, 0, 0);
             }
-            private static bool _enableTracing = true;
+            private static bool _enableTracing = false;
             private HttpWebRequest _http_request;
             private HttpWebResponse _http_response;
             private ReaderWriterLock _lock;

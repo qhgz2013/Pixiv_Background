@@ -153,7 +153,7 @@ namespace Pixiv_Background_Form
         }
         public void RefreshAccessToken()
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
+            //Tracer.GlobalTracer.TraceFunctionEntry();
             try
             {
                 _tokenThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -161,7 +161,7 @@ namespace Pixiv_Background_Form
                 if (string.IsNullOrEmpty(_refresh_token) || string.IsNullOrEmpty(_device_token)) return;
 
                 string login_request_url = "https://oauth.secure.pixiv.net/auth/token";
-
+                Tracer.GlobalTracer.TraceFunctionEntry();
                 var ns = new NetStream();
                 ns.RetryTimes = 1;
                 ns.ReadWriteTimeOut = 15000;

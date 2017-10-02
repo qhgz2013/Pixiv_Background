@@ -1,110 +1,113 @@
 <p>
+<b>alpha v1.31</b><br/>
+一点点的更改<br/>
+<br/>
 <b>alpha v1.30</b><br/>
-����ȫ����⹦�ܣ�֧��ȫ��ģʽ�½�ֹwaifu2x���������<br/>
-(������������ʱ���ж�ʱ��gpuȫռ�ã��������Ϸ�Ķ�ʱ�俨��)<br/>
-�������ܻ����directX��ⴰ�ڻ���Ϸ�ɣ����<br/>
+增加全屏检测功能，支持全屏模式下禁止waifu2x插件的设置<br/>
+(这个插件在运行时会有短时的gpu全占用，会造成游戏的短时间卡顿)<br/>
+后续可能会加入directX检测窗口化游戏吧，大概<br/>
 <br/>
 <b>alpha v1.29</b><br/>
-�޸���sql���ݿ��µ�ת���ַ�����<br/>
-�޸��˸�������ֵ�bug<br>
+修复了sql数据库下的转义字符问题<br/>
+修复了各种奇奇怪的bug<br>
 <br/>
 <b>alpha v1.28</b><br/>
-�����������ڵ���ʷ���ݹ���<br/>
+增加搜索窗口的历史回溯功能<br/>
 <br/>
 <b>alpha v1.27</b><br/>
-waifu2x��DeadSix27/waifu2x-converter-cppתΪlltcggie/waifu2x-caffe<br/>
+waifu2x从DeadSix27/waifu2x-converter-cpp转为lltcggie/waifu2x-caffe<br/>
 <br/>
 <b>alpha v1.26</b><br/>
-ʵ����������ĵ�ʵ�����������ᵯ�����������<br/>
+实现搜索窗体的单实例化（即不会弹出多个搜索框）<br/>
 <br/>
 <b>alpha v1.25</b><br/>
-������İ棬���ģʽ��ֻ��������ť<br/>
+主窗体改版，简洁模式，只含几个按钮<br/>
 <br/>
 <b>alpha v1.24</b><br/>
-�޸�Ͷ���ѯ�Ļص��ɹ�����Ȼ����saucenao api���߼�bug<br/>
+修复投稿查询的回调成功后仍然调用saucenao api的逻辑bug<br/>
 <br/>
 <b>alpha v1.23</b><br/>
-�޸��������̲߳���bug<br/>
+修复搜索的线程操作bug<br/>
 <br/>
 <b>alpha v1.22</b><br/>
-�������ļ�������߳�ת�Ƶ��̳߳صĹ����߳�<br/>
+将搜索的计算从主线程转移到线程池的工作线程<br/>
 <br/>
 <b>alpha v1.21</b><br/>
-API��HTTP�����bug�޸�������������ߵ������<br/>
-����һ�¿ӵ�������ʱ�㿪��Ŀ����Ӧ����������������Ŀ��Ϊֱ�Ӵ򿪸�Ͷ�����ϸ���ݣ�<br/>
-�޸���ϸ���ݵ�Ͷ��ʱ��δ��ʾ��bug<br/>
-�޸�������ʾ�ı�ֽ���Ϸ�ʽ<br/>
+API和HTTP请求的bug修复（针对网络离线的情况）<br/>
+改了一下坑爹的搜索时点开题目的响应操作（从搜索该题目变为直接打开该投稿的详细内容）<br/>
+修复详细内容的投稿时间未显示的bug<br/>
+修复多屏显示的壁纸契合方式<br/>
 <br/>
 <b>alpha v1.20</b><br/>
-��������+bug�޸�<br/>
+窗体修正+bug修复<br/>
 <br/>
 <b>alpha v1.19</b><br/>
-bug�޸������߲�ѯ���ĳɷֶβ�ѯ���������ʱÿ��ֻ����һ���֣��������׸��£�<br/>
+bug修复，离线查询更改成分段查询（结果过多时每次只更新一部分，滑动触底更新）<br/>
 <br/>
 <b>alpha v1.18</b><br/>
-���ߵ����ݲ�ѯ����ʵ��<br/>
+离线的数据查询功能实现<br/>
 <br/>
 <b>alpha v1.17</b><br/>
-�޸�HTTP�����bug<br/>
-�ļ������淶��<br/>
+修复HTTP请求的bug<br/>
+文件命名规范化<br/>
 <br/>
 <b>alpha v1.16</b><br/>
-�޸���������ʱ������bug<br/>
+修复背景更换时间错误的bug<br/>
 <br/>
 <b>alpha v1.15</b><br/>
-����Readme<br/>
+修正Readme<br/>
 <br/>
 <b>alpha v1.14</b><br/>
-�Ƴ�����Ҫ��Ŀ�����ϵ�ͬһ����Ŀ����<br/>
-������sql�����ݸ����Լ���½��֤ģ��<br/>
-֧���˸���ѡ������<br/>
-֧�ֲ��waifu2x<br/>
+移除不必要项目，整合到同一个项目里面<br/>
+分离了sql和数据更新以及登陆验证模块<br/>
+支持了更多选项设置<br/>
+支持插件waifu2x<br/>
 <br/>
 <b>alpha v0.13</b><br/>
-��������tag�ĵ����ѯ���ܣ��ѽ���ĳ�Ĭ�ϰ�͸��ʽ�������޸��û�����Ϊ�յ�bug<br/>
-(�粻ϲ������MainWindow.xaml�аѵ�9�е� Opacity="0.7" ȥ����MainWindow.xaml.cs �е�841 842�е�ֵ��Ϊ 1.0 0.5 ����)<br/>
+现在新增tag的点击查询功能，把界面改成默认半透明式，还有修复用户描述为空的bug<br/>
+(如不喜欢可在MainWindow.xaml中把第9行的 Opacity="0.7" 去掉和MainWindow.xaml.cs 中第841 842行的值改为 1.0 0.5 即可)<br/>
 <br/>
 <b>alpha v0.12</b><br/>
-���ĵ���׿�˵�api���÷�ʽ������ο��������˵�github��Ŀ��api url<br/>
-ͬ���޸��˵�¼��֤��ʽ<br/>
+更改到安卓端的api调用方式，这里参考了其他人的github项目的api url<br/>
+同步修改了登录验证方式<br/>
 <br/>
 <b>alpha v0.11</b><br/>
-bug�޸�����л������Τ������ʹ꣬��Ȼ�������漣��<br/>
+bug修复（感谢室友老韦的鼠标猛搓，果然大力出奇迹）<br/>
 <br/>
 <b>alpha v0.10</b><br/>
-֧�ִ�sauceNao�ӿ��Զ���ȡͶ����Ϣ</b><br/>
+支持从sauceNao接口自动获取投稿信息</b><br/>
 <br/>
 <b>alpha v0.9</b><br/>
-��ʼ����/���ƴ���<br/>
+开始更新/完善窗体<br/>
 <br/>
 <b>alpha v0.8</b><br/>
-SauceNAO API Ready,׼��ͨ��SauceNao��ȡ�Ѿ�ɾ����Ͷ�弰������Ϣ<br/>
-�޸�����bug<br/>
-����Ϊ��whitecube���ɰ棩�Ľ�������<br/>
+SauceNAO API Ready,准备通过SauceNao获取已经删除的投稿及作者信息<br/>
+修复若干bug<br/>
+更改为非whitecube（旧版）的解析代码<br/>
 <br/>
 <b>alpha v0.7</b><br/>
-׼���������ݹ����ͱ�������ģ��<br/>
+准备分离数据管理和背景更换模块<br/>
 <br/>
-<b>ע�����°汾����������ִ��������Բ����ύ��ʷ�ϡ���</b><br/>
+<b>注：以下版本代码由于清仓处理过所以不在提交历史上……</b><br/>
 <br/>
 <b>alpha v0.6</b><br/>
-����html�����Լ�һЩ��������ת��bug<br/>
+修正html解析以及一些超链接跳转的bug<br/>
 <br/>
 <b>alpha v0.5</b><br/>
-����html�������ֵĳ����Ӷ���<br/>
+增加html解析部分的超链接动画<br/>
 <br/>
 <b>alpha v0.4</b><br/>
-(��һ��commit) ����html���벿����ɣ���֧��pվ���ļ��html����<br/>
-(�ڶ���commit) �޸�html����bug����������<br/>
+(第一次commit) 解析html代码部分完成，仅支持p站简介的简短html代码<br/>
+(第二次commit) 修复html解析bug，换行修正<br/>
 <br/>
 <b>alpha v0.3</b><br/>
-��������£�׼������ϸ��Ϣģ��<br/>
-�Ż�sql�������ظ�����<br/>
+主窗体更新，准备坑详细信息模块<br/>
+优化sql交互的重复代码<br/>
 <br/>
 <b>alpha v0.2</b><br/>
-���µ�½���壬д�˸����εĵ�½���壬�о��е���ˣ�<br/>
-��һ���Ż�sql����<br/>
+更新登陆窗体，写了个菱形的登陆窗体，感觉有点过了？<br/>
+第一遍优化sql代码<br/>
 <br/>
-<b>alpha v0.1 (�ύ����ʱ�ֳ��� v1.0��...)</b><br/>
-��ʱ��������ͬ�����ն˴���<br/>
+<b>alpha v0.1 (提交代码时手抽打成 v1.0了...)</b><br/>
+临时更新用来同步多终端代码<br/>
 </p>

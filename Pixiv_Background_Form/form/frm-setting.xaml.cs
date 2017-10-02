@@ -56,6 +56,7 @@ namespace Pixiv_Background_Form
                 lblpath.HorizontalAlignment = HorizontalAlignment.Left;
                 lblpath.VerticalAlignment = VerticalAlignment.Center;
                 lblpath.MouseDoubleClick += lblpath_MouseDoubleClick;
+                lblpath.ToolTip = lblpath.Content;
 
                 var cbincludedir = new CheckBox();
                 cbincludedir.Tag = i;
