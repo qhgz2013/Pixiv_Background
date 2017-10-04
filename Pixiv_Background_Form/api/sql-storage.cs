@@ -770,17 +770,32 @@ namespace Pixiv_Background_Form
             //数据保护：非200时不覆盖写入已存数据
             if (force_mode || illust.HTTP_Status == (int)HttpStatusCode.OK)
             {
-                update_str += ", Author_ID=@Author_ID, Submit_Time=@Submit_Time, Last_Success_Update=@Last_Success_Update, Page=@Page, Origin=@Origin";
-                m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
-                m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
-                m_dbCommand.Parameters.Add("@Submit_Time", DbType.Int64);
-                m_dbCommand.Parameters["@Submit_Time"].Value = illust.Submit_Time;
+                update_str += ", Last_Success_Update=@Last_Success_Update, Origin=@Origin";
                 m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
                 m_dbCommand.Parameters["@Last_Success_Update"].Value = illust.Last_Success_Update;
-                m_dbCommand.Parameters.Add("@Page", DbType.Int32);
-                m_dbCommand.Parameters["@Page"].Value = illust.Page;
                 m_dbCommand.Parameters.Add("@Origin", DbType.Byte);
                 m_dbCommand.Parameters["@Origin"].Value = illust.Origin;
+
+                if (illust.Submit_Time > 0)
+                {
+                    update_str += ", Submit_Time=@Submit_Time";
+                    m_dbCommand.Parameters.Add("@Submit_Time", DbType.Int64);
+                    m_dbCommand.Parameters["@Submit_Time"].Value = illust.Submit_Time;
+                }
+
+                if (illust.Page > 0)
+                {
+                    update_str += ", Page=@Page";
+                    m_dbCommand.Parameters.Add("@Page", DbType.Int32);
+                    m_dbCommand.Parameters["@Page"].Value = illust.Page;
+                }
+
+                if (illust.Author_ID > 0)
+                {
+                    update_str += ", Author_ID=@Author_ID";
+                    m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
+                    m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
+                }
 
                 if (illust.Click > 0)
                 {
@@ -1334,7 +1349,6 @@ namespace Pixiv_Background_Form
         /// <returns></returns>
         public Illust GetIllustInfo(uint id, DataUpdateMode mode = DataUpdateMode.Async_Update)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
             if (id == 0) return new Illust();
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -1383,7 +1397,6 @@ namespace Pixiv_Background_Form
         /// <returns></returns>
         public User GetUserInfo(uint id, DataUpdateMode mode = DataUpdateMode.Async_Update)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
             if (id == 0) return new User();
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -1428,10 +1441,9 @@ namespace Pixiv_Background_Form
         /// <summary>
         /// 中止工作线程
         /// </summary>
-        /// <param name="wait"></param>
+        /// <param name="wait">是否等待线程结束</param>
         public void AbortWorkingThread(bool wait = false)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
             if (m_monitor_thd == null) return;
             m_abort_flag = true;
             if (wait) m_monitor_thd.Join();
@@ -1487,7 +1499,6 @@ namespace Pixiv_Background_Form
         /// <param name="illust">投稿信息</param>
         public void SetIllustInfo(Illust illust)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
             if (illust.ID == 0) return;
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
             m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -1504,7 +1515,6 @@ namespace Pixiv_Background_Form
         /// <param name="user">用户信息</param>
         public void SetUserInfo(User user)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
             if (user.ID == 0) return;
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
             m_dataThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -1516,6 +1526,54 @@ namespace Pixiv_Background_Form
             m_sqlThreadLock.ReleaseWriterLock();
         }
 
+        /// <summary>
+        /// 根据用户ID获取投稿信息
+        /// </summary>
+        /// <param name="id">用户ID</param>
+        /// <returns></returns>
+        public Illust[] GetIllustInfoByAuthorID(uint id)
+        {
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var ret = __query_illust_by_specified_constraint("Author_ID = " + id);
+            m_sqlThreadLock.ReleaseWriterLock();
+            return ret;
+        }
+
+        /// <summary>
+        /// 根据用户名称获取投稿信息
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public Illust[] GetIllustInfoByAuthorName(string name)
+        {
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var usr = __query_user_by_specified_constraint("Name = '" + name + "'");
+            m_sqlThreadLock.ReleaseWriterLock();
+
+            if (usr.Length == 0) return new Illust[0];
+            var ret_list = new List<Illust>();
+
+            foreach (var item in usr)
+            {
+                if (item.ID != 0)
+                    ret_list.AddRange(GetIllustInfoByAuthorID(item.ID));
+            }
+            return ret_list.ToArray();
+        }
+
+        /// <summary>
+        /// 根据用户名获取用户信息
+        /// </summary>
+        /// <param name="name">用户名称</param>
+        /// <returns></returns>
+        public User[] GetUserInfoByName(string name)
+        {
+            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
+            var usr = __query_user_by_specified_constraint("Name = '" + name + "'");
+            m_sqlThreadLock.ReleaseWriterLock();
+
+            return usr;
+        }
         //查询功能
         #region fuzzy query
         /// <summary>
@@ -1523,9 +1581,8 @@ namespace Pixiv_Background_Form
         /// </summary>
         /// <param name="tag">Tag名称</param>
         /// <returns></returns>
-        public Illust[] GetIllustByTag(string tag)
+        public Illust[] GetIllustInfoByTag(string tag)
         {
-            Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(tag)) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
@@ -1534,36 +1591,21 @@ namespace Pixiv_Background_Form
             return data.ToArray();
         }
         /// <summary>
-        /// 根据作者id进行查询
-        /// </summary>
-        /// <param name="id">作者ID</param>
-        /// <returns></returns>
-        public Illust[] GetIllustByAuthorID(uint id)
-        {
-            Tracer.GlobalTracer.TraceFunctionEntry();
-            if (id == 0) return null;
-
-            m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var data = __query_illust_by_specified_constraint("Author_ID = " + id);
-            m_sqlThreadLock.ReleaseWriterLock();
-            return data.ToArray();
-        }
-        /// <summary>
         /// 根据作者名进行模糊查询
         /// </summary>
         /// <param name="name">作者名</param>
         /// <returns></returns>
-        public Illust[] GetIllustByAuthorName(string name)
+        public Illust[] GetIllustInfoByFuzzyAuthorName(string name)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(name)) return null;
 
-            var authors = GetUserByName(name);
+            var authors = GetUserInfoByFuzzyName(name);
             var ret_list = new List<Illust>();
             foreach (var item in authors)
             {
                 if (item.ID != 0)
-                    ret_list.AddRange(GetIllustByAuthorID(item.ID));
+                    ret_list.AddRange(GetIllustInfoByAuthorID(item.ID));
             }
             return ret_list.ToArray();
         }
@@ -1572,7 +1614,7 @@ namespace Pixiv_Background_Form
         /// </summary>
         /// <param name="id">投稿id</param>
         /// <returns></returns>
-        public Illust[] GetIllustByFuzzyID(string id)
+        public Illust[] GetIllustInfoByFuzzyID(string id)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(id)) return null;
@@ -1587,7 +1629,7 @@ namespace Pixiv_Background_Form
         /// </summary>
         /// <param name="id">用户id</param>
         /// <returns></returns>
-        public User[] GetUserByFuzzyID(string id)
+        public User[] GetUserInfoByFuzzyID(string id)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(id)) return null;
@@ -1602,7 +1644,7 @@ namespace Pixiv_Background_Form
         /// </summary>
         /// <param name="title">标题</param>
         /// <returns></returns>
-        public Illust[] GetIllustByTitle(string title)
+        public Illust[] GetIllustInfoByTitle(string title)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(title)) return null;
@@ -1617,7 +1659,7 @@ namespace Pixiv_Background_Form
         /// </summary>
         /// <param name="name">画师名称</param>
         /// <returns></returns>
-        public User[] GetUserByName(string name)
+        public User[] GetUserInfoByFuzzyName(string name)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(name)) return null;

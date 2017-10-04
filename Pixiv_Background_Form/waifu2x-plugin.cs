@@ -55,7 +55,7 @@ namespace Pixiv_Background_Form
                 exec.ErrorDataReceived += ((sender, e) =>
                 {
                     sw_err.WriteLine(e.Data);
-                    Tracer.GlobalTracer.TraceInfo("Waifu2x [E] " + e.Data);
+                    Tracer.GlobalTracer.TraceError("Waifu2x [E] " + e.Data);
                 });
                 exec.BeginOutputReadLine();
                 exec.BeginErrorReadLine();

@@ -40,13 +40,10 @@ namespace Pixiv_Background_Form
                     Tracer.GlobalTracer.TraceInfo("instantiating frmSearching");
                     _single_inst = new frmSearch(pathData, sqlData);
                     _single_inst.Closed += (_sender, _e) => { _single_inst.Dispatcher.InvokeShutdown(); };
-                    _single_inst.Closing += (_sender, _e) => 
+                    _single_inst.Closing += (_sender, _e) =>
                     {
                         _e.Cancel = true;
                         _single_inst.Hide();
-                        _single_inst._history.Clear();
-                        _single_inst._current_history_index = 0;
-                        _single_inst._update_ui();
                     }; //closing override
                     System.Windows.Threading.Dispatcher.Run();
                 }));
@@ -115,27 +112,37 @@ namespace Pixiv_Background_Form
                 {
                     case 0:
                         //投稿ID
-                        _cached_illusts = _sqldata.GetIllustByFuzzyID(tSearchString.Text);
+                        uint id;
+                        if (uint.TryParse(tSearchString.Text, out id))
+                            _cached_illusts = new Illust[] { _sqldata.GetIllustInfo(id, DataUpdateMode.No_Update) };
+                        else
+                            _cached_illusts = _sqldata.GetIllustInfoByFuzzyID(tSearchString.Text);
                         break;
                     case 1:
                         //投稿标题
-                        _cached_illusts = _sqldata.GetIllustByTitle(tSearchString.Text);
+                        _cached_illusts = _sqldata.GetIllustInfoByTitle(tSearchString.Text);
                         break;
                     case 2:
                         //投稿Tag
-                        _cached_illusts = _sqldata.GetIllustByTag(tSearchString.Text);
+                        _cached_illusts = _sqldata.GetIllustInfoByTag(tSearchString.Text);
                         break;
                     case 3:
                         //投稿作者名称
-                        _cached_illusts = _sqldata.GetIllustByAuthorName(tSearchString.Text);
+                        _cached_illusts = _sqldata.GetIllustInfoByAuthorName(tSearchString.Text);
+                        if (_cached_illusts.Length == 0) _cached_illusts = _sqldata.GetIllustInfoByFuzzyAuthorName(tSearchString.Text);
                         break;
                     case 4:
                         //用户ID
-                        _cached_users = _sqldata.GetUserByFuzzyID(tSearchString.Text);
+                        if (uint.TryParse(tSearchString.Text, out id))
+                            _cached_users = new User[] { _sqldata.GetUserInfo(id, DataUpdateMode.No_Update) };
+                        else
+                            _cached_users = _sqldata.GetUserInfoByFuzzyID(tSearchString.Text);
                         break;
                     case 5:
                         //用户名称
-                        _cached_users = _sqldata.GetUserByName(tSearchString.Text);
+                        _cached_users = _sqldata.GetUserInfoByName(tSearchString.Text);
+                        if (_cached_users.Length == 0) _cached_users = _sqldata.GetUserInfoByFuzzyName(tSearchString.Text);
+
                         break;
                     default:
                         break;

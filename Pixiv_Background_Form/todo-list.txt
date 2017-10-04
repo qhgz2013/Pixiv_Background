@@ -1,2 +1,1 @@
-﻿Adding function: detail info for multi-monitors
-Fixing unexpected html node in html parser
+﻿Adding html parser for pixiv without login

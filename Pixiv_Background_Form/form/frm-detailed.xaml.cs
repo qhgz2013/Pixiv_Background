@@ -219,7 +219,7 @@ namespace Pixiv_Background_Form
                     frmSearch.SingleInstantiation.Show();
                     frmSearch.SingleInstantiation.BringIntoView();
                     frmSearch.SingleInstantiation.Focus();
-                    frmSearch.SingleInstantiation.Search(4, _user.ID.ToString());
+                    frmSearch.SingleInstantiation.Search(3, _user.Name);
                 }));
             };
             hlname.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
