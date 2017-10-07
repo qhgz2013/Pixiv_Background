@@ -751,125 +751,117 @@ namespace Pixiv_Background_Form
                 m_dbCommand.Parameters.Clear();
             }
         }
-        private bool __update_illust(Illust illust, bool force_mode = false)
+        private bool __update_illust(Illust illust)
         {
             //Tracer.GlobalTracer.TraceFunctionEntry();
-            var update_str = "UPDATE Illust SET HTTP_Status=@HTTP_Status, Last_Update=@Last_Update";
+            var update_str = "UPDATE Illust SET HTTP_Status=@HTTP_Status, Last_Update=@Last_Update, Origin=@Origin";
             m_dbCommand.Parameters.Add("@HTTP_Status", DbType.Int32);
             m_dbCommand.Parameters["@HTTP_Status"].Value = illust.HTTP_Status;
             m_dbCommand.Parameters.Add("@Last_Update", DbType.Int32);
             m_dbCommand.Parameters["@Last_Update"].Value = illust.Last_Update;
 
-            //数据保护：在AuthorID=0时拒绝写入所有数据
-            if (!force_mode && illust.Author_ID == 0)
-            {
-                m_dbCommand.Parameters.Clear();
-                return false;
-            }
+            m_dbCommand.Parameters.Add("@Origin", DbType.Byte);
+            m_dbCommand.Parameters["@Origin"].Value = illust.Origin;
 
-            //数据保护：非200时不覆盖写入已存数据
-            if (force_mode || illust.HTTP_Status == (int)HttpStatusCode.OK)
+            if (illust.HTTP_Status == (int)HttpStatusCode.OK)
             {
-                update_str += ", Last_Success_Update=@Last_Success_Update, Origin=@Origin";
+                update_str += ", Last_Success_Update=@Last_Success_Update";
                 m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
                 m_dbCommand.Parameters["@Last_Success_Update"].Value = illust.Last_Success_Update;
-                m_dbCommand.Parameters.Add("@Origin", DbType.Byte);
-                m_dbCommand.Parameters["@Origin"].Value = illust.Origin;
+            }
 
-                if (illust.Submit_Time > 0)
-                {
-                    update_str += ", Submit_Time=@Submit_Time";
-                    m_dbCommand.Parameters.Add("@Submit_Time", DbType.Int64);
-                    m_dbCommand.Parameters["@Submit_Time"].Value = illust.Submit_Time;
-                }
+            if (illust.Submit_Time > 0)
+            {
+                update_str += ", Submit_Time=@Submit_Time";
+                m_dbCommand.Parameters.Add("@Submit_Time", DbType.Int64);
+                m_dbCommand.Parameters["@Submit_Time"].Value = illust.Submit_Time;
+            }
 
-                if (illust.Page > 0)
-                {
-                    update_str += ", Page=@Page";
-                    m_dbCommand.Parameters.Add("@Page", DbType.Int32);
-                    m_dbCommand.Parameters["@Page"].Value = illust.Page;
-                }
+            if (illust.Page > 0)
+            {
+                update_str += ", Page=@Page";
+                m_dbCommand.Parameters.Add("@Page", DbType.Int32);
+                m_dbCommand.Parameters["@Page"].Value = illust.Page;
+            }
 
-                if (illust.Author_ID > 0)
-                {
-                    update_str += ", Author_ID=@Author_ID";
-                    m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
-                    m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
-                }
+            if (illust.Author_ID > 0)
+            {
+                update_str += ", Author_ID=@Author_ID";
+                m_dbCommand.Parameters.Add("@Author_ID", DbType.Int32);
+                m_dbCommand.Parameters["@Author_ID"].Value = illust.Author_ID;
+            }
 
-                if (illust.Click > 0)
-                {
-                    update_str += ",Click=@Click";
-                    m_dbCommand.Parameters.Add("@Click", DbType.Int32);
-                    m_dbCommand.Parameters["@Click"].Value = illust.Click;
-                }
-                if (illust.Bookmark_Count > 0)
-                {
-                    update_str += ",Bookmark_Count=@Bookmark_Count";
-                    m_dbCommand.Parameters.Add("@Bookmark_Count", DbType.Int32);
-                    m_dbCommand.Parameters["@Bookmark_Count"].Value = illust.Bookmark_Count;
-                }
-                if (illust.Comment_Count > 0)
-                {
-                    update_str += ",Comment_Count=@Comment_Count";
-                    m_dbCommand.Parameters.Add("@Comment_Count", DbType.Int32);
-                    m_dbCommand.Parameters["@Comment_Count"].Value = illust.Comment_Count;
-                }
-                if (illust.Click > 0)
-                {
-                    update_str += ",Click=@Click";
-                    m_dbCommand.Parameters.Add("@Click", DbType.Int32);
-                    m_dbCommand.Parameters["@Click"].Value = illust.Click;
-                }
-                if (illust.Size.Width > 0)
-                {
-                    update_str += ",Width=@Width";
-                    m_dbCommand.Parameters.Add("@Width", DbType.Int32);
-                    m_dbCommand.Parameters["@Width"].Value = illust.Size.Width;
-                }
-                if (illust.Size.Height > 0)
-                {
-                    update_str += ",Height=@Height";
-                    m_dbCommand.Parameters.Add("@Height", DbType.Int32);
-                    m_dbCommand.Parameters["@Height"].Value = illust.Size.Height;
-                }
-                if (illust.Rate_Count > 0)
-                {
-                    update_str += ",Rate_Count=@Rate_Count";
-                    m_dbCommand.Parameters.Add("@Rate_Count", DbType.Int32);
-                    m_dbCommand.Parameters["@Rate_Count"].Value = illust.Rate_Count;
-                }
-                if (illust.Score > 0)
-                {
-                    update_str += ",Score=@Score";
-                    m_dbCommand.Parameters.Add("@Score", DbType.Int32);
-                    m_dbCommand.Parameters["@Score"].Value = illust.Score;
-                }
-                if (!string.IsNullOrEmpty(illust.Title))
-                {
-                    update_str += ",Title=@Title";
-                    m_dbCommand.Parameters.Add("@Title", DbType.String);
-                    m_dbCommand.Parameters["@Title"].Value = WebUtility.HtmlDecode(illust.Title); //illust.Title;
-                }
-                if (!string.IsNullOrEmpty(illust.Description))
-                {
-                    update_str += ",Description=@Description";
-                    m_dbCommand.Parameters.Add("@Description", DbType.String);
-                    m_dbCommand.Parameters["@Description"].Value = illust.Description;
-                }
-                if (!string.IsNullOrEmpty(illust.Tag))
-                {
-                    update_str += ",Tag=@Tag";
-                    m_dbCommand.Parameters.Add("@Tag", DbType.String);
-                    m_dbCommand.Parameters["@Tag"].Value = WebUtility.HtmlDecode(illust.Tag); //illust.Tag;
-                }
-                if (!string.IsNullOrEmpty(illust.Tool))
-                {
-                    update_str += ",Tool=@Tool";
-                    m_dbCommand.Parameters.Add("@Tool", DbType.String);
-                    m_dbCommand.Parameters["@Tool"].Value = WebUtility.HtmlDecode(illust.Tool); //illust.Tool;
-                }
-
+            if (illust.Click > 0)
+            {
+                update_str += ",Click=@Click";
+                m_dbCommand.Parameters.Add("@Click", DbType.Int32);
+                m_dbCommand.Parameters["@Click"].Value = illust.Click;
+            }
+            if (illust.Bookmark_Count > 0)
+            {
+                update_str += ",Bookmark_Count=@Bookmark_Count";
+                m_dbCommand.Parameters.Add("@Bookmark_Count", DbType.Int32);
+                m_dbCommand.Parameters["@Bookmark_Count"].Value = illust.Bookmark_Count;
+            }
+            if (illust.Comment_Count > 0)
+            {
+                update_str += ",Comment_Count=@Comment_Count";
+                m_dbCommand.Parameters.Add("@Comment_Count", DbType.Int32);
+                m_dbCommand.Parameters["@Comment_Count"].Value = illust.Comment_Count;
+            }
+            if (illust.Click > 0)
+            {
+                update_str += ",Click=@Click";
+                m_dbCommand.Parameters.Add("@Click", DbType.Int32);
+                m_dbCommand.Parameters["@Click"].Value = illust.Click;
+            }
+            if (illust.Size.Width > 0)
+            {
+                update_str += ",Width=@Width";
+                m_dbCommand.Parameters.Add("@Width", DbType.Int32);
+                m_dbCommand.Parameters["@Width"].Value = illust.Size.Width;
+            }
+            if (illust.Size.Height > 0)
+            {
+                update_str += ",Height=@Height";
+                m_dbCommand.Parameters.Add("@Height", DbType.Int32);
+                m_dbCommand.Parameters["@Height"].Value = illust.Size.Height;
+            }
+            if (illust.Rate_Count > 0)
+            {
+                update_str += ",Rate_Count=@Rate_Count";
+                m_dbCommand.Parameters.Add("@Rate_Count", DbType.Int32);
+                m_dbCommand.Parameters["@Rate_Count"].Value = illust.Rate_Count;
+            }
+            if (illust.Score > 0)
+            {
+                update_str += ",Score=@Score";
+                m_dbCommand.Parameters.Add("@Score", DbType.Int32);
+                m_dbCommand.Parameters["@Score"].Value = illust.Score;
+            }
+            if (!string.IsNullOrEmpty(illust.Title))
+            {
+                update_str += ",Title=@Title";
+                m_dbCommand.Parameters.Add("@Title", DbType.String);
+                m_dbCommand.Parameters["@Title"].Value = WebUtility.HtmlDecode(illust.Title); //illust.Title;
+            }
+            if (!string.IsNullOrEmpty(illust.Description))
+            {
+                update_str += ",Description=@Description";
+                m_dbCommand.Parameters.Add("@Description", DbType.String);
+                m_dbCommand.Parameters["@Description"].Value = illust.Description;
+            }
+            if (!string.IsNullOrEmpty(illust.Tag))
+            {
+                update_str += ",Tag=@Tag";
+                m_dbCommand.Parameters.Add("@Tag", DbType.String);
+                m_dbCommand.Parameters["@Tag"].Value = WebUtility.HtmlDecode(illust.Tag); //illust.Tag;
+            }
+            if (!string.IsNullOrEmpty(illust.Tool))
+            {
+                update_str += ",Tool=@Tool";
+                m_dbCommand.Parameters.Add("@Tool", DbType.String);
+                m_dbCommand.Parameters["@Tool"].Value = WebUtility.HtmlDecode(illust.Tool); //illust.Tool;
             }
 
             update_str += " WHERE ID=@ID";
@@ -1105,7 +1097,7 @@ namespace Pixiv_Background_Form
             }
         }
         //更新用户信息到sql和内存中（自动跳过null参数） [STA]
-        private bool __update_user(User user, bool force_mode = false)
+        private bool __update_user(User user)
         {
             //Tracer.GlobalTracer.TraceFunctionEntry();
             var update_user_data = "UPDATE User SET HTTP_Status=@HTTP_Status, Last_Update=@Last_Update";
@@ -1114,130 +1106,129 @@ namespace Pixiv_Background_Form
             m_dbCommand.Parameters.Add("@Last_Update", DbType.Int64);
             m_dbCommand.Parameters["@Last_Update"].Value = user.Last_Update;
 
-            //数据保护：非200时不覆盖写入已存数据
-            if (force_mode || user.HTTP_Status == (int)HttpStatusCode.OK)
+            if (user.HTTP_Status == (int)HttpStatusCode.OK)
             {
                 update_user_data += ", Last_Success_Update=@Last_Success_Update";
                 m_dbCommand.Parameters.Add("@Last_Success_Update", DbType.Int64);
                 m_dbCommand.Parameters["@Last_Success_Update"].Value = user.Last_Success_Update;
+            }
 
-                if (!string.IsNullOrEmpty(user.Name))
-                {
-                    update_user_data += ",Name=@Name";
-                    m_dbCommand.Parameters.Add("@Name", DbType.String);
-                    m_dbCommand.Parameters["@Name"].Value = WebUtility.HtmlDecode(user.Name); //user.Name;
-                }
+            if (!string.IsNullOrEmpty(user.Name))
+            {
+                update_user_data += ",Name=@Name";
+                m_dbCommand.Parameters.Add("@Name", DbType.String);
+                m_dbCommand.Parameters["@Name"].Value = WebUtility.HtmlDecode(user.Name); //user.Name;
+            }
 
-                if (!string.IsNullOrEmpty(user.Description))
-                {
-                    update_user_data += ",Description=@Description";
-                    m_dbCommand.Parameters.Add("@Description", DbType.String);
-                    m_dbCommand.Parameters["@Description"].Value = user.Description;
-                }
+            if (!string.IsNullOrEmpty(user.Description))
+            {
+                update_user_data += ",Description=@Description";
+                m_dbCommand.Parameters.Add("@Description", DbType.String);
+                m_dbCommand.Parameters["@Description"].Value = user.Description;
+            }
 
-                if (user.User_Face != null)
-                {
-                    var mm = new MemoryStream();
-                    user.User_Face.Save(mm, user.User_Face.RawFormat);
-                    mm.Position = 0;
-                    byte[] buf = new byte[mm.Length];
-                    mm.Read(buf, 0, (int)mm.Length);
+            if (user.User_Face != null)
+            {
+                var mm = new MemoryStream();
+                user.User_Face.Save(mm, user.User_Face.RawFormat);
+                mm.Position = 0;
+                byte[] buf = new byte[mm.Length];
+                mm.Read(buf, 0, (int)mm.Length);
 
-                    update_user_data += ",User_Face=@User_Face";
-                    m_dbCommand.Parameters.Add("@User_Face", DbType.Binary);
-                    m_dbCommand.Parameters["@User_Face"].Value = buf;
-                }
+                update_user_data += ",User_Face=@User_Face";
+                m_dbCommand.Parameters.Add("@User_Face", DbType.Binary);
+                m_dbCommand.Parameters["@User_Face"].Value = buf;
+            }
 
-                if (!string.IsNullOrEmpty(user.User_Face_Url))
-                {
-                    update_user_data += ",User_Face_Url=@User_Face_Url";
-                    m_dbCommand.Parameters.Add("@User_Face_Url", DbType.String);
-                    m_dbCommand.Parameters["@User_Face_Url"].Value = user.User_Face_Url;
-                }
+            if (!string.IsNullOrEmpty(user.User_Face_Url))
+            {
+                update_user_data += ",User_Face_Url=@User_Face_Url";
+                m_dbCommand.Parameters.Add("@User_Face_Url", DbType.String);
+                m_dbCommand.Parameters["@User_Face_Url"].Value = user.User_Face_Url;
+            }
 
-                if (!string.IsNullOrEmpty(user.Home_Page))
-                {
-                    update_user_data += ",Home_Page=@Home_Page";
-                    m_dbCommand.Parameters.Add("@Home_Page", DbType.String);
-                    m_dbCommand.Parameters["@Home_Page"].Value = user.Home_Page;
-                }
+            if (!string.IsNullOrEmpty(user.Home_Page))
+            {
+                update_user_data += ",Home_Page=@Home_Page";
+                m_dbCommand.Parameters.Add("@Home_Page", DbType.String);
+                m_dbCommand.Parameters["@Home_Page"].Value = user.Home_Page;
+            }
 
-                if (!string.IsNullOrEmpty(user.Gender))
-                {
-                    update_user_data += ",Gender=@Gender";
-                    m_dbCommand.Parameters.Add("@Gender", DbType.String);
-                    m_dbCommand.Parameters["@Gender"].Value = user.Gender;
-                }
+            if (!string.IsNullOrEmpty(user.Gender))
+            {
+                update_user_data += ",Gender=@Gender";
+                m_dbCommand.Parameters.Add("@Gender", DbType.String);
+                m_dbCommand.Parameters["@Gender"].Value = user.Gender;
+            }
 
-                if (!string.IsNullOrEmpty(user.Address))
-                {
-                    update_user_data += ",Address=@Address";
-                    m_dbCommand.Parameters.Add("@Address", DbType.String);
-                    m_dbCommand.Parameters["@Address"].Value = user.Address;
-                }
+            if (!string.IsNullOrEmpty(user.Address))
+            {
+                update_user_data += ",Address=@Address";
+                m_dbCommand.Parameters.Add("@Address", DbType.String);
+                m_dbCommand.Parameters["@Address"].Value = user.Address;
+            }
 
-                if (!string.IsNullOrEmpty(user.Birthday))
-                {
-                    update_user_data += ",Birthday=@Birthday";
-                    m_dbCommand.Parameters.Add("@Birthday", DbType.String);
-                    m_dbCommand.Parameters["@Birthday"].Value = user.Birthday;
-                }
+            if (!string.IsNullOrEmpty(user.Birthday))
+            {
+                update_user_data += ",Birthday=@Birthday";
+                m_dbCommand.Parameters.Add("@Birthday", DbType.String);
+                m_dbCommand.Parameters["@Birthday"].Value = user.Birthday;
+            }
 
-                if (user.Follow_Users > 0)
-                {
-                    update_user_data += ",Follow_Users=@Follow_Users";
-                    m_dbCommand.Parameters.Add("@Follow_Users", DbType.Int32);
-                    m_dbCommand.Parameters["@Follow_Users"].Value = user.Follow_Users;
-                }
+            if (user.Follow_Users > 0)
+            {
+                update_user_data += ",Follow_Users=@Follow_Users";
+                m_dbCommand.Parameters.Add("@Follow_Users", DbType.Int32);
+                m_dbCommand.Parameters["@Follow_Users"].Value = user.Follow_Users;
+            }
 
-                if (user.Follower > 0)
-                {
-                    update_user_data += ",Follower=@Follower";
-                    m_dbCommand.Parameters.Add("@Follower", DbType.Int32);
-                    m_dbCommand.Parameters["@Follower"].Value = user.Follower;
-                }
+            if (user.Follower > 0)
+            {
+                update_user_data += ",Follower=@Follower";
+                m_dbCommand.Parameters.Add("@Follower", DbType.Int32);
+                m_dbCommand.Parameters["@Follower"].Value = user.Follower;
+            }
 
-                if (user.Illust_Bookmark_Public > 0)
-                {
-                    update_user_data += ",Illust_Bookmark_Public=@Illust_Bookmark_Public";
-                    m_dbCommand.Parameters.Add("@Illust_Bookmark_Public", DbType.Int32);
-                    m_dbCommand.Parameters["@Illust_Bookmark_Public"].Value = user.Illust_Bookmark_Public;
-                }
+            if (user.Illust_Bookmark_Public > 0)
+            {
+                update_user_data += ",Illust_Bookmark_Public=@Illust_Bookmark_Public";
+                m_dbCommand.Parameters.Add("@Illust_Bookmark_Public", DbType.Int32);
+                m_dbCommand.Parameters["@Illust_Bookmark_Public"].Value = user.Illust_Bookmark_Public;
+            }
 
-                if (user.Mypixiv_Users > 0)
-                {
-                    update_user_data += ",Mypixiv_Users=@Mypixiv_Users";
-                    m_dbCommand.Parameters.Add("@Mypixiv_Users", DbType.Int32);
-                    m_dbCommand.Parameters["@Mypixiv_Users"].Value = user.Mypixiv_Users;
-                }
+            if (user.Mypixiv_Users > 0)
+            {
+                update_user_data += ",Mypixiv_Users=@Mypixiv_Users";
+                m_dbCommand.Parameters.Add("@Mypixiv_Users", DbType.Int32);
+                m_dbCommand.Parameters["@Mypixiv_Users"].Value = user.Mypixiv_Users;
+            }
 
-                if (user.Total_Illusts > 0)
-                {
-                    update_user_data += ",Total_Illusts=@Total_Illusts";
-                    m_dbCommand.Parameters.Add("@Total_Illusts", DbType.Int32);
-                    m_dbCommand.Parameters["@Total_Illusts"].Value = user.Total_Illusts;
-                }
+            if (user.Total_Illusts > 0)
+            {
+                update_user_data += ",Total_Illusts=@Total_Illusts";
+                m_dbCommand.Parameters.Add("@Total_Illusts", DbType.Int32);
+                m_dbCommand.Parameters["@Total_Illusts"].Value = user.Total_Illusts;
+            }
 
-                if (user.Total_Novels > 0)
-                {
-                    update_user_data += ",Total_Novels=@Total_Novels";
-                    m_dbCommand.Parameters.Add("@Total_Novels", DbType.Int32);
-                    m_dbCommand.Parameters["@Total_Novels"].Value = user.Total_Novels;
-                }
+            if (user.Total_Novels > 0)
+            {
+                update_user_data += ",Total_Novels=@Total_Novels";
+                m_dbCommand.Parameters.Add("@Total_Novels", DbType.Int32);
+                m_dbCommand.Parameters["@Total_Novels"].Value = user.Total_Novels;
+            }
 
-                if (!string.IsNullOrEmpty(user.Twitter))
-                {
-                    update_user_data += ",Twitter=@Twitter";
-                    m_dbCommand.Parameters.Add("@Twitter", DbType.String);
-                    m_dbCommand.Parameters["@Twitter"].Value = user.Twitter;
-                }
+            if (!string.IsNullOrEmpty(user.Twitter))
+            {
+                update_user_data += ",Twitter=@Twitter";
+                m_dbCommand.Parameters.Add("@Twitter", DbType.String);
+                m_dbCommand.Parameters["@Twitter"].Value = user.Twitter;
+            }
 
-                if (!string.IsNullOrEmpty(user.Personal_Tag))
-                {
-                    update_user_data += ",Personal_Tag=@Personal_Tag";
-                    m_dbCommand.Parameters.Add("@Personal_Tag", DbType.String);
-                    m_dbCommand.Parameters["@Personal_Tag"].Value = user.Personal_Tag;
-                }
+            if (!string.IsNullOrEmpty(user.Personal_Tag))
+            {
+                update_user_data += ",Personal_Tag=@Personal_Tag";
+                m_dbCommand.Parameters.Add("@Personal_Tag", DbType.String);
+                m_dbCommand.Parameters["@Personal_Tag"].Value = user.Personal_Tag;
             }
 
             update_user_data += " WHERE ID=@ID";

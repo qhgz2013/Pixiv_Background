@@ -175,13 +175,13 @@ namespace Pixiv_Background_Form
             hltitle.Click += (sender, e) =>
             {
                 if (frmSearch.SingleInstantiation == null) return;
-                frmSearch.SingleInstantiation.Dispatcher.Invoke(new ThreadStart(delegate
-                {
-                    frmSearch.SingleInstantiation.Show();
-                    frmSearch.SingleInstantiation.BringIntoView();
-                    frmSearch.SingleInstantiation.Focus();
-                    frmSearch.SingleInstantiation.Search(0, _illust.ID.ToString());
-                }));
+                //frmSearch.SingleInstantiation.Dispatcher.Invoke(new ThreadStart(delegate
+                //{
+                frmSearch.SingleInstantiation.Show();
+                frmSearch.SingleInstantiation.BringIntoView();
+                frmSearch.SingleInstantiation.Focus();
+                frmSearch.SingleInstantiation.Search(0, _illust.ID.ToString());
+                //}));
             };
             hltitle.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
             lTitle.Content = hltitle;
@@ -214,13 +214,13 @@ namespace Pixiv_Background_Form
             hlname.Click += (sender, e) =>
             {
                 if (frmSearch.SingleInstantiation == null) return;
-                frmSearch.SingleInstantiation.Dispatcher.Invoke(new ThreadStart(delegate
-                {
-                    frmSearch.SingleInstantiation.Show();
-                    frmSearch.SingleInstantiation.BringIntoView();
-                    frmSearch.SingleInstantiation.Focus();
-                    frmSearch.SingleInstantiation.Search(3, _user.Name);
-                }));
+                //frmSearch.SingleInstantiation.Dispatcher.Invoke(new ThreadStart(delegate
+                //{
+                frmSearch.SingleInstantiation.Show();
+                frmSearch.SingleInstantiation.BringIntoView();
+                frmSearch.SingleInstantiation.Focus();
+                frmSearch.SingleInstantiation.Search(3, _user.Name);
+                //}));
             };
             hlname.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
             hlname.Inlines.Add(_escape_xml_char(_user.Name != null ? _user.Name : string.Empty));

@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Pixiv_Background_Form"
              mc:Ignorable="d" 
-             d:DesignHeight="250" d:DesignWidth="300" x:Name="frm">
+             d:DesignHeight="250" d:DesignWidth="300" x:Name="frm" Loaded="frm_Loaded" ClipToBounds="True">
     <UserControl.Resources>
         <ResourceDictionary>
             <Color x:Key="HighlightColor" x:Shared="False">#FF0078D7</Color>

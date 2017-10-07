@@ -34,22 +34,24 @@ namespace Pixiv_Background_Form
             _auth = new PixivAuth();
             //API调用部分
             _api = new API(_auth);
-
+            //读取上次的背景信息
             _load_last_data();
-
+            //监测鼠标拖拽的线程（用于鼠标在窗体外面的跟踪）
             _drag_thd = new Thread(__drag_thd_callback);
             _drag_thd.Name = "Drag Thread";
             _drag_thd.IsBackground = true;
             _drag_thd.SetApartmentState(ApartmentState.STA);
             _drag_thd.Start();
-
+            //Timeline.DesiredFrameRateProperty.OverrideMetadata(typeof(Timeline), new FrameworkPropertyMetadata { DefaultValue = 1 });
+            //初始化（转移到其他线程）
             ThreadPool.QueueUserWorkItem(delegate
             {
+                //记录初始化线程，用于线程同步（主线程等待）
                 _initialize_thread = Thread.CurrentThread;
                 //数据库保存部分
                 _database = new DataStorage(_api, true, _auth);
                 _background_queue = new Dictionary<IllustKey, string>();
-
+                //登陆失败回调
                 _auth.LoginFailed += (str =>
                 {
                     Dispatcher.Invoke(new ThreadStart(delegate
@@ -58,7 +60,7 @@ namespace Pixiv_Background_Form
                         Close();
                     }));
                 });
-
+                //登陆监测
                 if (!_auth.IsLogined)
                 {
                     Dispatcher.Invoke(new ThreadStart(delegate
@@ -76,14 +78,14 @@ namespace Pixiv_Background_Form
                         catch { Close(); return; }
                     }));
                 }
-
+                //事件回调
                 Settings.WallPaperChangeEvent += _on_wallpaper_changed;
                 Settings.PathsChanged += _on_paths_changed;
                 _database.FetchIllustSucceeded += _on_illust_query_finished;
                 _database.FetchIllustFailed += _on_illust_query_finished;
                 _database.FetchUserSucceeded += _on_user_query_finished;
                 _database.FetchUserFailed += _on_user_query_finished;
-
+                //对路径下的图片加载，再次采用其他线程
                 ThreadPool.QueueUserWorkItem(delegate
                 {
                     foreach (var item in Settings.Paths)
@@ -91,31 +93,34 @@ namespace Pixiv_Background_Form
                         _load_path(item.Directory, item.IncludingSubDir);
                     }
                 });
-                frmSearch.Instantiate(_background_queue, _database);
+                //实例化搜索窗口
+
+                Dispatcher.Invoke(new ThreadStart(delegate
+                {
+                    frmSearch.Instantiate(_background_queue, _database);
+                }));
 
                 _initialize_thread = null;
             });
         }
-        //private bool _frm_created = false;
-        private int _register_appbar_message;
-        private bool _is_on_full_screen;
         private void frmMain_Loaded(object sender, RoutedEventArgs e)
         {
+            //默认靠右上方显示
             MainWindow_Layout.ColumnDefinitions[0].Width = GridLength.Auto;
             Width = 129 + 8;
             Height = 26;
             Left = SystemParameters.WorkArea.Width - frmMain.ActualWidth;
             Top = 20;
-            //_frm_created = true;
+
             var source = PresentationSource.FromVisual(this);
 
-            //hide in alt+tab
+            //在alt+tab界面上隐藏（WINAPI）
             var helper = new System.Windows.Interop.WindowInteropHelper((Window)sender);
             int exStyle = (int)WinAPI.GetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE);
             exStyle |= (int)WinAPI.ExtendedWindowStyles.WS_EX_TOOLWINDOW;
             WinAPI.SetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE, exStyle);
 
-            //registering full screen message dispatch
+            //注册全屏检测事件
             WinAPI.RegisterAppBar(helper.Handle, out _register_appbar_message);
             var hwndsrc = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
             hwndsrc.AddHook(new System.Windows.Interop.HwndSourceHook(handling_appbar));
@@ -130,6 +135,13 @@ namespace Pixiv_Background_Form
             if (_database != null) _database.AbortWorkingThread();
             Environment.Exit(0);
         }
+
+        //全屏检测
+        #region full screen mode detector
+        //注册的事件ID
+        private int _register_appbar_message;
+        //是否已经进入全屏模式
+        private bool _is_on_full_screen;
         //overriding WndProc
         private IntPtr handling_appbar(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
@@ -152,6 +164,8 @@ namespace Pixiv_Background_Form
             }
             return IntPtr.Zero;
         }
+        #endregion
+
         //当前壁纸的信息
         [Serializable]
         public struct _temp_serialize_struct
@@ -224,6 +238,7 @@ namespace Pixiv_Background_Form
             Settings.IllustQueue = queued_illusts;
             return ret;
         }
+        //使用waifu2x放大图片
         private System.Drawing.Image _upscaling_using_waifu2x(System.Drawing.Image source, double ratio)
         {
             string img_in_path = Guid.NewGuid().ToString() + ".png";
@@ -590,187 +605,13 @@ namespace Pixiv_Background_Form
         private PixivAuth _auth;
         #endregion //Member Definations
 
-        //通用函数
-        #region Utility Functions
-        //根据Tag创建相应的链接和地址
-        private TextBlock _create_tag_hyperlink(string[] tags)
-        {
-            var ret_tb = new TextBlock();
-            ret_tb.TextWrapping = TextWrapping.Wrap;
-            foreach (var tag in tags)
-            {
-                var hl = new Hyperlink();
-                hl.Inlines.Add(tag);
-                hl.Foreground = new SolidColorBrush((Color)FindResource("HighlightColor"));
-                hl.MouseEnter += delegate
-                {
-                    var brush = new SolidColorBrush((Color)FindResource("HighlightColor"));
-                    var da = new ColorAnimation(Colors.Orange, TimeSpan.FromMilliseconds(300));
-                    hl.Foreground = brush;
-                    brush.BeginAnimation(SolidColorBrush.ColorProperty, da);
-                };
-                hl.MouseLeave += delegate
-                {
-                    var brush = new SolidColorBrush(Colors.Orange);
-                    var da = new ColorAnimation((Color)FindResource("HighlightColor"), TimeSpan.FromMilliseconds(300));
-                    hl.Foreground = brush;
-                    brush.BeginAnimation(SolidColorBrush.ColorProperty, da);
-                };
-                hl.Click += delegate
-                {
-                    Process.Start("http://www.pixiv.net/search.php?s_mode=s_tag_full&word=" + Uri.EscapeDataString(tag));
-                };
-                hl.TextDecorations = null;
-
-                ret_tb.Inlines.Add(hl);
-                var tb = new TextBlock();
-                tb.Inlines.Add(",");
-                tb.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
-                tb.Padding = new Thickness(3, 0, 3, 0);
-                ret_tb.Inlines.Add(tb);
-            }
-            ret_tb.Inlines.Remove(ret_tb.Inlines.LastInline);
-            return ret_tb;
-        }
-        /// <summary>
-        /// update ui, call by main thread
-        /// </summary>
-        //private void _update_ui_info()
-        //{
-        //    //_external_save_lock.AcquireWriterLock(Timeout.Infinite);
-        //    //image solution
-        //    Image_Size.Content = _last_data.imageSolution.Width + "×" + _last_data.imageSolution.Height;
-        //    if (_last_data.illust.Page == 1 && (_last_data.illust.Size.Width != _last_data.imageSolution.Width && _last_data.illust.Size.Height != _last_data.imageSolution.Height)) { Image_Size.Content += " [Origin: " + _last_data.illust.Size.Width + "×" + _last_data.illust.Size.Height + "]"; }
-
-        //    //_last_data.illust id
-        //    illust_id_open.Inlines.Clear();
-        //    illust_id_open.Inlines.Add("ID=" + _last_data.illust.ID + " #" + (_last_data.page + 1) + "/" + _last_data.illust.Page);
-
-        //    //title
-        //    illust_open.Inlines.Clear();
-        //    if (!string.IsNullOrEmpty(_last_data.illust.Title))
-        //        illust_open.Inlines.Add(_escape_xml_char(_last_data.illust.Title));
-        //    else
-        //    {
-        //        string title_reason;
-        //        switch (_last_data.illust.HTTP_Status)
-        //        {
-        //            case 404:
-        //                title_reason = "[404] " + _random_text(new string[] { "该投稿已被删除", "嗷～～投稿它～消失了～", "You are late :-(", "再怎么找它都不会出现了……" });
-        //                break;
-        //            case 403:
-        //                title_reason = "[403] " + _random_text(new string[] { "该投稿无法浏览", "该投稿仅好p友可见哦～", "明明……它都在那了……你却无法触摸它" });
-        //                break;
-        //            case -2:
-        //            case 0:
-        //                title_reason = "获取投稿信息中...";
-        //                break;
-        //            case 200: //status correct but empty/null
-        //                title_reason = "";
-        //                break;
-        //            default:
-        //                title_reason = "[" + _last_data.illust.HTTP_Status + "]: 未知错误";
-        //                break;
-        //        }
-        //        illust_open.Inlines.Add(title_reason);
-        //    }
-        //    //post time
-        //    if (_last_data.illust.Submit_Time != 0)
-        //    {
-        //        var time = util.FromUnixTimestamp(_last_data.illust.Submit_Time);
-        //        Post_Time.Content = time.ToString("yyyy-MM-dd HH:mm");
-        //    }
-        //    else
-        //        Post_Time.Content = "";
-
-        //    //author name
-        //    user_open.Inlines.Clear();
-        //    if (_last_data.user.Name != null)
-        //        user_open.Inlines.Add(_escape_xml_char(_last_data.user.Name));
-        //    else
-        //        user_open.Inlines.Add("");
-
-        //    //description
-        //    Description.Children.Clear();
-        //    if (_last_data.illust.Description != null)
-        //        Description.Children.Add(html_parser.parseHTML(_last_data.illust.Description));
-
-        //    //status
-        //    if (_last_data.illust.HTTP_Status == 200)
-        //        Border1.Background = Brushes.AliceBlue;
-        //    else
-        //        Border1.Background = Brushes.Red;
-
-        //    //author image
-        //    if (_last_data.user.User_Face != null)
-        //    {
-        //        var ss = new MemoryStream();
-        //        _last_data.user.User_Face.Save(ss, _last_data.user.User_Face.RawFormat);
-        //        ss.Position = 0;
-
-        //        var bmp = new BitmapImage();
-        //        bmp.BeginInit();
-        //        bmp.StreamSource = ss;
-        //        bmp.EndInit();
-
-        //        WpfAnimatedGif.ImageBehavior.SetAnimatedSource(Author_Image, bmp);
-        //    }
-        //    else
-        //        Author_Image.Source = null;
-
-        //    //click
-        //    Click.Content = _last_data.illust.Click.ToString("#,##0");
-
-        //    //bookmark
-        //    Favor.Content = _last_data.illust.Bookmark_Count.ToString("#,##0");
-
-        //    //tags
-        //    Tags.Inlines.Clear();
-        //    if (_last_data.illust.Tag != null)
-        //        Tags.Inlines.Add(_create_tag_hyperlink(_escape_xml_char(_last_data.illust.Tag).Split(',')));
-
-        //    //tools
-        //    Tools.Inlines.Clear();
-        //    if (_last_data.illust.Tool != null)
-        //        Tools.Inlines.Add(_escape_xml_char(_last_data.illust.Tool));
-
-        //    //update time
-        //    string str_last_update = (_last_data.illust.Last_Update > 0) ? util.FromUnixTimestamp(_last_data.illust.Last_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
-        //    string str_last_success_update = (_last_data.illust.Last_Success_Update > 0) ? util.FromUnixTimestamp(_last_data.illust.Last_Success_Update).ToString("yyyy-MM-dd HH:mm:ss") : "无";
-        //    Update_Time.Content = string.Format("最后更新时间：{0} | 最后成功更新时间：{1}", str_last_update, str_last_success_update);
-
-        //    //_last_data.user id
-        //    UserID.Content = "用户描述: (ID: " + _last_data.user.ID + ")";
-
-        //    //_last_data.user description
-        //    UserDescription.Children.Clear();
-        //    if (_last_data.user.Description != null)
-        //        UserDescription.Children.Add(html_parser.parseHTML(_last_data.user.Description));
-
-        //    //_last_data.user data
-        //    UserData.Content = "关注着: " + _last_data.user.Follow_Users.ToString("#,##0") + ", 关注者: " + _last_data.user.Follower.ToString("#,##0") + ", 好P友: " + _last_data.user.Mypixiv_Users.ToString("#,##0") + "\r\n"
-        //    + "投稿漫画数: " + _last_data.user.Total_Novels.ToString("#,##0") + ", 投稿插画数: " + _last_data.user.Total_Illusts.ToString("#,##0") + ", 公开收藏数: " + _last_data.user.Illust_Bookmark_Public.ToString("#,##0");
-
-        //    //updating height
-        //    if (_frm_created)
-        //    {
-        //        var fact = PresentationSource.FromVisual(this).CompositionTarget.TransformToDevice.M11;
-        //        double height_pro = MainWindow_Layout.ActualHeight;
-        //        height_pro = Math.Round(height_pro * fact) / fact;
-
-        //        if (((Run)Show_More_Click.Inlines.FirstInline).Text == "简略信息")
-        //        {
-        //            Height = height_pro;
-        //        }
-        //    }
-        //    //_external_save_lock.ReleaseWriterLock();
-        //}
-        #endregion //Utility Functions
-
+        //桌面的边缘吸附（多显示器兼容，dpi兼容未知）
+        #region desktop docking
         private enum DockStatus
         {
             DockFailed, DockLeft, DockRight, DockTop = 4, DockBottom = 8
         }
+        //检查指定的鼠标位置是否达到边缘吸附的条件
         private DockStatus _dock_check(Point input_pos, out Point dock_pos)
         {
             const int dock_size = 30;
@@ -806,12 +647,7 @@ namespace Pixiv_Background_Form
             }
             return ret;
         }
-
-        private void Close_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
+        #endregion
 
         #region custom drag move implement
         //魔改版: https://www.codeproject.com/Questions/284995/DragMove-problem-help-pls
@@ -823,6 +659,7 @@ namespace Pixiv_Background_Form
         //捕获窗体外部的MouseMove事件的线程以及回调函数
         Thread _drag_thd;
         object _mouse_down_sender;
+        //检测鼠标位置的回调函数（40check/s）
         private void __drag_thd_callback()
         {
             do
@@ -837,7 +674,6 @@ namespace Pixiv_Background_Form
                         if (scaled_pos.X < Left || scaled_pos.Y < Top || scaled_pos.X > Left + Width || scaled_pos.Y > Top + Height)
                         {
                             __customDragMouseMove(scaled_pos);
-                            //Debug.Print("capture outside window");
                         }
 
                         if (Mouse.LeftButton == MouseButtonState.Released && _mouse_down_sender != null)
@@ -857,7 +693,6 @@ namespace Pixiv_Background_Form
             _anchor_point = new Point(_anchor_point.X / ScreenWatcher.Scale, _anchor_point.Y / ScreenWatcher.Scale);
             _mouse_down_sender = sender;
             if (e != null) e.Handled = true;
-            //Debug.Print("src point: " + _src_location.ToString() + ", anchor_point: " + _anchor_point.ToString());
         }
         private void _customDragMoveEnd(object sender, MouseButtonEventArgs e)
         {
@@ -871,8 +706,7 @@ namespace Pixiv_Background_Form
             var dst = _src_location + vec;
             Point dock_pos;
             var stat = _dock_check(dst, out dock_pos);
-
-            //Debug.Print(dst.ToString() + " ==> " + dock_pos.ToString());
+            
             Left = dock_pos.X;
             Top = dock_pos.Y;
             if (stat != DockStatus.DockFailed)
@@ -957,7 +791,7 @@ namespace Pixiv_Background_Form
         }
         protected override void OnMouseMove(MouseEventArgs e)
         {
-            //base.OnMouseMove(e);
+
             Point current = PointToScreen(e.GetPosition(this));
             current = new Point(current.X / ScreenWatcher.Scale, current.Y / ScreenWatcher.Scale);
             if (_in_drag)
@@ -968,6 +802,10 @@ namespace Pixiv_Background_Form
         #endregion
 
 
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
         private void bInfo_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             ((Button)sender).Tag = e.Timestamp;
@@ -984,12 +822,17 @@ namespace Pixiv_Background_Form
             if (e.Timestamp - last_ts < 500)
             {
                 //handling as click
-                if (_background_queue == null && _initialize_thread != null)
-                    _initialize_thread.Join();
+                if (_initialize_thread != null)
+                {
+                    return;
+                }
                 for (int i = 0; _last_data.illust != null && i < _last_data.illust.Length; i++)
                 {
-                    var frmInfo = new frmDetailed(_last_data.illust[i], _last_data.user[i], _background_queue[new IllustKey { id = _last_data.illust[i].ID, page = (uint)_last_data.page[i] }]);
-                    frmInfo.Show();
+                    frmSearch.SingleInstantiation.Dispatcher.Invoke(new ThreadStart(delegate
+                    {
+                        var frmInfo = new frmDetailed(_last_data.illust[i], _last_data.user[i], _background_queue[new IllustKey { id = _last_data.illust[i].ID, page = (uint)_last_data.page[i] }]);
+                        frmInfo.Show();
+                    }));
                 }
             }
         }
@@ -1040,11 +883,7 @@ namespace Pixiv_Background_Form
                 //wait for initialization completed
                 if (_initialize_thread != null)
                 {
-                    try
-                    {
-                        _initialize_thread.Join();
-                    }
-                    catch (Exception) { }
+                    return;
                 }
                 if (frmSearch.SingleInstantiation != null)
                 {

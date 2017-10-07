@@ -35,21 +35,21 @@ namespace Pixiv_Background_Form
             {
                 if (_single_inst != null) return;
                 //STA thread
-                var tmp_thd = new Thread(new ThreadStart(delegate
+                //var tmp_thd = new Thread(new ThreadStart(delegate
+                //{
+                //    Tracer.GlobalTracer.TraceInfo("instantiating frmSearching");
+                _single_inst = new frmSearch(pathData, sqlData);
+                //    _single_inst.Closed += (_sender, _e) => { _single_inst.Dispatcher.InvokeShutdown(); };
+                _single_inst.Closing += (_sender, _e) =>
                 {
-                    Tracer.GlobalTracer.TraceInfo("instantiating frmSearching");
-                    _single_inst = new frmSearch(pathData, sqlData);
-                    _single_inst.Closed += (_sender, _e) => { _single_inst.Dispatcher.InvokeShutdown(); };
-                    _single_inst.Closing += (_sender, _e) =>
-                    {
-                        _e.Cancel = true;
-                        _single_inst.Hide();
-                    }; //closing override
-                    System.Windows.Threading.Dispatcher.Run();
-                }));
-                tmp_thd.SetApartmentState(ApartmentState.STA);
-                tmp_thd.IsBackground = true;
-                tmp_thd.Start();
+                    _e.Cancel = true;
+                    _single_inst.Hide();
+                }; //closing override
+                //    System.Windows.Threading.Dispatcher.Run();
+                //}));
+                //tmp_thd.SetApartmentState(ApartmentState.STA);
+                //tmp_thd.IsBackground = true;
+                //tmp_thd.Start();
             }
         }
         private static object _instantiate_lock = new object();
@@ -343,6 +343,7 @@ namespace Pixiv_Background_Form
         //点击用户信息
         private void _on_user_image_clicked(object sender, MouseEventArgs e)
         {
+            if (_background_working) return;
             var taginfo = (User)((PanelItem)((Grid)((Image)sender).Parent).Parent).Tag;
             cSearchType.SelectedIndex = 3;
             tSearchString.Text = taginfo.Name.ToString();
@@ -352,6 +353,7 @@ namespace Pixiv_Background_Form
         }
         private void _on_user_label_clicked(object sender, MouseEventArgs e)
         {
+            if (_background_working) return;
             var taginfo = (User)((PanelItem)((Grid)((Label)sender).Parent).Parent).Tag;
             cSearchType.SelectedIndex = 3;
             tSearchString.Text = taginfo.Name.ToString();
@@ -361,6 +363,7 @@ namespace Pixiv_Background_Form
         }
         private void _on_illust_image_clicked(object sender, EventArgs e)
         {
+            if (_background_working) return;
             var taginfo = (_temp_struct)((PanelItem)((Grid)((Image)sender).Parent).Parent).Tag;
             var detail_ui = new frmDetailed(taginfo.illust, taginfo.user, taginfo.path);
             detail_ui.Show();
@@ -368,6 +371,7 @@ namespace Pixiv_Background_Form
         //在投稿里点击标题
         private void _on_illust_title_clicked(object sender, EventArgs e)
         {
+            if (_background_working) return;
             var taginfo = (_temp_struct)((PanelItem)((Grid)((Label)sender).Parent).Parent).Tag;
             var detail_ui = new frmDetailed(taginfo.illust, taginfo.user, taginfo.path);
             detail_ui.Show();
@@ -375,6 +379,7 @@ namespace Pixiv_Background_Form
         //在投稿里点击用户名称
         private void _on_illust_user_clicked(object sender, EventArgs e)
         {
+            if (_background_working) return;
             var taginfo = (_temp_struct)((PanelItem)((Grid)((Label)sender).Parent).Parent).Tag;
             cSearchType.SelectedIndex = 3;
             tSearchString.Text = taginfo.user.Name.ToString();
@@ -385,6 +390,7 @@ namespace Pixiv_Background_Form
         //在详细信息里点击到Tag
         private void _on_info_tag_clicked(object sender, RoutedEventArgs e)
         {
+            if (_background_working) return;
             cSearchType.SelectedIndex = 2;
             tSearchString.Text = ((Run)((Hyperlink)sender).Inlines.FirstInline).Text;
             Focus();
@@ -472,6 +478,7 @@ namespace Pixiv_Background_Form
         /// <param name="str">搜索的字符串</param>
         public void Search(int type, string str)
         {
+            if (_background_working) return;
             lock (_extern_lock)
             {
                 if (type < 0 || type > 5 || string.IsNullOrEmpty(str)) return;

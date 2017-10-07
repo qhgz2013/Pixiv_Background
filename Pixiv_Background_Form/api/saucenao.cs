@@ -9,6 +9,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Diagnostics;
 using Pixiv_Background_Form.NetUtils;
+using System.Threading;
 
 namespace Pixiv_Background_Form
 {
@@ -262,7 +263,8 @@ namespace Pixiv_Background_Form
         }
         #endregion //Private Static Functions
 
-
+        private static DateTime _next_query_available_time = DateTime.Now;
+        private static object _external_lock = new object();
         #region Public Static Functions
         /// <summary>
         /// 在SauceNao查询指定的图片
@@ -274,8 +276,17 @@ namespace Pixiv_Background_Form
         public static float QueryImage(Image img, out Illust illust, out User user)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
-            var json = post_formdata(img);
-            return parse_json_object(json, out illust, out user);
+
+            lock (_external_lock)
+            {
+                var ts = _next_query_available_time - DateTime.Now;
+                if (ts.TotalMilliseconds > 0)
+                    Thread.Sleep((int)Math.Ceiling(ts.TotalMilliseconds));
+                var json = post_formdata(img);
+                float result = parse_json_object(json, out illust, out user);
+                _next_query_available_time = DateTime.Now.AddSeconds(1.5);
+                return result;
+            }
         }
         /// <summary>
         /// 在SauceNao查询指定的图片
