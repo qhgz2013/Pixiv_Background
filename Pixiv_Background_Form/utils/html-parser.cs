@@ -382,7 +382,7 @@ namespace Pixiv_Background_Form
         private static TextBlock convert_span(HtmlTreeNode node)
         {
             var tb = new TextBlock();
-            tb.MaxWidth = 550;
+            tb.MaxWidth = double.PositiveInfinity; //550;
             tb.TextWrapping = TextWrapping.Wrap;
             tb.Name = "span_object";
 
@@ -411,7 +411,7 @@ namespace Pixiv_Background_Form
         private static TextBlock convert_strong(HtmlTreeNode node)
         {
             var tb = new TextBlock();
-            tb.MaxWidth = 550;
+            tb.MaxWidth = double.PositiveInfinity; //= 550;
             tb.TextWrapping = TextWrapping.Wrap;
             tb.Name = "bold_object";
             tb.Inlines.Add(convert_document(node.Document));
@@ -421,7 +421,7 @@ namespace Pixiv_Background_Form
         private static TextBlock convert_i(HtmlTreeNode node)
         {
             var tb = new TextBlock();
-            tb.MaxWidth = 550;
+            tb.MaxWidth = double.PositiveInfinity; //= 550;
             tb.TextWrapping = TextWrapping.Wrap;
             tb.Name = "italic_object";
             tb.Inlines.Add(convert_document(node.Document));
@@ -431,7 +431,7 @@ namespace Pixiv_Background_Form
         private static TextBlock convert_string(string html_str)
         {
             var tb = new TextBlock();
-            tb.MaxWidth = 550;
+            tb.MaxWidth = double.PositiveInfinity; //= 550;
             tb.TextWrapping = TextWrapping.Wrap;
             tb.Name = "string_object";
             tb.Inlines.Add(html_str);
@@ -444,7 +444,7 @@ namespace Pixiv_Background_Form
         private static TextBlock convert_a(HtmlTreeNode node)
         {
             var tb = new TextBlock();
-            tb.MaxWidth = 550;
+            tb.MaxWidth = double.PositiveInfinity; //= 550;
             tb.TextWrapping = TextWrapping.Wrap;
             tb.Name = "hyperlink_object";
 
@@ -576,7 +576,7 @@ namespace Pixiv_Background_Form
         private static TextBlock convert_document(List<object> document)
         {
             var tb = new TextBlock();
-            tb.MaxWidth = 550;
+            tb.MaxWidth = double.PositiveInfinity; //= 550;
             tb.TextWrapping = TextWrapping.Wrap;
             //tb.Foreground = new SolidColorBrush(Color.FromRgb(0x5b, 0x5b, 0x5b));
             tb.Name = "object_collection_object";

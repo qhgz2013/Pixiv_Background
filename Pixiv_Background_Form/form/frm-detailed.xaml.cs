@@ -104,8 +104,7 @@ namespace Pixiv_Background_Form
                     }));
                 };
                 hl.TextDecorations = null;
-
-                ret_tb.TextWrapping = TextWrapping.WrapWithOverflow;
+                
                 ret_tb.Inlines.Add(hl);
                 var tb = new TextBlock();
                 tb.Inlines.Add(",");
