@@ -59,6 +59,8 @@
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="120"/>
             <ColumnDefinition/>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="120"/>
             <ColumnDefinition Width="10"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -73,7 +75,7 @@
             <Image Source="pack://application:,,,/Resources/Next.png"/>
         </Button>
         <Label Grid.Column="3" VerticalAlignment="Center" HorizontalAlignment="Center">搜索类型</Label>
-        <ComboBox x:Name="cSearchType" Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center" Width="100">
+        <ComboBox x:Name="cSearchType" Grid.Column="4" VerticalAlignment="Center" HorizontalAlignment="Center" Width="100" SelectionChanged="cSearchType_SelectionChanged">
             <ComboBoxItem>投稿ID</ComboBoxItem>
             <ComboBoxItem>投稿标题</ComboBoxItem>
             <ComboBoxItem>投稿Tag</ComboBoxItem>
@@ -83,7 +85,22 @@
         </ComboBox>
         <TextBox x:Name="tSearchString" Grid.Column="5" VerticalAlignment="Center" KeyUp="tSearchString_KeyUp" ToolTip="输入 &quot;%&quot; 搜索全部"></TextBox>
 
-        <ScrollViewer x:Name="scrollViewer" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="5" VerticalScrollBarVisibility="Auto" ScrollChanged="ScrollViewer_ScrollChanged">
+        <Label Grid.Column="6" VerticalAlignment="Center">排序条件</Label>
+        <ComboBox x:Name="cIllustSortType" Grid.Column="7" VerticalAlignment="Center" SelectionChanged="cIllustSortType_SelectionChanged">
+            <ComboBoxItem>投稿ID</ComboBoxItem>
+            <ComboBoxItem>点击数</ComboBoxItem>
+            <ComboBoxItem>收藏数</ComboBoxItem>
+            <ComboBoxItem>评论数</ComboBoxItem>
+            <ComboBoxItem>【清除选择】</ComboBoxItem>
+        </ComboBox>
+        <ComboBox x:Name="cUserSortType" Grid.Column="7" VerticalAlignment="Center" Visibility="Hidden" SelectionChanged="cUserSortType_SelectionChanged">
+            <ComboBoxItem>作者ID</ComboBoxItem>
+            <ComboBoxItem>投稿数</ComboBoxItem>
+            <ComboBoxItem>关注者数</ComboBoxItem>
+            <ComboBoxItem>关注数</ComboBoxItem>
+            <ComboBoxItem>【清除选择】</ComboBoxItem>
+        </ComboBox>
+        <ScrollViewer x:Name="scrollViewer" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="7" VerticalScrollBarVisibility="Auto" ScrollChanged="ScrollViewer_ScrollChanged">
             <WrapPanel x:Name="lDataPanel">
 
             </WrapPanel>

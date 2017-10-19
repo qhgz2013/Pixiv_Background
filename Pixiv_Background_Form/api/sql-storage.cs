@@ -907,10 +907,11 @@ namespace Pixiv_Background_Form
                 return data[0];
         }
         //根据特定的sql where约束来获取数据
-        private Illust[] __query_illust_by_specified_constraint(string constraint)
+        private Illust[] __query_illust_by_specified_constraint(string constraint, string order = null, bool desc = false)
         {
             //Tracer.GlobalTracer.TraceFunctionEntry();
             var get_value_str = "SELECT ID, Author_ID, Title, Description, Tag, Tool, Click, Bookmark_Count, Comment_Count, Width, Height, Rate_Count, Score, Submit_Time, HTTP_Status, Last_Update, Last_Success_Update, Page, Origin FROM Illust WHERE " + constraint;
+            if (!string.IsNullOrEmpty(order)) get_value_str += " ORDER BY " + order + (desc ? " DESC" : "");
             var list = new List<Illust>();
             m_dbCommand.CommandText = get_value_str;
             var dr = m_dbCommand.ExecuteReader();
@@ -1273,12 +1274,14 @@ namespace Pixiv_Background_Form
             else
                 return data[0];
         }
-        private User[] __query_user_by_specified_constraint(string constraint)
+        private User[] __query_user_by_specified_constraint(string constraint, string order = null, bool desc = false)
         {
 
             //Tracer.GlobalTracer.TraceFunctionEntry();
 
             var get_user_str = "SELECT ID, Name, Description, User_Face, User_Face_Url, Home_Page, Gender, Personal_Tag, Address, Birthday, Job, Follow_Users, Follower, Illust_Bookmark_Public, Mypixiv_Users, Total_Illusts, Total_Novels, Twitter, HTTP_Status, Last_Update, Last_Success_Update FROM User WHERE " + constraint;
+            if (!string.IsNullOrEmpty(order)) get_user_str += " ORDER BY " + order + (desc ? " DESC" : "");
+
             var ret = new List<User>();
             try
             {
@@ -1521,11 +1524,16 @@ namespace Pixiv_Background_Form
         /// 根据用户ID获取投稿信息
         /// </summary>
         /// <param name="id">用户ID</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public Illust[] GetIllustInfoByAuthorID(uint id)
+        public Illust[] GetIllustInfoByAuthorID(uint id, IllustOrder order = IllustOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var ret = __query_illust_by_specified_constraint("Author_ID = " + id);
+            string[] order_str = new string[] { "ID", "Click", "Bookmark_Count", "Comment_Count" };
+            string orderby = null;
+            if (order >= 0 && (int)order < order_str.Length) orderby = order_str[(int)order];
+            var ret = __query_illust_by_specified_constraint("Author_ID = " + id, orderby, desc);
             m_sqlThreadLock.ReleaseWriterLock();
             return ret;
         }
@@ -1533,9 +1541,11 @@ namespace Pixiv_Background_Form
         /// <summary>
         /// 根据用户名称获取投稿信息
         /// </summary>
-        /// <param name="name"></param>
+        /// <param name="name">用户名</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public Illust[] GetIllustInfoByAuthorName(string name)
+        public Illust[] GetIllustInfoByAuthorName(string name, IllustOrder order = IllustOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
             var usr = __query_user_by_specified_constraint("Name = '" + name + "'");
@@ -1549,6 +1559,37 @@ namespace Pixiv_Background_Form
                 if (item.ID != 0)
                     ret_list.AddRange(GetIllustInfoByAuthorID(item.ID));
             }
+            switch (order)
+            {
+                case IllustOrder.ORDER_UNSPECIFIED:
+                    break;
+                case IllustOrder.ORDER_ID:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.ID.CompareTo(a.ID); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.ID.CompareTo(b.ID); }));
+                    break;
+                case IllustOrder.ORDER_CLICK:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.Click.CompareTo(a.Click); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.Click.CompareTo(b.Click); }));
+                    break;
+                case IllustOrder.ORDER_FAVOR:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.Bookmark_Count.CompareTo(a.Bookmark_Count); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.Bookmark_Count.CompareTo(b.Bookmark_Count); }));
+                    break;
+                case IllustOrder.ORDER_COMMENT:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.Comment_Count.CompareTo(a.Comment_Count); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.Comment_Count.CompareTo(b.Comment_Count); }));
+                    break;
+                default:
+                    break;
+            }
             return ret_list.ToArray();
         }
 
@@ -1556,11 +1597,16 @@ namespace Pixiv_Background_Form
         /// 根据用户名获取用户信息
         /// </summary>
         /// <param name="name">用户名称</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public User[] GetUserInfoByName(string name)
+        public User[] GetUserInfoByName(string name, UserOrder order = UserOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var usr = __query_user_by_specified_constraint("Name = '" + name + "'");
+            string[] order_str = new string[] { "ID", "Total_Illusts", "Follower", "Follow_Users" };
+            string orderby = null;
+            if (order >= 0 && (int)order < order_str.Length) orderby = order_str[(int)order];
+            var usr = __query_user_by_specified_constraint("Name = '" + name + "'", orderby, desc);
             m_sqlThreadLock.ReleaseWriterLock();
 
             return usr;
@@ -1571,13 +1617,18 @@ namespace Pixiv_Background_Form
         /// 根据Tag进行查询
         /// </summary>
         /// <param name="tag">Tag名称</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public Illust[] GetIllustInfoByTag(string tag)
+        public Illust[] GetIllustInfoByTag(string tag, IllustOrder order = IllustOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             if (string.IsNullOrEmpty(tag)) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var data = __query_illust_by_specified_constraint("Tag LIKE '%" + tag + "%'");
+            string[] order_str = new string[] { "ID", "Click", "Bookmark_Count", "Comment_Count" };
+            string orderby = null;
+            if (order >= 0 && (int)order < order_str.Length) orderby = order_str[(int)order];
+            var data = __query_illust_by_specified_constraint("Tag LIKE '%" + tag + "%'", orderby, desc);
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
@@ -1585,8 +1636,10 @@ namespace Pixiv_Background_Form
         /// 根据作者名进行模糊查询
         /// </summary>
         /// <param name="name">作者名</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public Illust[] GetIllustInfoByFuzzyAuthorName(string name)
+        public Illust[] GetIllustInfoByFuzzyAuthorName(string name, IllustOrder order = IllustOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(name)) return null;
@@ -1598,20 +1651,56 @@ namespace Pixiv_Background_Form
                 if (item.ID != 0)
                     ret_list.AddRange(GetIllustInfoByAuthorID(item.ID));
             }
+            switch (order)
+            {
+                case IllustOrder.ORDER_UNSPECIFIED:
+                    break;
+                case IllustOrder.ORDER_ID:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.ID.CompareTo(a.ID); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.ID.CompareTo(b.ID); }));
+                    break;
+                case IllustOrder.ORDER_CLICK:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.Click.CompareTo(a.Click); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.Click.CompareTo(b.Click); }));
+                    break;
+                case IllustOrder.ORDER_FAVOR:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.Bookmark_Count.CompareTo(a.Bookmark_Count); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.Bookmark_Count.CompareTo(b.Bookmark_Count); }));
+                    break;
+                case IllustOrder.ORDER_COMMENT:
+                    if (desc)
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return b.Comment_Count.CompareTo(a.Comment_Count); }));
+                    else
+                        ret_list.Sort(new Comparison<Illust>((a, b) => { return a.Comment_Count.CompareTo(b.Comment_Count); }));
+                    break;
+                default:
+                    break;
+            }
             return ret_list.ToArray();
         }
         /// <summary>
         /// 根据投稿ID进行模糊查询
         /// </summary>
         /// <param name="id">投稿id</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public Illust[] GetIllustInfoByFuzzyID(string id)
+        public Illust[] GetIllustInfoByFuzzyID(string id, IllustOrder order = IllustOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(id)) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var data = __query_illust_by_specified_constraint("CAST(ID AS TEXT) LIKE '%" + id + "%'");
+            string[] order_str = new string[] { "ID", "Click", "Bookmark_Count", "Comment_Count" };
+            string orderby = null;
+            if (order >= 0 && (int)order < order_str.Length) orderby = order_str[(int)order];
+            var data = __query_illust_by_specified_constraint("CAST(ID AS TEXT) LIKE '%" + id + "%'", orderby, desc);
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
@@ -1619,14 +1708,20 @@ namespace Pixiv_Background_Form
         /// 根据投稿ID进行模糊查询
         /// </summary>
         /// <param name="id">用户id</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public User[] GetUserInfoByFuzzyID(string id)
+        public User[] GetUserInfoByFuzzyID(string id, UserOrder order = UserOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(id)) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var data = __query_user_by_specified_constraint("CAST(ID AS TEXT) LIKE '%" + id + "%'");
+            string[] order_str = new string[] { "ID", "Total_Illusts", "Follower", "Follow_Users" };
+            string orderby = null;
+            if (order >= 0 && (int)order < order_str.Length) orderby = order_str[(int)order];
+
+            var data = __query_user_by_specified_constraint("CAST(ID AS TEXT) LIKE '%" + id + "%'", orderby, desc);
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
@@ -1634,14 +1729,19 @@ namespace Pixiv_Background_Form
         /// 根据标题进行模糊查询
         /// </summary>
         /// <param name="title">标题</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public Illust[] GetIllustInfoByTitle(string title)
+        public Illust[] GetIllustInfoByTitle(string title, IllustOrder order = IllustOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(title)) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var data = __query_illust_by_specified_constraint("Title LIKE '%" + title + "%'");
+            string[] order_str = new string[] { "ID", "Click", "Bookmark_Count", "Comment_Count" };
+            string orderby = null;
+            if (order >= 0 && (int)order < order_str.Length) orderby = order_str[(int)order];
+            var data = __query_illust_by_specified_constraint("Title LIKE '%" + title + "%'", orderby, desc);
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }
@@ -1649,14 +1749,19 @@ namespace Pixiv_Background_Form
         /// 根据画师名称进行模糊查询
         /// </summary>
         /// <param name="name">画师名称</param>
+        /// <param name="order">排序依据</param>
+        /// <param name="desc">是否倒序</param>
         /// <returns></returns>
-        public User[] GetUserInfoByFuzzyName(string name)
+        public User[] GetUserInfoByFuzzyName(string name, UserOrder order = UserOrder.ORDER_UNSPECIFIED, bool desc = false)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             if (string.IsNullOrEmpty(name)) return null;
 
             m_sqlThreadLock.AcquireWriterLock(Timeout.Infinite);
-            var data = __query_user_by_specified_constraint("Name LIKE '%" + name + "%'");
+            string[] order_str = new string[] { "ID", "Total_Illusts", "Follower", "Follow_Users" };
+            string orderby = null;
+            if (order >= 0 && (int)order < order_str.Length) orderby = order_str[(int)order];
+            var data = __query_user_by_specified_constraint("Name LIKE '%" + name + "%'", orderby, desc);
             m_sqlThreadLock.ReleaseWriterLock();
             return data.ToArray();
         }

@@ -473,7 +473,9 @@ namespace Pixiv_Background_Form
                     //access failure
                     illust_invalid = illust_invalid || (ilsinfo.Origin != DataOrigin.SauceNao_API && (ilsinfo.HTTP_Status == 403 || ilsinfo.HTTP_Status == 404));
                     //network failure using saucenao
-                    illust_invalid = illust_invalid || (ilsinfo.Origin == DataOrigin.SauceNao_API && ilsinfo.HTTP_Status != 200);
+                    //illust_invalid = illust_invalid || (ilsinfo.Origin == DataOrigin.SauceNao_API && ilsinfo.HTTP_Status != 200);
+                    //403 forbidden for pixiv api (width=height=100 and title=empty)
+                    illust_invalid = illust_invalid || (ilsinfo.Size == new System.Drawing.Size(100, 100) && string.IsNullOrEmpty(ilsinfo.Title));
                     if (illust_invalid)
                     {
                         var key = _background_queue.Keys.FirstOrDefault(o => o.id == ilsinfo.ID);

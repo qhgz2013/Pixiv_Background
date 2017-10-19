@@ -34,22 +34,12 @@ namespace Pixiv_Background_Form
             lock (_instantiate_lock)
             {
                 if (_single_inst != null) return;
-                //STA thread
-                //var tmp_thd = new Thread(new ThreadStart(delegate
-                //{
-                //    Tracer.GlobalTracer.TraceInfo("instantiating frmSearching");
                 _single_inst = new frmSearch(pathData, sqlData);
-                //    _single_inst.Closed += (_sender, _e) => { _single_inst.Dispatcher.InvokeShutdown(); };
                 _single_inst.Closing += (_sender, _e) =>
                 {
                     _e.Cancel = true;
                     _single_inst.Hide();
                 }; //closing override
-                //    System.Windows.Threading.Dispatcher.Run();
-                //}));
-                //tmp_thd.SetApartmentState(ApartmentState.STA);
-                //tmp_thd.IsBackground = true;
-                //tmp_thd.Start();
             }
         }
         private static object _instantiate_lock = new object();
@@ -114,34 +104,40 @@ namespace Pixiv_Background_Form
                         //投稿ID
                         uint id;
                         if (uint.TryParse(tSearchString.Text, out id))
+                        {
                             _cached_illusts = new Illust[] { _sqldata.GetIllustInfo(id, DataUpdateMode.No_Update) };
+                            if (_cached_illusts[0].ID == 0) _cached_illusts = new Illust[0];
+                        }
                         else
-                            _cached_illusts = _sqldata.GetIllustInfoByFuzzyID(tSearchString.Text);
+                            _cached_illusts = _sqldata.GetIllustInfoByFuzzyID(tSearchString.Text, (IllustOrder)cIllustSortType.SelectedIndex, true);
                         break;
                     case 1:
                         //投稿标题
-                        _cached_illusts = _sqldata.GetIllustInfoByTitle(tSearchString.Text);
+                        _cached_illusts = _sqldata.GetIllustInfoByTitle(tSearchString.Text, (IllustOrder)cIllustSortType.SelectedIndex, true);
                         break;
                     case 2:
                         //投稿Tag
-                        _cached_illusts = _sqldata.GetIllustInfoByTag(tSearchString.Text);
+                        _cached_illusts = _sqldata.GetIllustInfoByTag(tSearchString.Text, (IllustOrder)cIllustSortType.SelectedIndex, true);
                         break;
                     case 3:
                         //投稿作者名称
-                        _cached_illusts = _sqldata.GetIllustInfoByAuthorName(tSearchString.Text);
+                        _cached_illusts = _sqldata.GetIllustInfoByAuthorName(tSearchString.Text, (IllustOrder)cIllustSortType.SelectedIndex, true);
                         if (_cached_illusts.Length == 0) _cached_illusts = _sqldata.GetIllustInfoByFuzzyAuthorName(tSearchString.Text);
                         break;
                     case 4:
                         //用户ID
                         if (uint.TryParse(tSearchString.Text, out id))
+                        {
                             _cached_users = new User[] { _sqldata.GetUserInfo(id, DataUpdateMode.No_Update) };
+                            if (_cached_users[0].ID == 0) _cached_users = new User[0];
+                        }
                         else
-                            _cached_users = _sqldata.GetUserInfoByFuzzyID(tSearchString.Text);
+                            _cached_users = _sqldata.GetUserInfoByFuzzyID(tSearchString.Text, (UserOrder)cUserSortType.SelectedIndex, true);
                         break;
                     case 5:
                         //用户名称
-                        _cached_users = _sqldata.GetUserInfoByName(tSearchString.Text);
-                        if (_cached_users.Length == 0) _cached_users = _sqldata.GetUserInfoByFuzzyName(tSearchString.Text);
+                        _cached_users = _sqldata.GetUserInfoByName(tSearchString.Text, (UserOrder)cUserSortType.SelectedIndex, true);
+                        if (_cached_users.Length == 0) _cached_users = _sqldata.GetUserInfoByFuzzyName(tSearchString.Text, (UserOrder)cUserSortType.SelectedIndex, true);
 
                         break;
                     default:
@@ -150,19 +146,26 @@ namespace Pixiv_Background_Form
 
                 if (_cached_illusts != null && _cached_illusts.Length > 0)
                 {
-                    var existed_image = new List<IllustKey>();
                     var data_key = _tokey(_cached_illusts);
+                    var key_mapping = new Dictionary<IllustKey, List<IllustKey>>();
+                    foreach (var item in data_key)
+                    {
+                        key_mapping.Add(item, new List<IllustKey>());
+                    }
                     var temp_lock = new object();
                     Parallel.ForEach(_pathdata, item =>
                     {
-                        var find = _cached_illusts.FirstOrDefault(o => o.ID == item.Key.id);
-                        if (find.ID != 0)
-                        {
+                        var key = new IllustKey { id = item.Key.id, page = 0 };
+                        if (key_mapping.ContainsKey(key))
                             lock (temp_lock)
-                                existed_image.Add(item.Key);
-                        }
+                                key_mapping[key].Add(item.Key);
                     });
-                    _cached_illustKeys = existed_image.ToArray();
+                    var temp_cache_key = new List<IllustKey>();
+                    foreach (var item in key_mapping.Keys)
+                    {
+                        temp_cache_key.AddRange(key_mapping[item]);
+                    }
+                    _cached_illustKeys = temp_cache_key.ToArray();
 
                     _show_data_illust();
                 }
@@ -499,6 +502,40 @@ namespace Pixiv_Background_Form
         private void bNext_Click(object sender, RoutedEventArgs e)
         {
             _move_next_history();
+        }
+
+        private void cSearchType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cSearchType.SelectedIndex > 3 && cUserSortType.Visibility == Visibility.Hidden)
+            {
+                cUserSortType.Visibility = Visibility.Visible;
+                cIllustSortType.Visibility = Visibility.Hidden;
+            }
+            else if (cIllustSortType.Visibility == Visibility.Hidden)
+            {
+                cIllustSortType.Visibility = Visibility.Visible;
+                cUserSortType.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void cIllustSortType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cIllustSortType.SelectedIndex + 1 == cIllustSortType.Items.Count)
+                cIllustSortType.SelectedIndex = -1;
+
+            if (_background_working) return;
+            KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, Keyboard.PrimaryDevice.ActiveSource, 0, Key.Enter) { RoutedEvent = KeyUpEvent };
+            tSearchString_KeyUp(tSearchString, ke);
+        }
+
+        private void cUserSortType_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cUserSortType.SelectedIndex + 1 == cUserSortType.Items.Count)
+                cUserSortType.SelectedIndex = -1;
+
+            if (_background_working) return;
+            KeyEventArgs ke = new KeyEventArgs(Keyboard.PrimaryDevice, Keyboard.PrimaryDevice.ActiveSource, 0, Key.Enter) { RoutedEvent = KeyUpEvent };
+            tSearchString_KeyUp(tSearchString, ke);
         }
     }
 }

@@ -258,4 +258,56 @@ namespace Pixiv_Background_Form
         Force_Sync_Update
     }
 
+    /// <summary>
+    /// 投稿排序
+    /// </summary>
+    public enum IllustOrder
+    {
+        /// <summary>
+        /// 未指定排序顺序
+        /// </summary>
+        ORDER_UNSPECIFIED = -1,
+        /// <summary>
+        /// 投稿ID
+        /// </summary>
+        ORDER_ID,
+        /// <summary>
+        /// 投稿点击数
+        /// </summary>
+        ORDER_CLICK,
+        /// <summary>
+        /// 投稿收藏数
+        /// </summary>
+        ORDER_FAVOR,
+        /// <summary>
+        /// 投稿评论数
+        /// </summary>
+        ORDER_COMMENT
+    }
+    /// <summary>
+    /// 用户排序
+    /// </summary>
+    public enum UserOrder
+    {
+        /// <summary>
+        /// 未指定排序顺序
+        /// </summary>
+        ORDER_UNSPECIFIED = -1,
+        /// <summary>
+        /// 用户ID
+        /// </summary>
+        ORDER_ID,
+        /// <summary>
+        /// 用户投稿数
+        /// </summary>
+        ORDER_ILLUST,
+        /// <summary>
+        /// 用户关注者
+        /// </summary>
+        ORDER_FOLLOWER,
+        /// <summary>
+        /// 用户关注
+        /// </summary>
+        ORDER_FOLLOWS
+    }
 }
