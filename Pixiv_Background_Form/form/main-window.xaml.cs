@@ -94,11 +94,26 @@ namespace Pixiv_Background_Form
                     }
                 });
                 //实例化搜索窗口
-
                 Dispatcher.Invoke(new ThreadStart(delegate
                 {
                     frmSearch.Instantiate(_background_queue, _database);
                 }));
+                //更新当前信息
+                if (_last_data.illust != null)
+                {
+                    for (int i = 0; i < _last_data.illust.Length; i++)
+                    {
+                        _last_data.illust[i] = _database.GetIllustInfo(_last_data.illust[i].ID);
+                    }
+                }
+                if (_last_data.user != null)
+                {
+                    for (int i = 0; i < _last_data.user.Length; i++)
+                    {
+                        _last_data.user[i] = _database.GetUserInfo(_last_data.user[i].ID);
+                    }
+                }
+                _save_last_data();
 
                 _initialize_thread = null;
             });
@@ -708,7 +723,7 @@ namespace Pixiv_Background_Form
             var dst = _src_location + vec;
             Point dock_pos;
             var stat = _dock_check(dst, out dock_pos);
-            
+
             Left = dock_pos.X;
             Top = dock_pos.Y;
             if (stat != DockStatus.DockFailed)

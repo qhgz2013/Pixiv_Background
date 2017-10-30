@@ -230,9 +230,13 @@ namespace Pixiv_Background_Form
             tbid.TextWrapping = TextWrapping.WrapWithOverflow;
             lUserID.Content = tbid;
             //description
-            var html_data = html_parser.parseHTML(_user.Description != null ? _user.Description : string.Empty);
-            html_data.Width = lUserDescription.Width;
-            lUserDescription.Content = html_data;
+            var tb_desc = new TextBlock();
+            if (!string.IsNullOrEmpty(_user.Description))
+                tb_desc.Inlines.Add(_user.Description);
+            tb_desc.TextWrapping = TextWrapping.Wrap;
+            tb_desc.Width = lUserDescription.Width;
+            tb_desc.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
+            lUserDescription.Content = tb_desc;
             //other data
             var sb = new StringBuilder();
             sb.AppendFormat("HTTP状态码: {0} ({1})\r\n", _user.HTTP_Status, _get_status_code(_user.HTTP_Status));

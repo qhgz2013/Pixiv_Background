@@ -44,7 +44,7 @@ namespace Pixiv_Background_Form
             {
                 System.Diagnostics.Debug.Print(ex.ToString());
                 var exception_output = new TextBlock();
-                exception_output.Inlines.Add(ex.ToString());
+                exception_output.Inlines.Add(ex.ToString() + "\r\nPost the issue with the html below:\r\nSource HTML:\r\n" + html);
                 exception_output.Foreground = new SolidColorBrush(Color.FromRgb(0x5b, 0x5b, 0x5b));
                 main_layout.Children.Add(exception_output);
             }
