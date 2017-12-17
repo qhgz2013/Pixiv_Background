@@ -68,6 +68,9 @@ namespace Pixiv_Background_Form
         //在全屏下是否禁用waifu2x
         private static bool m_disable_waifu2x_while_full_screen;
         private const string M_DISABLE_WAIFU2X_WHILE_FULL_SCREEN_KEY = "disable_waifu2x_while_full_screen";
+        //在系统待机时（鼠标无移动下）是否暂停更换壁纸
+        private static bool m_disable_idle_change;
+        private const string M_DISABLE_IDLE_CHANGE_KEY = "disable_idle_change";
         //触发背景切换的线程
         private static Thread m_background_thread;
         private static double m_constructor_execution_time;
@@ -75,7 +78,7 @@ namespace Pixiv_Background_Form
         //触发壁纸更新的事件
         public static event EventHandler WallPaperChangeEvent;
         //更变数值触发的事件
-        public static event EventHandler PathsChanged, EnableMultiMonitorDifferentWallpaperChanged, EnableBufferingChanged, EnableWaifu2xUpscalingChanged,
+        public static event EventHandler PathsChanged, EnableMultiMonitorDifferentWallpaperChanged, EnableBufferingChanged, EnableWaifu2xUpscalingChanged, DisableIdleChangeChanged,
             Waifu2xPathChanged, EnableSlideAnimationChanged, WallpaperChangeTimeChanged, EnableIllustQueueChanged, IllustQueueChanged, Waifu2xUpscaleThresholdChanged, DisableWaifu2xWhileFullScreenChanged;
         #region Properties
         /// <summary>
@@ -126,6 +129,10 @@ namespace Pixiv_Background_Form
         /// 在全屏模式下是否禁用waifu2x插件
         /// </summary>
         public static bool DisableWaifu2xWhileFullScreen { get { return m_disable_waifu2x_while_full_screen; } set { m_disable_waifu2x_while_full_screen = value; _verifySetting(); DisableWaifu2xWhileFullScreenChanged?.Invoke(null, new EventArgs()); } }
+        /// <summary>
+        /// 在系统待机时（鼠标无移动下）是否暂停更换壁纸
+        /// </summary>
+        public static bool DisableIdleChange { get { return m_disable_idle_change; } set { m_disable_idle_change = value; _verifySetting(); DisableIdleChangeChanged?.Invoke(null, new EventArgs()); } }
         #endregion
 
         static Settings()
@@ -210,6 +217,7 @@ namespace Pixiv_Background_Form
                     m_illust_queue = json[M_ILLUST_QUEUE_KEY].ToObject<List<IllustKey>>();
                     m_waifu2x_upscale_threshold = json.Value<double>(M_WAIFU2X_UPSCALE_THRESHOLD_KEY);
                     m_disable_waifu2x_while_full_screen = json.Value<bool>(M_DISABLE_WAIFU2X_WHILE_FULL_SCREEN_KEY);
+                    m_disable_idle_change = json.Value<bool>(M_DISABLE_IDLE_CHANGE_KEY);
                 }
                 catch (Exception)
                 {
@@ -239,6 +247,7 @@ namespace Pixiv_Background_Form
                 json.Add(M_ILLUST_QUEUE_KEY, JToken.FromObject(m_illust_queue));
                 json.Add(M_WAIFU2X_UPSCALE_THRESHOLD_KEY, m_waifu2x_upscale_threshold);
                 json.Add(M_DISABLE_WAIFU2X_WHILE_FULL_SCREEN_KEY, m_disable_waifu2x_while_full_screen);
+                json.Add(M_DISABLE_IDLE_CHANGE_KEY, m_disable_idle_change);
 
                 var str = JsonConvert.SerializeObject(json);
                 File.WriteAllText(M_SETTING_NAME, str);

@@ -191,6 +191,7 @@ namespace Pixiv_Background_Form
             public int[] page;
         }
         private _temp_serialize_struct _last_data;
+        private bool _mouse_moved_in_this_wallpaper;
         private void _load_last_data()
         {
             var filename = "tempBackground.dat";
@@ -272,7 +273,7 @@ namespace Pixiv_Background_Form
             {
                 source.Save(img_in_path, System.Drawing.Imaging.ImageFormat.Png);
                 var plugin = new Waifu2xPlugin(Settings.Waifu2xPath);
-                plugin.UpscaleImage(img_in_path, img_out_path, scale_ratio: ratio, noise_level: 2);
+                plugin.UpscaleImage(img_in_path, img_out_path, scale_ratio: ratio, noise_level: 1);
                 var stream = File.OpenRead(img_out_path);
                 var data = util.ReadBytes(stream, (int)stream.Length);
                 stream.Close();
@@ -302,6 +303,8 @@ namespace Pixiv_Background_Form
                 try
                 {
                     if (_background_queue.Count == 0) return;
+                    if (Settings.DisableIdleChange && _mouse_moved_in_this_wallpaper == false) return;
+                    _mouse_moved_in_this_wallpaper = false;
                     //当前壁纸id和page
                     IllustKey[] cur_wallpaper = null;
                     //要显示的壁纸的数量
@@ -679,8 +682,17 @@ namespace Pixiv_Background_Form
         //检测鼠标位置的回调函数（40check/s）
         private void __drag_thd_callback()
         {
+            System.Drawing.Point last_pos, cur_pos = System.Windows.Forms.Cursor.Position;
             do
             {
+                last_pos = cur_pos;
+                cur_pos = System.Windows.Forms.Cursor.Position;
+                if (_mouse_moved_in_this_wallpaper == false && last_pos != cur_pos)
+                {
+                    _mouse_moved_in_this_wallpaper = true;
+                }
+
+                //检测鼠标移动
                 if (_in_drag)
                 {
                     var mouse_pos = System.Windows.Forms.Cursor.Position;

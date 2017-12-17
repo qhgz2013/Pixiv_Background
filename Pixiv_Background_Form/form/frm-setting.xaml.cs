@@ -89,6 +89,7 @@ namespace Pixiv_Background_Form
             cEnableWaifu2xUpscaling.IsChecked = Settings.EnableWaifu2xUpscaling;
             tChangeTime.Text = Settings.WallpaperChangeTime.ToString();
             tWaifu2xScaleThreshold.Text = Settings.Waifu2xUpscaleThreshold.ToString();
+            cStopIdleChange.IsChecked = Settings.DisableIdleChange;
 
             if (!string.IsNullOrEmpty(Settings.Waifu2xPath))
             {
@@ -225,6 +226,13 @@ namespace Pixiv_Background_Form
             if (!_form_loaded) return;
             bApply.IsEnabled = true;
         }
+
+        private void cStopIdleChange_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_form_loaded) return;
+            bApply.IsEnabled = true;
+        }
+
         private void cEnableWaifu2xUpscaling_Click(object sender, RoutedEventArgs e)
         {
             if (!_form_loaded) return;
@@ -279,6 +287,8 @@ namespace Pixiv_Background_Form
                 Settings.Paths = tmp_path;
             if (Settings.EnableIllustQueue != cEnableBuffering.IsChecked)
                 Settings.EnableIllustQueue = (bool)cEnableQueue.IsChecked;
+            if (Settings.DisableIdleChange != cStopIdleChange.IsChecked)
+                Settings.DisableIdleChange = (bool)cStopIdleChange.IsChecked;
             if (Settings.EnableMultiMonitorDifferentWallpaper != cEnableDiffWallpaper.IsChecked)
                 Settings.EnableMultiMonitorDifferentWallpaper = (bool)cEnableDiffWallpaper.IsChecked;
             if (Settings.EnableSlideAnimation != cEnableAnimation.IsChecked)
@@ -407,6 +417,6 @@ namespace Pixiv_Background_Form
         {
             bApply.IsEnabled = true;
         }
-        
+
     }
 }
