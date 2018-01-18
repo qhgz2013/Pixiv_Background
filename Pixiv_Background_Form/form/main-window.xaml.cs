@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Diagnostics;
 using Microsoft.Win32;
+using GlobalUtil;
 
 namespace Pixiv_Background_Form
 {
@@ -42,7 +43,6 @@ namespace Pixiv_Background_Form
             _drag_thd.IsBackground = true;
             _drag_thd.SetApartmentState(ApartmentState.STA);
             _drag_thd.Start();
-            //Timeline.DesiredFrameRateProperty.OverrideMetadata(typeof(Timeline), new FrameworkPropertyMetadata { DefaultValue = 1 });
             //初始化（转移到其他线程）
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -191,31 +191,38 @@ namespace Pixiv_Background_Form
             public int[] page;
         }
         private _temp_serialize_struct _last_data;
+        private object _data_lock = new object();
         private bool _mouse_moved_in_this_wallpaper;
         private void _load_last_data()
         {
-            var filename = "tempBackground.dat";
-            if (File.Exists(filename))
+            lock (_data_lock)
             {
-                var stream = File.OpenRead(filename);
-                var fmt = new BinaryFormatter();
+                var filename = "tempBackground.dat";
+                if (File.Exists(filename))
+                {
+                    var stream = File.OpenRead(filename);
+                    var fmt = new BinaryFormatter();
 
-                _last_data = (_temp_serialize_struct)fmt.Deserialize(stream);
-                stream.Close();
+                    _last_data = (_temp_serialize_struct)fmt.Deserialize(stream);
+                    stream.Close();
+                }
             }
         }
         private void _save_last_data()
         {
-            var filename = "tempBackground.dat";
-            var stream = File.OpenWrite(filename);
-            try
+            lock (_data_lock)
             {
-                var fmt = new BinaryFormatter();
-                fmt.Serialize(stream, _last_data);
-            }
-            finally
-            {
-                stream.Close();
+                var filename = "tempBackground.dat";
+                var stream = File.OpenWrite(filename);
+                try
+                {
+                    var fmt = new BinaryFormatter();
+                    fmt.Serialize(stream, _last_data);
+                }
+                finally
+                {
+                    stream.Close();
+                }
             }
         }
         #endregion //Form Initialize

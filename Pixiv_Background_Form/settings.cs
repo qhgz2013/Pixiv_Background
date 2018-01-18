@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using GlobalUtil;
 
 namespace Pixiv_Background_Form
 {

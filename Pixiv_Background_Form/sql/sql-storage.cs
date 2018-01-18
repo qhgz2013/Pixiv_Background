@@ -10,7 +10,7 @@ using Newtonsoft.Json.Linq;
 using System.Drawing;
 using System.Data;
 using System.Net;
-using Pixiv_Background_Form.NetUtils;
+using GlobalUtil;
 
 namespace Pixiv_Background_Form
 {

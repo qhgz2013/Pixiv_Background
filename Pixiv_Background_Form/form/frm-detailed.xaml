@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="frmDetailed" Height="800" Width="1000">
+        Title="frmDetailed" Height="800" Width="1000" Icon="/Resources/icon.32x32.ico">
     <Window.Resources>
         <ResourceDictionary>
             <Color x:Key="HighlightColor" x:Shared="False">#FF0078D7</Color>

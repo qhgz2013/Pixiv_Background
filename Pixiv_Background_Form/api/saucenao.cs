@@ -8,8 +8,9 @@ using System.Drawing;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json;
 using System.Diagnostics;
-using Pixiv_Background_Form.NetUtils;
 using System.Threading;
+using GlobalUtil;
+using GlobalUtil.NetUtils;
 
 namespace Pixiv_Background_Form
 {

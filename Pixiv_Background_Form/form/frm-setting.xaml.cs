@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GlobalUtil;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -142,6 +143,7 @@ namespace Pixiv_Background_Form
                 if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
                     ((Label)sender).Content = fbd.SelectedPath;
+                    ((Label)sender).ToolTip = fbd.SelectedPath;
                     ((Label)sender).Foreground = new SolidColorBrush(Colors.Black);
                     _path[tag] = new PathSetting { Directory = fbd.SelectedPath, IncludingSubDir = _path[tag].IncludingSubDir };
                     bApply.IsEnabled = true;
@@ -364,6 +366,7 @@ namespace Pixiv_Background_Form
                 lblpath.Tag = i;
                 lblpath.Name = "ctl_1_" + i;
                 lblpath.Content = fbd.SelectedPath;
+                lblpath.ToolTip = fbd.SelectedPath;
                 lblpath.HorizontalAlignment = HorizontalAlignment.Left;
                 lblpath.VerticalAlignment = VerticalAlignment.Center;
                 lblpath.MouseDoubleClick += lblpath_MouseDoubleClick;

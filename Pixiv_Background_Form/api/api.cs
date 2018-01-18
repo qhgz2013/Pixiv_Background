@@ -1,6 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿using GlobalUtil;
+using GlobalUtil.NetUtils;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Pixiv_Background_Form.NetUtils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
