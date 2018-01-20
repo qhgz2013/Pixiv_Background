@@ -49,12 +49,16 @@
             </Style>
         </ResourceDictionary>
     </Window.Resources>
-    <Grid>
+    <Grid x:Name="gMainLayout">
         <Grid.RowDefinitions>
             <RowDefinition/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
-        <Image x:Name="iSourceImage" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Canvas x:Name="cSource">
+            <Grid Width="{Binding ElementName=cSource, Path=ActualWidth}" Height="{Binding ElementName=cSource, Path=ActualHeight}" x:Name="gSource">
+                <Image x:Name="iSourceImage" HorizontalAlignment="Center" VerticalAlignment="Center" MouseUp="iSourceImage_MouseUp" MouseDown="iSourceImage_MouseDown" MouseMove="iSourceImage_MouseMove" LostMouseCapture="iSourceImage_LostMouseCapture"/>
+            </Grid>
+        </Canvas>
         <!--todo: add data grid-->
         <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="1" MaxHeight="200">
             <Grid>
@@ -127,7 +131,7 @@
                             <Image Source="pack://application:,,,/Resources/ExternalLink.png"/>
                         </Button>
                     </Grid>
-                            <Label x:Name="lUserDescription" Foreground="{StaticResource MyGrayBrush}" Grid.Row="2" Grid.ColumnSpan="2">Descriptions</Label>
+                    <Label x:Name="lUserDescription" Foreground="{StaticResource MyGrayBrush}" Grid.Row="2" Grid.ColumnSpan="2">Descriptions</Label>
                     <Label x:Name="lUserStat" Foreground="{StaticResource MyGrayBrush}" Grid.Row="3" Grid.ColumnSpan="2">Other data</Label>
                 </Grid>
             </Grid>

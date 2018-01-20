@@ -55,7 +55,7 @@ namespace Pixiv_Background_Form
         private void _open_illust(uint id)
         {
             if (id == 0) return;
-            Process.Start("http://www.pixiv.net/i/" + id);
+            Process.Start("https://www.pixiv.net/i/" + id);
         }
         /// <summary>
         /// 在网页中打开指定的pixiv画师id
@@ -64,7 +64,7 @@ namespace Pixiv_Background_Form
         private void _open_user(uint id)
         {
             if (id == 0) return;
-            Process.Start("http://www.pixiv.net/u/" + id);
+            Process.Start("https://www.pixiv.net/u/" + id);
         }
         //随机显示字符串数组中的任意字符串
         private string _random_text(string[] origin)
@@ -105,7 +105,7 @@ namespace Pixiv_Background_Form
                     }));
                 };
                 hl.TextDecorations = null;
-                
+
                 ret_tb.Inlines.Add(hl);
                 var tb = new TextBlock();
                 tb.Inlines.Add(",");
@@ -272,6 +272,81 @@ namespace Pixiv_Background_Form
         private void bUserName_Click(object sender, RoutedEventArgs e)
         {
             _open_user(_user.ID);
+        }
+
+        private DateTime _last_mouse_up_time;
+        private TimeSpan _double_click_threshold = TimeSpan.FromSeconds(0.3);
+        private bool _is_scale_mode;
+        private Point _image_anchor_point, _mouse_anchor_point;
+        private bool _is_mouse_down;
+        private void iSourceImage_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DateTime.Now - _last_mouse_up_time < _double_click_threshold)
+            {
+                if (_is_scale_mode)
+                {
+                    //缩小
+                    iSourceImage.Width = double.NaN;
+                    iSourceImage.Height = double.NaN;
+                    iSourceImage.VerticalAlignment = VerticalAlignment.Center;
+                    iSourceImage.HorizontalAlignment = HorizontalAlignment.Center;
+
+                    cSource.Children.Clear();
+                    cSource.Children.Add(gSource);
+                    gSource.Children.Add(iSourceImage);
+                    iSourceImage.Tag = null;
+                    gMainLayout.RowDefinitions[1].Height = GridLength.Auto;
+                }
+                else
+                {
+                    //放大
+                    iSourceImage.Width = ((BitmapSource)iSourceImage.Source).PixelWidth; //iSourceImage.Width = iSourceImage.Source.Width;
+                    iSourceImage.Height = ((BitmapSource)iSourceImage.Source).PixelHeight; //iSourceImage.Height = iSourceImage.Source.Height;
+                    iSourceImage.VerticalAlignment = VerticalAlignment.Top;
+                    iSourceImage.HorizontalAlignment = HorizontalAlignment.Left;
+
+                    iSourceImage.SetValue(Canvas.LeftProperty, 0.0);
+                    iSourceImage.SetValue(Canvas.TopProperty, 0.0);
+                    iSourceImage.Tag = gSource;
+                    gSource.Children.Clear();
+                    cSource.Children.Clear();
+                    cSource.Children.Add(iSourceImage);
+                    gMainLayout.RowDefinitions[1].Height = new GridLength(0);
+                }
+                _is_scale_mode = !_is_scale_mode;
+            }
+            _last_mouse_up_time = DateTime.Now;
+            _is_mouse_down = false;
+            _image_anchor_point = new Point((double)iSourceImage.GetValue(Canvas.LeftProperty), (double)iSourceImage.GetValue(Canvas.TopProperty));
+            iSourceImage.ReleaseMouseCapture();
+        }
+
+        private void iSourceImage_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _is_mouse_down = true;
+            _mouse_anchor_point = e.GetPosition(this);
+            iSourceImage.CaptureMouse();
+        }
+
+        private void iSourceImage_LostMouseCapture(object sender, MouseEventArgs e)
+        {
+            iSourceImage.ReleaseMouseCapture();
+        }
+
+        private void iSourceImage_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_is_mouse_down && _is_scale_mode)
+            {
+                var current_point = e.GetPosition(this);
+                var delta_vector = current_point - _mouse_anchor_point;
+                var new_image_anchor = _image_anchor_point + delta_vector;
+                if (cSource.ActualWidth - new_image_anchor.X > iSourceImage.ActualWidth) new_image_anchor.X = cSource.ActualWidth - iSourceImage.ActualWidth;
+                if (new_image_anchor.X > 0) new_image_anchor.X = 0;
+                if (cSource.ActualHeight - new_image_anchor.Y > iSourceImage.ActualHeight) new_image_anchor.Y = cSource.ActualHeight - iSourceImage.ActualHeight;
+                if (new_image_anchor.Y > 0) new_image_anchor.Y = 0;
+                iSourceImage.SetValue(Canvas.LeftProperty, new_image_anchor.X);
+                iSourceImage.SetValue(Canvas.TopProperty, new_image_anchor.Y);
+            }
         }
     }
 }
