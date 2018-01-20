@@ -32,9 +32,10 @@ namespace Pixiv_Background_Form
             InitializeComponent();
             ScreenWatcher.GetPrimaryScreenBoundary(); //initialize, executing static constructor
             //登陆部分
-            _auth = new PixivAuth();
+            //_auth = new PixivAuth();
             //API调用部分
-            _api = new API(_auth);
+            //_api = new API(_auth);
+            _api = new ApiNoAuth();
             //读取上次的背景信息
             _load_last_data();
             //监测鼠标拖拽的线程（用于鼠标在窗体外面的跟踪）
@@ -49,35 +50,35 @@ namespace Pixiv_Background_Form
                 //记录初始化线程，用于线程同步（主线程等待）
                 _initialize_thread = Thread.CurrentThread;
                 //数据库保存部分
-                _database = new DataStorage(_api, true, _auth);
+                _database = new DataStorage(_api, true);
                 _background_queue = new Dictionary<IllustKey, string>();
                 //登陆失败回调
-                _auth.LoginFailed += (str =>
-                {
-                    Dispatcher.Invoke(new ThreadStart(delegate
-                    {
-                        System.Windows.Forms.MessageBox.Show("登陆失败: " + str);
-                        Close();
-                    }));
-                });
+                //_auth.LoginFailed += (str =>
+                //{
+                //    Dispatcher.Invoke(new ThreadStart(delegate
+                //    {
+                //        System.Windows.Forms.MessageBox.Show("登陆失败: " + str);
+                //        Close();
+                //    }));
+                //});
                 //登陆监测
-                if (!_auth.IsLogined)
-                {
-                    Dispatcher.Invoke(new ThreadStart(delegate
-                    {
-                        var frm_login = new frmLogin();
-                        frm_login.ShowDialog();
-                        if (frm_login.canceled)
-                        {
-                            Close();
-                            return;
-                        }
-                        var user = frm_login.user_name;
-                        var pass = frm_login.pass_word;
-                        try { _auth.Login(user, pass); }
-                        catch { Close(); return; }
-                    }));
-                }
+                //if (!_auth.IsLogined)
+                //{
+                //    Dispatcher.Invoke(new ThreadStart(delegate
+                //    {
+                //        var frm_login = new frmLogin();
+                //        frm_login.ShowDialog();
+                //        if (frm_login.canceled)
+                //        {
+                //            Close();
+                //            return;
+                //        }
+                //        var user = frm_login.user_name;
+                //        var pass = frm_login.pass_word;
+                //        try { _auth.Login(user, pass); }
+                //        catch { Close(); return; }
+                //    }));
+                //}
                 //事件回调
                 Settings.WallPaperChangeEvent += _on_wallpaper_changed;
                 Settings.PathsChanged += _on_paths_changed;
@@ -503,6 +504,7 @@ namespace Pixiv_Background_Form
                     illust_invalid = illust_invalid || (ilsinfo.Size == new System.Drawing.Size(100, 100) && string.IsNullOrEmpty(ilsinfo.Title));
                     if (illust_invalid)
                     {
+                        //illust data invalid, querying data using saucenao API
                         var key = _background_queue.Keys.FirstOrDefault(o => o.id == ilsinfo.ID);
                         if (key.id != 0)
                         {
@@ -510,6 +512,7 @@ namespace Pixiv_Background_Form
                             Illust new_illust; User new_user;
                             saucenaoAPI.QueryImage(path, out new_illust, out new_user);
 
+                            //updating current illust info and user info
                             if (new_illust.ID != 0)
                             {
                                 _database.SetIllustInfo(new_illust);
@@ -529,10 +532,19 @@ namespace Pixiv_Background_Form
                             }
                         }
                     }
+
+                    //updating cached illust info
                     for (int i = 0; _last_data.illust != null && i < _last_data.illust.Length; i++)
                     {
                         if (_last_data.illust[i].ID == ilsinfo.ID)
                         {
+                            if (ilsinfo.Size == System.Drawing.Size.Empty && ilsinfo.Page <= 1)
+                            {
+                                //fixing empty size by anonymous data fetching
+                                ilsinfo.Size = _last_data.imageSolution[i];
+                                _database.SetIllustInfo(ilsinfo);
+                            }
+
                             _last_data.illust[i] = ilsinfo;
                             _save_last_data();
                         }

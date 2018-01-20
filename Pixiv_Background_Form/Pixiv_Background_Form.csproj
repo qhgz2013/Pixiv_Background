@@ -109,6 +109,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="api\api-no-auth.cs" />
     <Compile Include="api\api-struct.cs" />
     <Compile Include="api\api.cs" />
     <Compile Include="api\auth.cs" />

@@ -231,19 +231,22 @@ namespace Pixiv_Background_Form
             tbid.TextWrapping = TextWrapping.WrapWithOverflow;
             lUserID.Content = tbid;
             //description
-            var tb_desc = new TextBlock();
-            if (!string.IsNullOrEmpty(_user.Description))
-                tb_desc.Inlines.Add(_user.Description);
-            tb_desc.TextWrapping = TextWrapping.Wrap;
-            tb_desc.Width = lUserDescription.Width;
-            tb_desc.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
-            lUserDescription.Content = tb_desc;
+            var html_data = html_parser.parseHTML(_user.Description);
+            html_data.Width = lDescription.Width;
+            lUserDescription.Content = html_data;
+            //var tb_desc = new TextBlock();
+            //if (!string.IsNullOrEmpty(_user.Description))
+            //    tb_desc.Inlines.Add(_user.Description);
+            //tb_desc.TextWrapping = TextWrapping.Wrap;
+            //tb_desc.Width = lUserDescription.Width;
+            //tb_desc.Foreground = new SolidColorBrush((Color)FindResource("MyGrayColor"));
+            //lUserDescription.Content = tb_desc;
             //other data
             var sb = new StringBuilder();
             sb.AppendFormat("HTTP状态码: {0} ({1})\r\n", _user.HTTP_Status, _get_status_code(_user.HTTP_Status));
             sb.AppendFormat("关注着的画师: {0}\r\n关注者: {1}\r\n好P友: {2}\r\n", _user.Follow_Users, _user.Follower, _user.Mypixiv_Users);
             sb.AppendFormat("已投稿的插画: {0}\r\n已投稿的小说: {1}\r\n公开收藏数: {2}\r\n", _user.Total_Illusts, _user.Total_Novels, _user.Illust_Bookmark_Public);
-            sb.AppendFormat("性别: {2}\r\n生日: {0}\r\n地址: {1}\r\n职业: {2}\r\n", _user.Birthday, _user.Address, _user.Gender, _user.Job);
+            sb.AppendFormat("性别: {2}\r\n生日: {0}\r\n地址: {1}\r\n职业: {3}\r\n", _user.Birthday, _user.Address, _user.Gender, _user.Job);
             sb.AppendFormat("Twitter: {0}\r\n主页: {1}\r\n个人标签: {2}\r\n", _user.Twitter, _user.Home_Page, _user.Personal_Tag);
             sb.AppendFormat("最后更新时间戳: {0} ({1})\r\n最后成功更新时间戳: {2} ({3})", _user.Last_Update, util.FromUnixTimestamp(_user.Last_Update).ToString(), _user.Last_Success_Update, util.FromUnixTimestamp(_user.Last_Success_Update).ToString());
             var tb = new TextBlock();
@@ -314,8 +317,10 @@ namespace Pixiv_Background_Form
                     gMainLayout.RowDefinitions[1].Height = new GridLength(0);
                 }
                 _is_scale_mode = !_is_scale_mode;
+                _last_mouse_up_time = DateTime.MinValue;
             }
-            _last_mouse_up_time = DateTime.Now;
+            else
+                _last_mouse_up_time = DateTime.Now;
             _is_mouse_down = false;
             _image_anchor_point = new Point((double)iSourceImage.GetValue(Canvas.LeftProperty), (double)iSourceImage.GetValue(Canvas.TopProperty));
             iSourceImage.ReleaseMouseCapture();

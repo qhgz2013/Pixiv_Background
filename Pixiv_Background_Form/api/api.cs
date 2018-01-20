@@ -25,7 +25,7 @@ namespace Pixiv_Background_Form
         /// </summary>
         /// <param name="id">投稿的id</param>
         /// <param name="illust">[输出]投稿信息</param>
-        public void ParseIllustInfo(uint id, out Illust illust)
+        public virtual void ParseIllustInfo(uint id, out Illust illust)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             //初始化
@@ -132,7 +132,7 @@ namespace Pixiv_Background_Form
                 ns.Close();
             }
         }
-        public void ParseUserInfo(uint id, out User user)
+        public virtual void ParseUserInfo(uint id, out User user)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
             user = new User();
