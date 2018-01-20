@@ -314,8 +314,10 @@ namespace Pixiv_Background_Form
                     gMainLayout.RowDefinitions[1].Height = new GridLength(0);
                 }
                 _is_scale_mode = !_is_scale_mode;
+                _last_mouse_up_time = DateTime.MinValue;
             }
-            _last_mouse_up_time = DateTime.Now;
+            else
+                _last_mouse_up_time = DateTime.Now;
             _is_mouse_down = false;
             _image_anchor_point = new Point((double)iSourceImage.GetValue(Canvas.LeftProperty), (double)iSourceImage.GetValue(Canvas.TopProperty));
             iSourceImage.ReleaseMouseCapture();

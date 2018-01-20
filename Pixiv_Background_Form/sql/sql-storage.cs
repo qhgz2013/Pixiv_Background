@@ -19,7 +19,6 @@ namespace Pixiv_Background_Form
     {
         //类成员定义
         #region Member Definations
-        private PixivAuth m_auth;
         private API m_api;
         //sql多线程同步锁, 负责sql，m_illust_list和m_user_list的读写
         private ReaderWriterLock m_sqlThreadLock;
@@ -80,13 +79,12 @@ namespace Pixiv_Background_Form
         /// <param name="include_sub_dir">是否包含子文件夹</param>
         /// <param name="ignore_non_200">是否忽略未成功获取的投稿信息</param>
         /// <remarks></remarks>
-        public DataStorage(API api, bool ignore_non_200 = false, PixivAuth auth = null)
+        public DataStorage(API api, bool ignore_non_200 = false)
         {
             Tracer.GlobalTracer.TraceFunctionEntry();
 
             //初始化成员变量
             m_api = api;
-            m_auth = auth;
             m_ignore_non_200_status = ignore_non_200;
             m_sqlThreadLock = new ReaderWriterLock();
             m_dataThreadLock = new ReaderWriterLock();
