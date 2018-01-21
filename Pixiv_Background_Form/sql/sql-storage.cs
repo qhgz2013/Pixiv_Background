@@ -898,7 +898,6 @@ namespace Pixiv_Background_Form
             if (data.Length == 0)
             {
                 var ret = new Illust();
-                ret.ID = id;
                 return ret;
             }
             else

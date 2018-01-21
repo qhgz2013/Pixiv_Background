@@ -533,22 +533,37 @@ namespace Pixiv_Background_Form
                         }
                     }
 
+                    //fixing empty size by anonymous data fetching
+                    if (ilsinfo.Size == System.Drawing.Size.Empty)
+                    {
+                        var key = new IllustKey() { id = ilsinfo.ID, page = 0 };
+                        if (_background_queue.ContainsKey(key))
+                        {
+                            var img_stream = new FileStream(_background_queue[key], FileMode.Open, FileAccess.Read);
+                            var bytes = util.ReadBytes(img_stream, (int)img_stream.Length);
+                            img_stream.Close();
+                            img_stream.Dispose();
+                            var memory_stream = new MemoryStream(bytes);
+                            var img = System.Drawing.Image.FromStream(memory_stream);
+                            var width = img.Width;
+                            var height = img.Height;
+
+                            ilsinfo.Size = new System.Drawing.Size(width, height);
+                            _database.SetIllustInfo(ilsinfo);
+                        }
+                    }
+
                     //updating cached illust info
                     for (int i = 0; _last_data.illust != null && i < _last_data.illust.Length; i++)
                     {
                         if (_last_data.illust[i].ID == ilsinfo.ID)
                         {
-                            if (ilsinfo.Size == System.Drawing.Size.Empty && ilsinfo.Page <= 1)
-                            {
-                                //fixing empty size by anonymous data fetching
-                                ilsinfo.Size = _last_data.imageSolution[i];
-                                _database.SetIllustInfo(ilsinfo);
-                            }
 
                             _last_data.illust[i] = ilsinfo;
                             _save_last_data();
                         }
                     }
+
                 }
                 catch (Exception ex)
                 {

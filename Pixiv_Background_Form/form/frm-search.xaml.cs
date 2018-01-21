@@ -107,7 +107,7 @@ namespace Pixiv_Background_Form
                         if (uint.TryParse(tSearchString.Text, out id))
                         {
                             _cached_illusts = new Illust[] { _sqldata.GetIllustInfo(id, DataUpdateMode.No_Update) };
-                            if (_cached_illusts[0].ID == 0) _cached_illusts = new Illust[0];
+                            if (_cached_illusts[0].ID == 0) _cached_illusts = _sqldata.GetIllustInfoByFuzzyID("%" + tSearchString.Text + "%", (IllustOrder)cIllustSortType.SelectedIndex, true);
                         }
                         else
                             _cached_illusts = _sqldata.GetIllustInfoByFuzzyID(tSearchString.Text, (IllustOrder)cIllustSortType.SelectedIndex, true);
@@ -130,7 +130,7 @@ namespace Pixiv_Background_Form
                         if (uint.TryParse(tSearchString.Text, out id))
                         {
                             _cached_users = new User[] { _sqldata.GetUserInfo(id, DataUpdateMode.No_Update) };
-                            if (_cached_users[0].ID == 0) _cached_users = new User[0];
+                            if (_cached_users[0].ID == 0) _cached_users = _sqldata.GetUserInfoByFuzzyID("%" + tSearchString.Text + "%", (UserOrder)cUserSortType.SelectedIndex, true);
                         }
                         else
                             _cached_users = _sqldata.GetUserInfoByFuzzyID(tSearchString.Text, (UserOrder)cUserSortType.SelectedIndex, true);

@@ -245,14 +245,14 @@ namespace Pixiv_Background_Form
                         Tracer.GlobalTracer.TraceWarning("Failed to parse Description from HTML code, UPDATE THE MATCHING RULES!");
 
                     //additional data:
-                    re_match = Regex.Match(response_html, "<table\\sclass=\"collapsed-hidden\">(?<data>.*?)</table>");
+                    re_match = Regex.Match(response_html, "<table\\sclass=\"collapsed-hidden\">(?<data>.*?)</table>", RegexOptions.Singleline);
                     if (re_match.Success)
                     {
                         var kv_match = Regex.Match(re_match.Result("${data}"), "<tr[^>]*><td>(<div>|<span>)?(?<key>.*?)(</div>|</span>)?</td><td>(<div>|<span>)?(?<value>.*?)(</div>|</span>)?</td></tr>");
 
                         while (kv_match.Success)
                         {
-                            switch (kv_match.Result("${key}"))
+                            switch (kv_match.Result("${key}").ToLower())
                             {
                                 case "昵称":
                                     //name, already parsed
@@ -276,7 +276,7 @@ namespace Pixiv_Background_Form
                                     //job
                                     user.Job = kv_match.Result("${value}");
                                     break;
-                                case "Twitter":
+                                case "twitter":
                                     //twitter
                                     var temp_match = Regex.Match(kv_match.Result("${value}"), "<a[^>]*>(?<twitter>.*?)</a>");
                                     if (temp_match.Success)
@@ -284,6 +284,10 @@ namespace Pixiv_Background_Form
                                     else
                                         user.Twitter = kv_match.Result("${value}");
                                     break;
+                                case "google talk":
+                                case "facebook":
+                                    break;
+
                                 case "主页":
                                     //home page
                                     temp_match = Regex.Match(kv_match.Result("${value}"), "<a[^>]*>(?<homepage>.*?)</a>");

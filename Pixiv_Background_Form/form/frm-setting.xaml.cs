@@ -139,7 +139,7 @@ namespace Pixiv_Background_Form
             if (tag >= 0 && tag < _path.Count)
             {
                 var fbd = new System.Windows.Forms.FolderBrowserDialog();
-                fbd.RootFolder = Environment.SpecialFolder.MyComputer;
+                //fbd.RootFolder = Environment.SpecialFolder.MyComputer;
                 if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
                     ((Label)sender).Content = fbd.SelectedPath;
