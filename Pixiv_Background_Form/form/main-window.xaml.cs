@@ -518,12 +518,13 @@ namespace Pixiv_Background_Form
                                 _database.SetIllustInfo(new_illust);
                                 ilsinfo = _database.GetIllustInfo(new_illust.ID);
                             }
+
                             if (new_user.ID != 0)
                             {
                                 var usrinfo = _database.GetUserInfo(new_user.ID);
                                 for (int i = 0; _last_data.user != null && i < _last_data.user.Length; i++)
                                 {
-                                    if (_last_data.user[i].ID == usrinfo.ID)
+                                    if (_last_data.user[i].ID == usrinfo.ID || _last_data.illust[i].Author_ID == usrinfo.ID)
                                     {
                                         _last_data.user[i] = usrinfo;
                                         _save_last_data();
@@ -552,6 +553,7 @@ namespace Pixiv_Background_Form
                             _database.SetIllustInfo(ilsinfo);
                         }
                     }
+
 
                     //updating cached illust info
                     for (int i = 0; _last_data.illust != null && i < _last_data.illust.Length; i++)

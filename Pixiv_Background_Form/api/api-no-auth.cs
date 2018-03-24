@@ -57,7 +57,7 @@ namespace Pixiv_Background_Form
                     if (re_match.Success)
                         illust.Author_ID = uint.Parse(re_match.Result("${id}"));
                     else
-                        Tracer.GlobalTracer.TraceWarning("Failed to parse Author ID from HTML code, UPDATE THE MATCHING RULES!");
+                    { illust.HTTP_Status = 404; return; }
 
                     //page count (maybe failed)
                     re_match = Regex.Match(response_html, "<div\\s+class=\"page-count\">(?<page>\\d+)</div><img\\s+src=");
@@ -203,7 +203,7 @@ namespace Pixiv_Background_Form
                     if (re_match.Success)
                         user.Name = re_match.Result("${name}");
                     else
-                        Tracer.GlobalTracer.TraceWarning("Failed to parse Name from HTML code, UPDATE THE MATCHING RULES!");
+                    { user.HTTP_Status = 404; return; }
 
                     //user image url
                     re_match = Regex.Match(response_html, "<a[^>]*class=\"profile-row-item\\sprofile-imgbox\"\\s*style=\"background-image:\\s*url\\((?<url>.*?)\\);\"");
@@ -286,6 +286,7 @@ namespace Pixiv_Background_Form
                                     break;
                                 case "google talk":
                                 case "facebook":
+                                case "tumblr":
                                     break;
 
                                 case "主页":
