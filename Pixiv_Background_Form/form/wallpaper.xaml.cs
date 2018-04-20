@@ -30,13 +30,23 @@ namespace Pixiv_Background_Form
             var scaled_width = rect.Width / ScreenWatcher.Scale;
             var scaled_height = rect.Height / ScreenWatcher.Scale;
 
-            Tracer.GlobalTracer.TraceInfo("Origin rect: (" + rect.Width + "," + rect.Height + ")");
-            Tracer.GlobalTracer.TraceInfo("Scaled rect: (" + scaled_width + "," + scaled_height + ")");
-
             Left = 0;
             Top = 0;
             Width = scaled_width;
             Height = scaled_height;
+
+            var primary_screen = ScreenWatcher.GetPrimaryScreenBoundary();
+
+            //设置overlay样式为对齐主显示器右上角
+            var margin = overlay.Margin;
+            margin.Right = 10 + (rect.Width - primary_screen.Right) / ScreenWatcher.Scale;
+            margin.Top = 10 + primary_screen.Top / ScreenWatcher.Scale;
+            overlay.Margin = margin;
+
+            //获取handle，设为背景窗体
+            var source = PresentationSource.FromVisual(this);
+            var helper = new System.Windows.Interop.WindowInteropHelper((Window)sender);
+            Desktop.SetWallpaperUsingFormHandle(helper.Handle);
         }
     }
 }

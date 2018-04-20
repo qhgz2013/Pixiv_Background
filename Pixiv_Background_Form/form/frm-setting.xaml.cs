@@ -83,8 +83,6 @@ namespace Pixiv_Background_Form
             }
 
             //选项加载
-            cEnableAnimation.IsChecked = Settings.EnableSlideAnimation;
-            cEnableBuffering.IsChecked = Settings.EnableBuffering;
             cEnableDiffWallpaper.IsChecked = Settings.EnableMultiMonitorDifferentWallpaper;
             cEnableQueue.IsChecked = Settings.EnableIllustQueue;
             cEnableWaifu2xUpscaling.IsChecked = Settings.EnableWaifu2xUpscaling;
@@ -287,14 +285,10 @@ namespace Pixiv_Background_Form
             }
             if (_paths_diff(tmp_path))
                 Settings.Paths = tmp_path;
-            if (Settings.EnableIllustQueue != cEnableBuffering.IsChecked)
-                Settings.EnableIllustQueue = (bool)cEnableQueue.IsChecked;
             if (Settings.DisableIdleChange != cStopIdleChange.IsChecked)
                 Settings.DisableIdleChange = (bool)cStopIdleChange.IsChecked;
             if (Settings.EnableMultiMonitorDifferentWallpaper != cEnableDiffWallpaper.IsChecked)
                 Settings.EnableMultiMonitorDifferentWallpaper = (bool)cEnableDiffWallpaper.IsChecked;
-            if (Settings.EnableSlideAnimation != cEnableAnimation.IsChecked)
-                Settings.EnableSlideAnimation = (bool)cEnableAnimation.IsChecked;
             if (!string.IsNullOrEmpty(tWaifu2xPath.Text) && File.Exists(tWaifu2xPath.Text))
                 Settings.Waifu2xPath = tWaifu2xPath.Text;
             if (Settings.EnableWaifu2xUpscaling != cEnableWaifu2xUpscaling.IsChecked)
@@ -307,9 +301,6 @@ namespace Pixiv_Background_Form
                 Settings.Waifu2xUpscaleThreshold = result2;
             if (Settings.DisableWaifu2xWhileFullScreen != cDisableWaifu2xWhileFullScreen.IsChecked)
                 Settings.DisableWaifu2xWhileFullScreen = (bool)cDisableWaifu2xWhileFullScreen.IsChecked;
-            //最后修改这个值，不然会有其他约束
-            if (Settings.EnableBuffering != cEnableBuffering.IsChecked)
-                Settings.EnableBuffering = (bool)cEnableBuffering.IsChecked;
         }
 
         private void bConfirm_Click(object sender, RoutedEventArgs e)

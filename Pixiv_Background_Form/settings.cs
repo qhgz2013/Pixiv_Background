@@ -37,12 +37,9 @@ namespace Pixiv_Background_Form
         //图片路径
         private static List<PathSetting> m_paths;
         private const string M_PATHS_KEY = "paths";
-        //是否开启不同屏幕不同的背景图片（需要开启缓存渲染）
+        //是否开启不同屏幕不同的背景图片
         private static bool m_enable_multi_monitor_different_wallpaper;
         private const string M_ENABLE_MULTI_MONITOR_DIFFERENT_WALLPAPER_KEY = "enable_multi_monitor_different_wallpaper";
-        //是否开启缓存渲染
-        private static bool m_enable_buffering;
-        private const string M_ENABLE_BUFFERING_KEY = "enable_buffering";
         //是否开启waifu2x的图片放大（需要waifu2x的exe文件路径）
         private static bool m_enable_waifu2x_upscaling;
         private const string M_ENABLE_WAIFU2X_UPSCALING_KEY = "enable_waifu2x_upscaling";
@@ -53,9 +50,6 @@ namespace Pixiv_Background_Form
         //waifu2x的文件路径
         private static string m_waifu2x_path;
         private const string M_WAIFU2X_PATH_KEY = "waifu2x_path";
-        //是否开启背景的切换效果
-        private static bool m_enable_slide_animation;
-        private const string M_ENABLE_SLIDE_ANIMATION_KEY = "enable_slide_animation";
         //壁纸的更换时间,s（会触发WallPaper Change Event）
         private static int m_wallpaper_change_time;
         private const int M_DEFAULT_WALLPAPER_CHANGE_TIME = 600;
@@ -79,8 +73,8 @@ namespace Pixiv_Background_Form
         //触发壁纸更新的事件
         public static event EventHandler WallPaperChangeEvent;
         //更变数值触发的事件
-        public static event EventHandler PathsChanged, EnableMultiMonitorDifferentWallpaperChanged, EnableBufferingChanged, EnableWaifu2xUpscalingChanged, DisableIdleChangeChanged,
-            Waifu2xPathChanged, EnableSlideAnimationChanged, WallpaperChangeTimeChanged, EnableIllustQueueChanged, IllustQueueChanged, Waifu2xUpscaleThresholdChanged, DisableWaifu2xWhileFullScreenChanged;
+        public static event EventHandler PathsChanged, EnableMultiMonitorDifferentWallpaperChanged, EnableWaifu2xUpscalingChanged, DisableIdleChangeChanged,
+            Waifu2xPathChanged, WallpaperChangeTimeChanged, EnableIllustQueueChanged, IllustQueueChanged, Waifu2xUpscaleThresholdChanged, DisableWaifu2xWhileFullScreenChanged;
         #region Properties
         /// <summary>
         /// 图片路径
@@ -91,10 +85,6 @@ namespace Pixiv_Background_Form
         /// </summary>
         public static bool EnableMultiMonitorDifferentWallpaper { get { return m_enable_multi_monitor_different_wallpaper; } set { m_enable_multi_monitor_different_wallpaper = value; _verifySetting(); SaveSetting(); EnableMultiMonitorDifferentWallpaperChanged?.Invoke(null, new EventArgs()); } }
         /// <summary>
-        /// 是否开启缓存渲染
-        /// </summary>
-        public static bool EnableBuffering { get { return m_enable_buffering; } set { m_enable_buffering = value; _verifySetting(); SaveSetting(); EnableBufferingChanged?.Invoke(null, new EventArgs()); } }
-        /// <summary>
         /// 是否开启waifu2x的图片放大（需要waifu2x的exe文件路径）
         /// </summary>
         public static bool EnableWaifu2xUpscaling { get { return m_enable_waifu2x_upscaling; } set { m_enable_waifu2x_upscaling = value; _verifySetting(); SaveSetting(); EnableWaifu2xUpscalingChanged?.Invoke(null, new EventArgs()); } }
@@ -102,10 +92,6 @@ namespace Pixiv_Background_Form
         /// waifu2x的文件路径
         /// </summary>
         public static string Waifu2xPath { get { return m_waifu2x_path; } set { m_waifu2x_path = value; _verifySetting(); SaveSetting(); Waifu2xPathChanged?.Invoke(null, new EventArgs()); } }
-        /// <summary>
-        /// 是否开启背景的切换效果
-        /// </summary>
-        public static bool EnableSlideAnimation { get { return m_enable_slide_animation; } set { m_enable_slide_animation = value; _verifySetting(); SaveSetting(); EnableSlideAnimationChanged?.Invoke(null, new EventArgs()); } }
         /// <summary>
         /// 壁纸的更换时间,s（会触发WallPaper Change Event）
         /// </summary>
@@ -188,8 +174,6 @@ namespace Pixiv_Background_Form
         //验证设置的合理性
         private static void _verifySetting()
         {
-            if (m_enable_multi_monitor_different_wallpaper)
-                m_enable_buffering = true;
             if (string.IsNullOrEmpty(m_waifu2x_path) || !File.Exists(m_waifu2x_path))
                 m_enable_waifu2x_upscaling = false;
             if (m_wallpaper_change_time <= 0)
@@ -209,10 +193,8 @@ namespace Pixiv_Background_Form
                     var json = JsonConvert.DeserializeObject(str) as JObject;
                     m_paths = json[M_PATHS_KEY].ToObject<List<PathSetting>>();
                     m_enable_multi_monitor_different_wallpaper = json.Value<bool>(M_ENABLE_MULTI_MONITOR_DIFFERENT_WALLPAPER_KEY);
-                    m_enable_buffering = json.Value<bool>(M_ENABLE_BUFFERING_KEY);
                     m_enable_waifu2x_upscaling = json.Value<bool>(M_ENABLE_WAIFU2X_UPSCALING_KEY);
                     m_waifu2x_path = json.Value<string>(M_WAIFU2X_PATH_KEY);
-                    m_enable_slide_animation = json.Value<bool>(M_ENABLE_SLIDE_ANIMATION_KEY);
                     m_wallpaper_change_time = json.Value<int>(M_WALLPAPER_CHANGE_TIME_KEY);
                     m_enable_illust_queue = json.Value<bool>(M_ENABLE_ILLUST_QUEUE_KEY);
                     m_illust_queue = json[M_ILLUST_QUEUE_KEY].ToObject<List<IllustKey>>();
@@ -239,10 +221,8 @@ namespace Pixiv_Background_Form
                 var json = new JObject();
                 json.Add(M_PATHS_KEY, JToken.FromObject(m_paths));
                 json.Add(M_ENABLE_MULTI_MONITOR_DIFFERENT_WALLPAPER_KEY, m_enable_multi_monitor_different_wallpaper);
-                json.Add(M_ENABLE_BUFFERING_KEY, m_enable_buffering);
                 json.Add(M_ENABLE_WAIFU2X_UPSCALING_KEY, m_enable_waifu2x_upscaling);
                 json.Add(M_WAIFU2X_PATH_KEY, m_waifu2x_path);
-                json.Add(M_ENABLE_SLIDE_ANIMATION_KEY, m_enable_slide_animation);
                 json.Add(M_WALLPAPER_CHANGE_TIME_KEY, m_wallpaper_change_time);
                 json.Add(M_ENABLE_ILLUST_QUEUE_KEY, m_enable_illust_queue);
                 json.Add(M_ILLUST_QUEUE_KEY, JToken.FromObject(m_illust_queue));

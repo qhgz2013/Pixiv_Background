@@ -18,7 +18,7 @@ namespace Pixiv_Background_Form
     {
         #region Constants
         private const string request_url = "http://saucenao.com/search.php";
-        
+
         private const string boundryCharList = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
         //图片缩小设置
         private const int max_image_width = 1000;
@@ -73,7 +73,7 @@ namespace Pixiv_Background_Form
             return System.Text.Encoding.UTF8.GetBytes(str);
         }
         //将图像数据按表单格式写入ostream里
-        private static void post_formdata_img(Stream ostream,string name, Image iimg, string boundary)
+        private static void post_formdata_img(Stream ostream, string name, Image iimg, string boundary)
         {
             byte[] buf;
             buf = get_str_byte("--" + boundary + "\r\n");
@@ -122,7 +122,7 @@ namespace Pixiv_Background_Form
 
             double multiplier = width_multiplier > height_multiplier ? width_multiplier : height_multiplier;
 
-            
+
             int new_width = multiplier > 1 ? (int)(origin.Width / multiplier) : origin.Width;
             int new_height = multiplier > 1 ? (int)(origin.Height / multiplier) : origin.Height;
 
@@ -227,7 +227,7 @@ namespace Pixiv_Background_Form
                     illust.Title = illust_title;
                     illust.HTTP_Status = (int)HttpStatusCode.OK;
                     illust.Last_Success_Update = illust.Last_Update;
-                    
+
                     user.ID = user_id;
                     user.Name = user_name;
                     user.HTTP_Status = (int)HttpStatusCode.OK;

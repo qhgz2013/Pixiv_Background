@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="wallpaper" Height="1080" Width="1920" Background="Transparent" Loaded="Window_Loaded" WindowStyle="None" AllowsTransparency="True" ShowInTaskbar="False">
+        Title="wallpaper" Height="1080" Width="1920" Background="Black" Loaded="Window_Loaded" WindowStyle="None" AllowsTransparency="True" ShowInTaskbar="False">
     <Window.Resources>
         <Color x:Key="HighlightColor" x:Shared="False">#FF0078D7</Color>
         <SolidColorBrush x:Key="HighlightBrush" Color="{StaticResource HighlightColor}" x:Shared="False"/>
@@ -14,14 +14,12 @@
     </Window.Resources>
     <Grid>
         <Image x:Name="background_img" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        <Grid x:Name="overlay" HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="1" Opacity="0.4">
+        <Grid x:Name="overlay" HorizontalAlignment="Right" VerticalAlignment="Top" Panel.ZIndex="1" Opacity="0.4" Margin="10">
             <Grid.RowDefinitions>
-                <RowDefinition Height="10"/>
                 <!--Padding-->
                 <RowDefinition Height="45"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="10"/>
                 <!--Padding-->
                 <ColumnDefinition Width="50"/>
                 <ColumnDefinition Width="50"/>
@@ -31,17 +29,17 @@
                 <ColumnDefinition Width="50"/>
                 <ColumnDefinition Width="50"/>
             </Grid.ColumnDefinitions>
-            <Canvas Grid.Column="1" Grid.Row="1" Grid.ColumnSpan="7" Background="#40fff000" Panel.ZIndex="-1"></Canvas>
-            <Label Grid.Column="1" Grid.Row="1" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">CPU</Label>
-            <Label Grid.Column="1" Grid.Row="1" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="cpu_value">1%</Label>
-            <Canvas x:Name="cpu_history" Grid.Column="1" Grid.Row="1"/>
-            <Label Grid.Column="2" Grid.Row="1" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">RAM</Label>
-            <Label Grid.Column="2" Grid.Row="1" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="ram_value">20%</Label>
-            <Canvas x:Name="ram_history" Grid.Column="2" Grid.Row="1"/>
-            <Label Grid.Column="3" Grid.Row="1" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">GPU</Label>
-            <Label Grid.Column="3" Grid.Row="1" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2">2%</Label>
-            <Canvas x:Name="gpu_history" Grid.Column="3" Grid.Row="1"/>
-            <Grid Grid.Column="4" Grid.Row="1" Panel.ZIndex="2">
+            <Canvas Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="7" Background="#ffffff" Panel.ZIndex="-1"></Canvas>
+            <Label Grid.Column="0" Grid.Row="0" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">CPU</Label>
+            <Label Grid.Column="0" Grid.Row="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="cpu_value">1%</Label>
+            <Canvas x:Name="cpu_history" Grid.Column="0" Grid.Row="0"/>
+            <Label Grid.Column="1" Grid.Row="0" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">RAM</Label>
+            <Label Grid.Column="1" Grid.Row="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="ram_value">20%</Label>
+            <Canvas x:Name="ram_history" Grid.Column="1" Grid.Row="0"/>
+            <Label Grid.Column="2" Grid.Row="0" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">GPU</Label>
+            <Label Grid.Column="2" Grid.Row="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2">2%</Label>
+            <Canvas x:Name="gpu_history" Grid.Column="2" Grid.Row="0"/>
+            <Grid Grid.Column="3" Grid.Row="0" Panel.ZIndex="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="30"/>
                     <ColumnDefinition/>
@@ -60,7 +58,7 @@
                 <Label FontSize="12" VerticalAlignment="Bottom" Grid.Column="1" x:Name="net_recv_value">↓ 10K</Label>
                 <Canvas x:Name="net_history" Grid.Column="1" Grid.Row="0"/>
             </Grid>
-            <Grid Grid.Column="5" Grid.Row="1" Panel.ZIndex="2">
+            <Grid Grid.Column="4" Grid.Row="0" Panel.ZIndex="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="30"/>
                     <ColumnDefinition/>
@@ -79,12 +77,12 @@
                 <Label FontSize="12" VerticalAlignment="Bottom" Grid.Column="1" x:Name="disk_write_value">↓ 10K</Label>
                 <Canvas x:Name="disk_history" Grid.Column="1" Grid.Row="0"/>
             </Grid>
-            <Label Grid.Column="6" Grid.Row="1" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">CPU</Label>
-            <Label Grid.Column="6" Grid.Row="1" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="cpu_temp">8℃</Label>
-            <Canvas x:Name="cpu_temp_history" Grid.Column="6" Grid.Row="1"/>
-            <Label Grid.Column="7" Grid.Row="1" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">GPU</Label>
-            <Label Grid.Column="7" Grid.Row="1" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="gpu_temp">6℃</Label>
-            <Canvas x:Name="gpu_temp_history" Grid.Column="7" Grid.Row="1"/>
+            <Label Grid.Column="5" Grid.Row="0" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">CPU</Label>
+            <Label Grid.Column="5" Grid.Row="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="cpu_temp">8℃</Label>
+            <Canvas x:Name="cpu_temp_history" Grid.Column="5" Grid.Row="0"/>
+            <Label Grid.Column="6" Grid.Row="0" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Top" Panel.ZIndex="2">GPU</Label>
+            <Label Grid.Column="6" Grid.Row="0" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="2" x:Name="gpu_temp">6℃</Label>
+            <Canvas x:Name="gpu_temp_history" Grid.Column="6" Grid.Row="0"/>
         </Grid>
     </Grid>
 </Window>

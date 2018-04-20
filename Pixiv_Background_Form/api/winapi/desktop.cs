@@ -35,6 +35,32 @@ namespace Pixiv_Background_Form
 
         }
 
+        public static void SetWallpaperUsingFormHandle(IntPtr handle)
+        {
+            EnableActiveDesktop();
+
+            IntPtr workerw = IntPtr.Zero;
+            WinAPI.EnumWindows(new WinAPI.EnumWindowsProc((tophandle, topparamhandle) =>
+            {
+                IntPtr p = WinAPI.FindWindowEx(tophandle,
+                                            IntPtr.Zero,
+                                            "SHELLDLL_DefView",
+                                            null);
+
+                if (p != IntPtr.Zero)
+                {
+                    // Gets the WorkerW Window after the current one.
+                    workerw = WinAPI.FindWindowEx(IntPtr.Zero,
+                                               tophandle,
+                                               "WorkerW",
+                                               null);
+                }
+
+                return true;
+            }), IntPtr.Zero);
+            WinAPI.SetParent(handle, workerw);
+        }
+
         public static void SetWallpaperWithRetry(string path, int retryCount, Action<string> sw)
         {
             //set the wallpaper to the new image

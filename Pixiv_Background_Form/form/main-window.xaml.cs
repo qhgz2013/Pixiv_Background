@@ -52,33 +52,6 @@ namespace Pixiv_Background_Form
                 //数据库保存部分
                 _database = new DataStorage(_api, true);
                 _background_queue = new Dictionary<IllustKey, string>();
-                //登陆失败回调
-                //_auth.LoginFailed += (str =>
-                //{
-                //    Dispatcher.Invoke(new ThreadStart(delegate
-                //    {
-                //        System.Windows.Forms.MessageBox.Show("登陆失败: " + str);
-                //        Close();
-                //    }));
-                //});
-                //登陆监测
-                //if (!_auth.IsLogined)
-                //{
-                //    Dispatcher.Invoke(new ThreadStart(delegate
-                //    {
-                //        var frm_login = new frmLogin();
-                //        frm_login.ShowDialog();
-                //        if (frm_login.canceled)
-                //        {
-                //            Close();
-                //            return;
-                //        }
-                //        var user = frm_login.user_name;
-                //        var pass = frm_login.pass_word;
-                //        try { _auth.Login(user, pass); }
-                //        catch { Close(); return; }
-                //    }));
-                //}
                 //事件回调
                 Settings.WallPaperChangeEvent += _on_wallpaper_changed;
                 Settings.PathsChanged += _on_paths_changed;
@@ -118,9 +91,6 @@ namespace Pixiv_Background_Form
 
                 _initialize_thread = null;
             });
-
-            var wall = new Wallpaper();
-            wall.Show();
         }
         private void frmMain_Loaded(object sender, RoutedEventArgs e)
         {
@@ -144,6 +114,8 @@ namespace Pixiv_Background_Form
             var hwndsrc = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
             hwndsrc.AddHook(new System.Windows.Interop.HwndSourceHook(handling_appbar));
 
+            var wall = new Wallpaper();
+            wall.Show();
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -362,126 +334,123 @@ namespace Pixiv_Background_Form
                     }
                     _save_last_data();
 
-                    //开启缓存渲染
-                    if (Settings.EnableBuffering)
+                    //更改注册表
+                    try
                     {
-                        //更改注册表
-                        try
+                        var regkey_read = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
+                        var wallpaper_style = regkey_read.GetValue("WallpaperStyle", "6").ToString(); //180420: modified from 1,1 to 6,0
+                        var tile_wallpaper = regkey_read.GetValue("TileWallpaper", "0").ToString();
+                        regkey_read.Close();
+
+                        if (wallpaper_style != "6" || tile_wallpaper != "0")
                         {
-                            var regkey_read = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
-                            var wallpaper_style = regkey_read.GetValue("WallpaperStyle", "1").ToString();
-                            var tile_wallpaper = regkey_read.GetValue("TileWallpaper", "1").ToString();
-                            regkey_read.Close();
+                            var regkey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
+                            //壁纸的契合模式
+                            //Name(EN)  Name(CN)  WallpaperStyle  TileWallpaper
+                            //Fill      填充      10              0
+                            //Fit       适应      6               0
+                            //Span      跨区      22              0              （Windows 8+ only）
+                            //Stretch   拉伸      2               0
+                            //Tile      平铺      0               1
+                            //Center    居中      0               0
 
-                            if (wallpaper_style != "1" || tile_wallpaper != "1")
-                            {
-                                var regkey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
-                                //壁纸的契合模式
-                                //Name(EN)  Name(CN)  WallpaperStyle  TileWallpaper
-                                //Fill      填充      10              0
-                                //Fit       适应      6               0
-                                //Span      跨区      22              0              （Windows 8+ only）
-                                //Stretch   拉伸      2               0
-                                //Tile      平铺      0               1
-                                //Center    居中      0               0
-
-                                regkey.SetValue("WallpaperStyle", "1");
-                                regkey.SetValue("TileWallpaper", "1");
-                                regkey.Close();
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
-                        }
-                        //缩放壁纸
-                        var tmp_imgs = new System.Drawing.Image[screens.Length];
-                        for (int i = 0; i < tmp_imgs.Length; i++)
-                        {
-                            var index = Settings.EnableMultiMonitorDifferentWallpaper ? i : 0;
-                            var src_width = imgs[index].Width;
-                            var src_height = imgs[index].Height;
-                            var dst_width = screens[i].Width;
-                            var dst_height = screens[i].Height;
-
-                            ratios[i] = Math.Min(dst_width * 1.0 / src_width, dst_height * 1.0 / src_height);
-                            if (Settings.EnableWaifu2xUpscaling && (!Settings.DisableWaifu2xWhileFullScreen || !_is_on_full_screen) && ratios[i] >= Settings.Waifu2xUpscaleThreshold)
-                                tmp_imgs[i] = _upscaling_using_waifu2x(imgs[i], ratios[i]);
-                            else
-                            {
-                                var new_img = new System.Drawing.Bitmap((int)(imgs[index].Width * ratios[i]), (int)(imgs[index].Height * ratios[i]));
-                                var gr1 = System.Drawing.Graphics.FromImage(new_img);
-
-                                gr1.DrawImage(imgs[index], new System.Drawing.Rectangle(0, 0, new_img.Width, new_img.Height), new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[index].Size), System.Drawing.GraphicsUnit.Pixel);
-                                tmp_imgs[i] = new_img;
-                            }
-
-                        }
-                        imgs = tmp_imgs;
-
-                        var bmp_size = ScreenWatcher.GetTotalSize();
-                        if (bmp_size.Width < 0 || bmp_size.Height < 0) return;
-                        var bmp = new System.Drawing.Bitmap(bmp_size.Width, bmp_size.Height);
-
-                        var gr = System.Drawing.Graphics.FromImage(bmp);
-                        gr.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-                        gr.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
-
-                        //多屏壁纸
-                        for (int i = 0; i < screens.Length; i++)
-                        {
-                            var screen_rect = screens[i];
-                            var destRect = new System.Drawing.Rectangle(
-                                screen_rect.X + (screen_rect.Width - imgs[i].Width) / 2,
-                                screen_rect.Y + (screen_rect.Height - imgs[i].Height) / 2,
-                                imgs[i].Width,
-                                imgs[i].Height
-                                );
-                            gr.DrawImage(imgs[i],
-                                destRect, //destRect
-                                new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[i].Size), //srcRect
-                                System.Drawing.GraphicsUnit.Pixel);
-                        }
-
-                        gr.Dispose();
-                        bmp.Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
-                    }
-                    else
-                    {
-                        //没有开启缓存渲染的话就直接复制到该目录下
-                        imgs[0].Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
-
-                        //更改注册表
-                        try
-                        {
-                            var regkey_read = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
-                            var wallpaper_style = regkey_read.GetValue("WallpaperStyle", "6").ToString();
-                            var tile_wallpaper = regkey_read.GetValue("TileWallpaper", "0").ToString();
-                            regkey_read.Close();
-
-                            if (wallpaper_style != "6" || tile_wallpaper != "0")
-                            {
-                                var regkey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
-                                regkey.SetValue("WallpaperStyle", "6");
-                                regkey.SetValue("TileWallpaper", "0");
-                                regkey.Close();
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
+                            regkey.SetValue("WallpaperStyle", "6");
+                            regkey.SetValue("TileWallpaper", "0");
+                            regkey.Close();
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
+                    }
+                    //缩放壁纸
+                    var tmp_imgs = new System.Drawing.Image[screens.Length];
+                    for (int i = 0; i < tmp_imgs.Length; i++)
+                    {
+                        var index = Settings.EnableMultiMonitorDifferentWallpaper ? i : 0;
+                        var src_width = imgs[index].Width;
+                        var src_height = imgs[index].Height;
+                        var dst_width = screens[i].Width;
+                        var dst_height = screens[i].Height;
+
+                        ratios[i] = Math.Min(dst_width * 1.0 / src_width, dst_height * 1.0 / src_height);
+                        if (Settings.EnableWaifu2xUpscaling && (!Settings.DisableWaifu2xWhileFullScreen || !_is_on_full_screen) && ratios[i] >= Settings.Waifu2xUpscaleThreshold)
+                            tmp_imgs[i] = _upscaling_using_waifu2x(imgs[i], ratios[i]);
+                        else
+                        {
+                            var new_img = new System.Drawing.Bitmap((int)(imgs[index].Width * ratios[i]), (int)(imgs[index].Height * ratios[i]));
+                            var gr1 = System.Drawing.Graphics.FromImage(new_img);
+
+                            gr1.DrawImage(imgs[index], new System.Drawing.Rectangle(0, 0, new_img.Width, new_img.Height), new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[index].Size), System.Drawing.GraphicsUnit.Pixel);
+                            tmp_imgs[i] = new_img;
+                        }
+
+                    }
+                    imgs = tmp_imgs;
+
+                    var bmp_size = ScreenWatcher.GetTotalSize();
+                    if (bmp_size.Width < 0 || bmp_size.Height < 0) return;
+                    var bmp = new System.Drawing.Bitmap(bmp_size.Width, bmp_size.Height);
+
+                    var gr = System.Drawing.Graphics.FromImage(bmp);
+                    gr.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                    gr.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+
+                    //多屏壁纸
+                    for (int i = 0; i < screens.Length; i++)
+                    {
+                        var screen_rect = screens[i];
+                        var destRect = new System.Drawing.Rectangle(
+                            screen_rect.X + (screen_rect.Width - imgs[i].Width) / 2,
+                            screen_rect.Y + (screen_rect.Height - imgs[i].Height) / 2,
+                            imgs[i].Width,
+                            imgs[i].Height
+                            );
+                        gr.DrawImage(imgs[i],
+                            destRect, //destRect
+                            new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[i].Size), //srcRect
+                            System.Drawing.GraphicsUnit.Pixel);
+                    }
+
+                    gr.Dispose();
+                    bmp.Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+                    //}
+                    //else
+                    //{
+                    //    //没有开启缓存渲染的话就直接复制到该目录下
+                    //    imgs[0].Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
+
+                    //    //更改注册表
+                    //    try
+                    //    {
+                    //        var regkey_read = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
+                    //        var wallpaper_style = regkey_read.GetValue("WallpaperStyle", "6").ToString();
+                    //        var tile_wallpaper = regkey_read.GetValue("TileWallpaper", "0").ToString();
+                    //        regkey_read.Close();
+
+                    //        if (wallpaper_style != "6" || tile_wallpaper != "0")
+                    //        {
+                    //            var regkey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
+                    //            regkey.SetValue("WallpaperStyle", "6");
+                    //            regkey.SetValue("TileWallpaper", "0");
+                    //            regkey.Close();
+                    //        }
+                    //    }
+                    //    catch (Exception ex)
+                    //    {
+                    //        Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
+                    //    }
+                    //}
 
                     //动画效果
-                    if (Settings.EnableSlideAnimation)
-                    {
-                        Desktop.SetWallpaperUsingActiveDesktop(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
-                    }
-                    else
-                    {
-                        Desktop.SetWallpaperUsingSystemParameterInfo(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
-                    }
+                    //if (Settings.EnableSlideAnimation)
+                    //{
+                    Desktop.SetWallpaperUsingActiveDesktop(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
+                    //}
+                    //else
+                    //{
+                    //    Desktop.SetWallpaperUsingSystemParameterInfo(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
+                    //}
                 }
                 catch (Exception)
                 {
@@ -661,7 +630,7 @@ namespace Pixiv_Background_Form
         //数据保存和登陆验证
         private DataStorage _database;
         private API _api;
-        private PixivAuth _auth;
+        //private PixivAuth _auth;
         #endregion //Member Definations
 
         //桌面的边缘吸附（多显示器兼容，dpi兼容未知）
