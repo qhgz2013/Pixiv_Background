@@ -114,8 +114,8 @@ namespace Pixiv_Background_Form
             var hwndsrc = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
             hwndsrc.AddHook(new System.Windows.Interop.HwndSourceHook(handling_appbar));
 
-            var wall = new Wallpaper();
-            wall.Show();
+            //var wall = new Wallpaper();
+            //wall.Show();
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {

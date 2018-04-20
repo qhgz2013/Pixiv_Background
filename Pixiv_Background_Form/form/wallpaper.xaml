@@ -13,14 +13,12 @@
         <SolidColorBrush x:Key="MyGrayBrush" Color="{StaticResource MyGrayColor}" x:Shared="False"/>
     </Window.Resources>
     <Grid>
-        <Image x:Name="background_img" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Image x:Name="background_img" HorizontalAlignment="Center" VerticalAlignment="Center" Width="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}, Path=ActualWidth}" Height="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}, Path=ActualHeight}"/>
         <Grid x:Name="overlay" HorizontalAlignment="Right" VerticalAlignment="Top" Panel.ZIndex="1" Opacity="0.4" Margin="10">
             <Grid.RowDefinitions>
-                <!--Padding-->
                 <RowDefinition Height="45"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <!--Padding-->
                 <ColumnDefinition Width="50"/>
                 <ColumnDefinition Width="50"/>
                 <ColumnDefinition Width="50"/>

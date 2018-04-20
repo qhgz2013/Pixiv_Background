@@ -47,6 +47,8 @@ namespace Pixiv_Background_Form
             var source = PresentationSource.FromVisual(this);
             var helper = new System.Windows.Interop.WindowInteropHelper((Window)sender);
             Desktop.SetWallpaperUsingFormHandle(helper.Handle);
+
+
         }
     }
 }

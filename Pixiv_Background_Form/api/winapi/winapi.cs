@@ -8,15 +8,15 @@ namespace Pixiv_Background_Form
     public class WinAPI
     {
         #region Wallpaper Setting
-        public const UInt32 SPIF_UPDATEINIFILE = 0x1;
-        public const int SPIF_SENDWININICHANGE = 0x02;
-        public const UInt32 SPI_SETDESKWALLPAPER = 20;
-        public static readonly UInt32 SPI_GETDESKWALLPAPER = 0x73;
-        public static readonly int MAX_PATH = 260;
+        public const uint SPIF_UPDATEINIFILE = 0x1;
+        public const uint SPIF_SENDWININICHANGE = 0x02;
+        public const uint SPI_SETDESKWALLPAPER = 20;
+        public const uint SPI_GETDESKWALLPAPER = 0x73;
+        public const int MAX_PATH = 260;
         public const int COLOR_DESKTOP = 1;
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        public static extern Int32 SystemParametersInfo(UInt32 uiAction, UInt32 uiParam, String pvParam, UInt32 fWinIni);
+        public static extern int SystemParametersInfo(uint uiAction, uint uiParam, string pvParam, uint fWinIni);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern bool PostMessage(IntPtr hwnd, int msg, IntPtr wparam, IntPtr lparam);
@@ -37,7 +37,7 @@ namespace Pixiv_Background_Form
 
             public COLORREF(System.Drawing.Color color)
             {
-                ColorDWORD = (uint)color.R + (((uint)color.G) << 8) + (((uint)color.B) << 16);
+                ColorDWORD = color.R + (((uint)color.G) << 8) + (((uint)color.B) << 16);
             }
 
             public System.Drawing.Color GetColor()
@@ -48,7 +48,7 @@ namespace Pixiv_Background_Form
 
             public void SetColor(System.Drawing.Color color)
             {
-                ColorDWORD = (uint)color.R + (((uint)color.G) << 8) + (((uint)color.B) << 16);
+                ColorDWORD = color.R + (((uint)color.G) << 8) + (((uint)color.B) << 16);
             }
         }
 
@@ -280,31 +280,6 @@ namespace Pixiv_Background_Form
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool Wow64DisableWow64FsRedirection(ref IntPtr ptr);
 
-        #region AeroGlassItems
-
-        public struct DWM_COLORIZATION_PARAMS
-        {
-            public UInt32 ColorizationColor;
-            public UInt32 ColorizationAfterglow;
-            public UInt32 ColorizationColorBalance;
-            public UInt32 ColorizationAfterglowBalance;
-            public UInt32 ColorizationBlurBalance;
-            public UInt32 ColorizationGlassReflectionIntensity;
-            public UInt32 ColorizationOpaqueBlend;
-        }
-
-
-        [DllImport("dwmapi.dll", EntryPoint = "#127", PreserveSig = false)]
-        public static extern void DwmGetColorizationParameters(out DWM_COLORIZATION_PARAMS parameters);
-
-        [DllImport("dwmapi.dll", PreserveSig = false)]
-        public static extern bool DwmIsCompositionEnabled();
-
-        [DllImport("dwmapi.dll", EntryPoint = "#131", PreserveSig = false)]
-        public static extern void DwmSetColorizationParameters(ref DWM_COLORIZATION_PARAMS parameters, long uUnknown);
-
-        #endregion
-
         #region WindowStuff
         public static IntPtr GetHandleForSHELLDLL_DefView()
         {
@@ -470,9 +445,9 @@ namespace Pixiv_Background_Form
         [DllImport("user32.dll")]
         public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
-        const UInt32 SWP_NOSIZE = 0x0001;
-        const UInt32 SWP_NOMOVE = 0x0002;
-        const UInt32 SWP_NOACTIVATE = 0x0010;
+        const uint SWP_NOSIZE = 0x0001;
+        const uint SWP_NOMOVE = 0x0002;
+        const uint SWP_NOACTIVATE = 0x0010;
 
         //static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
 
@@ -504,6 +479,8 @@ namespace Pixiv_Background_Form
         public static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
         #endregion
 
+
+        #region appbar
         [StructLayout(LayoutKind.Sequential)]
         public struct RECT
         {
@@ -574,5 +551,6 @@ namespace Pixiv_Background_Form
             var ret = SHAppBarMessage((int)ABMsg.ABM_REMOVE, ref abd);
             return ret;
         }
+        #endregion
     }
 }
