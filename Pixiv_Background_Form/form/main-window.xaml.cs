@@ -118,6 +118,9 @@ namespace Pixiv_Background_Form
 
                 _initialize_thread = null;
             });
+
+            var wall = new Wallpaper();
+            wall.Show();
         }
         private void frmMain_Loaded(object sender, RoutedEventArgs e)
         {

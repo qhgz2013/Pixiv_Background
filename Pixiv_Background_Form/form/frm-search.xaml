@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="frmSearch" Height="700" Width="1000" Unloaded="Window_Unloaded" Icon="/Resources/icon.32x32.ico">
+        Title="Search Local" Height="700" Width="1000" Unloaded="Window_Unloaded" Icon="/Resources/icon.32x32.ico">
 
     <Window.Resources>
         <ResourceDictionary>

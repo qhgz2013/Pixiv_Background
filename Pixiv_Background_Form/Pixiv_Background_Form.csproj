@@ -114,6 +114,7 @@
     <Compile Include="api\api.cs" />
     <Compile Include="api\auth.cs" />
     <Compile Include="api\winapi\desktop.cs" />
+    <Compile Include="api\winapi\screen-watcher.cs" />
     <Compile Include="api\winapi\winapi.cs" />
     <Compile Include="form\frm-setting.xaml.cs">
       <DependentUpon>frm-setting.xaml</DependentUpon>
@@ -127,7 +128,9 @@
     <Compile Include="form\frm-detailed.xaml.cs">
       <DependentUpon>frm-detailed.xaml</DependentUpon>
     </Compile>
-    <Compile Include="screen-watcher.cs" />
+    <Compile Include="form\wallpaper.xaml.cs">
+      <DependentUpon>wallpaper.xaml</DependentUpon>
+    </Compile>
     <Compile Include="settings.cs" />
     <Compile Include="utils\net-util.cs" />
     <Compile Include="utils\tracer.cs" />
@@ -176,6 +179,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="form\frm-detailed.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="form\wallpaper.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
