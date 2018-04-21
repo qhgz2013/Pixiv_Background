@@ -27,6 +27,7 @@ namespace Pixiv_Background_Form
         //窗体的构造函数以及初始化函数
         #region Form Initialize
         private Thread _initialize_thread = null;
+        private Wallpaper _wall;
         public MainWindow()
         {
             InitializeComponent();
@@ -99,7 +100,7 @@ namespace Pixiv_Background_Form
             Width = 129 + 8;
             Height = 26;
             Left = SystemParameters.WorkArea.Width - frmMain.ActualWidth;
-            Top = 20;
+            Top = 100;
 
             var source = PresentationSource.FromVisual(this);
 
@@ -114,8 +115,9 @@ namespace Pixiv_Background_Form
             var hwndsrc = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
             hwndsrc.AddHook(new System.Windows.Interop.HwndSourceHook(handling_appbar));
 
-            //var wall = new Wallpaper();
-            //wall.Show();
+            _wall = new Wallpaper();
+            _wall.Show();
+            _wall.SetBackgroundImage("tempBackground.bmp");
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -407,50 +409,17 @@ namespace Pixiv_Background_Form
                             imgs[i].Height
                             );
                         gr.DrawImage(imgs[i],
-                            destRect, //destRect
-                            new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[i].Size), //srcRect
+                            destRect,
+                            new System.Drawing.Rectangle(new System.Drawing.Point(), imgs[i].Size),
                             System.Drawing.GraphicsUnit.Pixel);
                     }
 
                     gr.Dispose();
                     bmp.Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
-                    //}
-                    //else
-                    //{
-                    //    //没有开启缓存渲染的话就直接复制到该目录下
-                    //    imgs[0].Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
 
-                    //    //更改注册表
-                    //    try
-                    //    {
-                    //        var regkey_read = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop");
-                    //        var wallpaper_style = regkey_read.GetValue("WallpaperStyle", "6").ToString();
-                    //        var tile_wallpaper = regkey_read.GetValue("TileWallpaper", "0").ToString();
-                    //        regkey_read.Close();
-
-                    //        if (wallpaper_style != "6" || tile_wallpaper != "0")
-                    //        {
-                    //            var regkey = Registry.CurrentUser.OpenSubKey("Control Panel\\Desktop", true);
-                    //            regkey.SetValue("WallpaperStyle", "6");
-                    //            regkey.SetValue("TileWallpaper", "0");
-                    //            regkey.Close();
-                    //        }
-                    //    }
-                    //    catch (Exception ex)
-                    //    {
-                    //        Tracer.GlobalTracer.TraceError("修改注册表失败：内部原因：\r\n" + ex.ToString());
-                    //    }
-                    //}
-
-                    //动画效果
-                    //if (Settings.EnableSlideAnimation)
-                    //{
-                    Desktop.SetWallpaperUsingActiveDesktop(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
-                    //}
-                    //else
-                    //{
-                    //    Desktop.SetWallpaperUsingSystemParameterInfo(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
-                    //}
+                    //Desktop.SetWallpaperUsingActiveDesktop(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
+                    Desktop.SetWallpaperUsingSystemParameterInfo(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
+                    _wall.SetBackgroundImage("tempBackground.bmp");
                 }
                 catch (Exception)
                 {

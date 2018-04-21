@@ -150,12 +150,12 @@ namespace GlobalUtil
         /// </summary>
         /// <param name="_in">大小</param>
         /// <returns>合适的字符串</returns>
-        public static string FormatBytes(ulong _in)
+        public static string FormatBytes(ulong _in, int precision = 3)
         {
             if (_in < 0x400) return _in + "B";
-            if (_in < 0x100000) return (_in / (double)0x400).ToString("0.000") + "KB";
-            if (_in < 0x40000000) return (_in / (double)0x100000).ToString("0.000") + "MB";
-            return (_in / (double)0x40000000).ToString("0.000") + "GB";
+            if (_in < 0x100000) return (_in / (double)0x400).ToString("0." + new string('0', precision)) + "KB";
+            if (_in < 0x40000000) return (_in / (double)0x100000).ToString("0." + new string('0', precision)) + "MB";
+            return (_in / (double)0x40000000).ToString("0." + new string('0', precision)) + "GB";
         }
     }
 }
