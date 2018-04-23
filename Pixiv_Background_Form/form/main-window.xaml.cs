@@ -28,6 +28,7 @@ namespace Pixiv_Background_Form
         #region Form Initialize
         private Thread _initialize_thread = null;
         private Wallpaper _wall;
+        private object _wall_lck = new object();
         public MainWindow()
         {
             InitializeComponent();
@@ -56,6 +57,7 @@ namespace Pixiv_Background_Form
                 //事件回调
                 Settings.WallPaperChangeEvent += _on_wallpaper_changed;
                 Settings.PathsChanged += _on_paths_changed;
+                Settings.EnableCustomDesktopChanged += _on_enable_custom_desktop_changed;
                 _database.FetchIllustSucceeded += _on_illust_query_finished;
                 _database.FetchIllustFailed += _on_illust_query_finished;
                 _database.FetchUserSucceeded += _on_user_query_finished;
@@ -93,6 +95,28 @@ namespace Pixiv_Background_Form
                 _initialize_thread = null;
             });
         }
+
+        private void _on_enable_custom_desktop_changed(object sender, EventArgs e)
+        {
+            if (Settings.EnableCustomDesktop && _wall == null)
+            {
+                lock (_wall_lck)
+                {
+                    _wall = new Wallpaper();
+                    _wall.Show();
+                    _wall.SetBackgroundImage("tempBackground.bmp");
+                }
+            }
+            else if (!Settings.EnableCustomDesktop && _wall != null)
+            {
+                lock (_wall_lck)
+                {
+                    _wall.Close();
+                    _wall = null;
+                }
+            }
+        }
+
         private void frmMain_Loaded(object sender, RoutedEventArgs e)
         {
             //默认靠右上方显示
@@ -115,9 +139,7 @@ namespace Pixiv_Background_Form
             var hwndsrc = System.Windows.Interop.HwndSource.FromHwnd(helper.Handle);
             hwndsrc.AddHook(new System.Windows.Interop.HwndSourceHook(handling_appbar));
 
-            _wall = new Wallpaper();
-            _wall.Show();
-            _wall.SetBackgroundImage("tempBackground.bmp");
+            _on_enable_custom_desktop_changed(null, null);
         }
         private void frmMain_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
@@ -417,9 +439,16 @@ namespace Pixiv_Background_Form
                     gr.Dispose();
                     bmp.Save("tempBackground.bmp", System.Drawing.Imaging.ImageFormat.Bmp);
 
-                    //Desktop.SetWallpaperUsingActiveDesktop(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
-                    Desktop.SetWallpaperUsingSystemParameterInfo(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
-                    _wall.SetBackgroundImage("tempBackground.bmp");
+                    if (Settings.EnableCustomDesktop)
+                    {
+                        Desktop.SetWallpaperUsingSystemParameterInfo(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
+                        _on_enable_custom_desktop_changed(null, null);
+                        _wall.SetBackgroundImage("tempBackground.bmp");
+                    }
+                    else
+                    {
+                        Desktop.SetWallpaperUsingActiveDesktop(Path.Combine(System.Environment.CurrentDirectory, "tempBackground.bmp"));
+                    }
                 }
                 catch (Exception)
                 {

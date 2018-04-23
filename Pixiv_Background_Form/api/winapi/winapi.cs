@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Text;
 
 namespace Pixiv_Background_Form
@@ -576,6 +579,34 @@ namespace Pixiv_Background_Form
         [return: MarshalAs(UnmanagedType.Bool)]
         [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool GlobalMemoryStatusEx([In, Out] MemoryStatusEx lpBuffer);
+        #endregion
+
+        #region admin access
+
+        public static bool IsRunAsAdmin()
+        {
+            WindowsIdentity id = WindowsIdentity.GetCurrent();
+            WindowsPrincipal prin = new WindowsPrincipal(id);
+            return prin.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        public static void RunAsAdmin()
+        {
+            var proc = new ProcessStartInfo();
+            proc.UseShellExecute = true;
+            proc.WorkingDirectory = Environment.CurrentDirectory;
+            proc.FileName = Assembly.GetEntryAssembly().CodeBase;
+            proc.Verb = "runas";
+            try
+            {
+                Process.Start(proc);
+                Environment.Exit(0);
+            }
+            catch (Exception)
+            {
+                throw new InvalidOperationException("开启管理员权限进程失败");
+            }
+        }
         #endregion
     }
 }

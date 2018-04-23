@@ -97,7 +97,6 @@ namespace Pixiv_Background_Form
                 {
                     //replacing the component
                     parent.Children.Remove(background_img);
-                    Tracer.GlobalTracer.TraceInfo("OJBK");
                     background_img = img;
                 };
 

@@ -20,7 +20,7 @@ namespace Pixiv_Background_Form
             bool isadmin = false;
             try
             {
-                isadmin = _is_admin_mode();
+                isadmin = WinAPI.IsRunAsAdmin();
                 _init_monitor();
             }
             catch (Exception)
@@ -83,7 +83,7 @@ namespace Pixiv_Background_Form
                                 }
                                 else if (computer.Hardware[i].Sensors[j].SensorType == SensorType.Load)
                                 {
-                                    if (computer.Hardware[i].HardwareType == HardwareType.GpuAti || computer.Hardware[i].HardwareType == HardwareType.GpuNvidia && computer.Hardware[i].Sensors[j].Name.Contains("GPU Core"))
+                                    if ((computer.Hardware[i].HardwareType == HardwareType.GpuAti || computer.Hardware[i].HardwareType == HardwareType.GpuNvidia) && computer.Hardware[i].Sensors[j].Name.Contains("GPU Core"))
                                     {
                                         GPU_Usage = computer.Hardware[i].Sensors[j].Value.HasValue ?
                                             computer.Hardware[i].Sensors[j].Value.Value / 100 : float.NaN;
@@ -176,12 +176,6 @@ namespace Pixiv_Background_Form
             _background_thd.IsBackground = true;
             _background_thd.Name = "Resource Monitor Thread";
             _background_thd.Start();
-        }
-        private static bool _is_admin_mode()
-        {
-            WindowsIdentity id = WindowsIdentity.GetCurrent();
-            WindowsPrincipal prin = new WindowsPrincipal(id);
-            return prin.IsInRole(WindowsBuiltInRole.Administrator);
         }
         //open hardware monitor wrapper
 

@@ -102,6 +102,10 @@ namespace Pixiv_Background_Form
                 tWaifu2xPath.Foreground = new SolidColorBrush(Colors.Black);
 
             cDisableWaifu2xWhileFullScreen.IsChecked = Settings.DisableWaifu2xWhileFullScreen;
+            cEnableCustomDesktop.IsChecked = Settings.EnableCustomDesktop;
+            cRunAsAdmin.IsChecked = WinAPI.IsRunAsAdmin();
+            cRunAsAdmin.IsEnabled = !cRunAsAdmin.IsChecked.Value;
+
             _form_loaded = true;
         }
 
@@ -301,6 +305,8 @@ namespace Pixiv_Background_Form
                 Settings.Waifu2xUpscaleThreshold = result2;
             if (Settings.DisableWaifu2xWhileFullScreen != cDisableWaifu2xWhileFullScreen.IsChecked)
                 Settings.DisableWaifu2xWhileFullScreen = (bool)cDisableWaifu2xWhileFullScreen.IsChecked;
+            if (Settings.EnableCustomDesktop != cEnableCustomDesktop.IsChecked)
+                Settings.EnableCustomDesktop = (bool)cEnableCustomDesktop.IsChecked;
         }
 
         private void bConfirm_Click(object sender, RoutedEventArgs e)
@@ -412,5 +418,24 @@ namespace Pixiv_Background_Form
             bApply.IsEnabled = true;
         }
 
+        private void cEnableCustomDesktop_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_form_loaded) return;
+            bApply.IsEnabled = true;
+        }
+
+        private void cRunAsAdmin_Click(object sender, RoutedEventArgs e)
+        {
+            if (!_form_loaded) return;
+            if (cRunAsAdmin.IsChecked.Value)
+            {
+                if (bApply.IsEnabled)
+                {
+                    System.Windows.Forms.MessageBox.Show("请应用所有设置，再以管理员权限运行");
+                    return;
+                }
+                WinAPI.RunAsAdmin();
+            }
+        }
     }
 }

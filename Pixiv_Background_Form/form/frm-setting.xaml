@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="设置" Height="430" Width="500" Loaded="Window_Loaded" Icon="/Resources/icon.32x32.ico">
+        Title="设置" Height="450" Width="500" Loaded="Window_Loaded" Icon="/Resources/icon.32x32.ico">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="10"/>
@@ -16,7 +16,7 @@
             <RowDefinition Height="25"/>
             <RowDefinition Height="100"/>
             <RowDefinition Height="30"/>
-            <RowDefinition Height="90"/>
+            <RowDefinition Height="110"/>
             <RowDefinition Height="30"/>
             <RowDefinition Height="75"/>
             <RowDefinition/>
@@ -65,6 +65,7 @@
                 <RowDefinition Height="20"/>
                 <RowDefinition Height="20"/>
                 <RowDefinition Height="20"/>
+                <RowDefinition Height="20"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
@@ -75,6 +76,8 @@
             <CheckBox Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="2" x:Name="cEnableDiffWallpaper" Click="cEnableDiffWallpaper_Click">多屏不同壁纸</CheckBox>
             <CheckBox Grid.Column="0" Grid.Row="2" Grid.ColumnSpan="2" x:Name="cEnableQueue" Click="cEnableQueue_Click">开启壁纸轮换</CheckBox>
             <CheckBox Grid.Column="0" Grid.Row="3" Grid.ColumnSpan="2" x:Name="cStopIdleChange" Click="cStopIdleChange_Click">在待机时暂停更换</CheckBox>
+            <CheckBox Grid.Column="0" Grid.Row="4" x:Name="cEnableCustomDesktop" Click="cEnableCustomDesktop_Click">开启自定义桌面</CheckBox>
+            <CheckBox Grid.Column="1" Grid.Row="4" x:Name="cRunAsAdmin" Click="cRunAsAdmin_Click">以管理员权限运行（显示温度和GPU）</CheckBox>
         </Grid>
         <Label Grid.Column="1" Grid.Row="4">❁ 插件设置</Label>
         <Grid Grid.Column="1" Grid.Row="5">

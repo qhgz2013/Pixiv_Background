@@ -66,6 +66,9 @@ namespace Pixiv_Background_Form
         //在系统待机时（鼠标无移动下）是否暂停更换壁纸
         private static bool m_disable_idle_change;
         private const string M_DISABLE_IDLE_CHANGE_KEY = "disable_idle_change";
+        //是否使用自定义桌面
+        private static bool m_enable_custom_desktop;
+        private const string M_ENABLE_CUSTOM_DESKTOP_KEY = "enable_custom_desktop";
         //触发背景切换的线程
         private static Thread m_background_thread;
         private static double m_constructor_execution_time;
@@ -73,7 +76,7 @@ namespace Pixiv_Background_Form
         //触发壁纸更新的事件
         public static event EventHandler WallPaperChangeEvent;
         //更变数值触发的事件
-        public static event EventHandler PathsChanged, EnableMultiMonitorDifferentWallpaperChanged, EnableWaifu2xUpscalingChanged, DisableIdleChangeChanged,
+        public static event EventHandler PathsChanged, EnableMultiMonitorDifferentWallpaperChanged, EnableWaifu2xUpscalingChanged, DisableIdleChangeChanged, EnableCustomDesktopChanged,
             Waifu2xPathChanged, WallpaperChangeTimeChanged, EnableIllustQueueChanged, IllustQueueChanged, Waifu2xUpscaleThresholdChanged, DisableWaifu2xWhileFullScreenChanged;
         #region Properties
         /// <summary>
@@ -120,6 +123,10 @@ namespace Pixiv_Background_Form
         /// 在系统待机时（鼠标无移动下）是否暂停更换壁纸
         /// </summary>
         public static bool DisableIdleChange { get { return m_disable_idle_change; } set { m_disable_idle_change = value; _verifySetting(); DisableIdleChangeChanged?.Invoke(null, new EventArgs()); } }
+        /// <summary>
+        /// 是否使用自定义桌面，附带CPU、内存、磁盘和网络的使用情况等
+        /// </summary>
+        public static bool EnableCustomDesktop { get { return m_enable_custom_desktop; } set { m_enable_custom_desktop = value; _verifySetting(); EnableCustomDesktopChanged?.Invoke(null, new EventArgs()); } }
         #endregion
 
         static Settings()
@@ -201,6 +208,7 @@ namespace Pixiv_Background_Form
                     m_waifu2x_upscale_threshold = json.Value<double>(M_WAIFU2X_UPSCALE_THRESHOLD_KEY);
                     m_disable_waifu2x_while_full_screen = json.Value<bool>(M_DISABLE_WAIFU2X_WHILE_FULL_SCREEN_KEY);
                     m_disable_idle_change = json.Value<bool>(M_DISABLE_IDLE_CHANGE_KEY);
+                    m_enable_custom_desktop = json.Value<bool>(M_ENABLE_CUSTOM_DESKTOP_KEY);
                 }
                 catch (Exception)
                 {
@@ -229,6 +237,7 @@ namespace Pixiv_Background_Form
                 json.Add(M_WAIFU2X_UPSCALE_THRESHOLD_KEY, m_waifu2x_upscale_threshold);
                 json.Add(M_DISABLE_WAIFU2X_WHILE_FULL_SCREEN_KEY, m_disable_waifu2x_while_full_screen);
                 json.Add(M_DISABLE_IDLE_CHANGE_KEY, m_disable_idle_change);
+                json.Add(M_ENABLE_CUSTOM_DESKTOP_KEY, m_enable_custom_desktop);
 
                 var str = JsonConvert.SerializeObject(json);
                 File.WriteAllText(M_SETTING_NAME, str);
