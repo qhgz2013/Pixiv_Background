@@ -24,11 +24,6 @@ namespace Pixiv_Background_Form
     {
         public Wallpaper()
         {
-            InitializeComponent();
-        }
-
-        private void Window_Loaded(object sender, RoutedEventArgs e)
-        {
             var rect = ScreenWatcher.GetTotalSize();
             var scaled_width = rect.Width / ScreenWatcher.Scale;
             var scaled_height = rect.Height / ScreenWatcher.Scale;
@@ -38,10 +33,16 @@ namespace Pixiv_Background_Form
             Width = scaled_width;
             Height = scaled_height;
 
+            InitializeComponent();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
             var primary_screen = ScreenWatcher.GetPrimaryScreenBoundary();
 
             //设置overlay样式为对齐主显示器右上角
             var margin = overlay.Margin;
+            var rect = ScreenWatcher.GetTotalSize();
             margin.Right = 10 + (rect.Width - primary_screen.Right) / ScreenWatcher.Scale;
             margin.Top = 10 + primary_screen.Top / ScreenWatcher.Scale;
             overlay.Margin = margin;

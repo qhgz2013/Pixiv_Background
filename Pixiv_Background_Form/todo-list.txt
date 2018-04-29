@@ -1,4 +1,2 @@
-﻿开发概念：
-用心写后台，用脚抠窗体!!
-
-Adding html parser for pixiv without login
+﻿注册服务&开机启动
+使用情况的历史条条
