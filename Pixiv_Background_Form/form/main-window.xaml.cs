@@ -16,6 +16,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Diagnostics;
 using Microsoft.Win32;
 using GlobalUtil;
+using Microsoft.Win32.TaskScheduler;
 
 namespace Pixiv_Background_Form
 {
@@ -33,6 +34,8 @@ namespace Pixiv_Background_Form
         {
             InitializeComponent();
             ScreenWatcher.GetPrimaryScreenBoundary(); //initialize, executing static constructor
+            //setting default path
+            Environment.CurrentDirectory = new FileInfo(System.Windows.Forms.Application.ExecutablePath).DirectoryName;
             //登陆部分
             //_auth = new PixivAuth();
             //API调用部分
@@ -40,6 +43,9 @@ namespace Pixiv_Background_Form
             _api = new ApiNoAuth();
             //读取上次的背景信息
             _load_last_data();
+
+            Settings.RunAsAdminChanged += _do_run_as_admin_option;
+            _do_run_as_admin_option();
             //监测鼠标拖拽的线程（用于鼠标在窗体外面的跟踪）
             _drag_thd = new Thread(__drag_thd_callback);
             _drag_thd.Name = "Drag Thread";
@@ -64,17 +70,17 @@ namespace Pixiv_Background_Form
                 _database.FetchUserFailed += _on_user_query_finished;
                 //对路径下的图片加载，再次采用其他线程
                 ThreadPool.QueueUserWorkItem(delegate
-                {
-                    foreach (var item in Settings.Paths)
                     {
-                        _load_path(item.Directory, item.IncludingSubDir);
-                    }
-                });
+                        foreach (var item in Settings.Paths)
+                        {
+                            _load_path(item.Directory, item.IncludingSubDir);
+                        }
+                    });
                 //实例化搜索窗口
                 Dispatcher.Invoke(new ThreadStart(delegate
-                {
-                    frmSearch.Instantiate(_background_queue, _database);
-                }));
+                    {
+                        frmSearch.Instantiate(_background_queue, _database);
+                    }));
                 //更新当前信息
                 if (_last_data.illust != null)
                 {
@@ -95,7 +101,45 @@ namespace Pixiv_Background_Form
                 _initialize_thread = null;
             });
         }
-
+        private void _do_run_as_admin_option(object sender = null, EventArgs e = null)
+        {
+            if (Settings.RunAsAdmin)
+            {
+                using (TaskService ts = new TaskService())
+                {
+                    if (WinAPI.IsRunAsAdmin())
+                    {
+                        if (ts.GetTask("PixivBackground") == null)
+                        {
+                            var td = ts.NewTask();
+                            td.RegistrationInfo.Description = "PixivBackgroundForm Task Scheduler";
+                            td.Actions.Add(new ExecAction(System.Windows.Forms.Application.ExecutablePath));
+                            td.Principal.RunLevel = TaskRunLevel.Highest;
+                            ts.RootFolder.RegisterTaskDefinition("PixivBackground", td);
+                        }
+                    }
+                    else
+                    {
+                        if (ts.GetTask("PixivBackground") != null)
+                        {
+                            var proc = new ProcessStartInfo("schtasks", "/run /tn PixivBackground");
+                            proc.CreateNoWindow = true;
+                            try
+                            {
+                                Process.Start(proc);
+                                Environment.Exit(0);
+                            }
+                            catch (Exception ex)
+                            {
+                                Tracer.GlobalTracer.TraceError(ex);
+                            }
+                        }
+                        else
+                            WinAPI.RunAsAdmin();
+                    }
+                }
+            }
+        }
         private void _on_enable_custom_desktop_changed(object sender, EventArgs e)
         {
             if (Settings.EnableCustomDesktop && _wall == null)
