@@ -58,8 +58,17 @@ namespace Pixiv_Background_Form
             WinAPI.SetWindowLong(helper.Handle, (int)WinAPI.GetWindowLongFields.GWL_EXSTYLE, exStyle);
 
             ResourceMonitor.ResourceUpdated += _on_resource_callback;
+            //pink LightBlue PaleVioletRed
+            _cpu_history = new history_wrapper(cpu_history, Brushes.PaleVioletRed, false) { min = 0, max = 1 };
+            _ram_history = new history_wrapper(ram_history, Brushes.DeepSkyBlue, false) { min = 0, max = 1 };
+            _cpu_temp_history = new history_wrapper(cpu_temp_history, Brushes.Orange, true);
+            _net_history = new history_wrapper(net_history, Brushes.OrangeRed, true) { brush2 = Brushes.Green };
+            _disk_history = new history_wrapper(disk_history, Brushes.MediumPurple, true) { brush2 = Brushes.Peru };
+            _gpu_history = new history_wrapper(gpu_history, Brushes.Crimson, false) { min = 0, max = 1 };
+            _gpu_temp_history = new history_wrapper(gpu_temp_history, Brushes.Cyan, true);
         }
 
+        private history_wrapper _cpu_history, _cpu_temp_history, _ram_history, _net_history, _disk_history, _gpu_history, _gpu_temp_history;
         public void SetBackgroundImage(string path)
         {
             var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
@@ -117,16 +126,153 @@ namespace Pixiv_Background_Form
         {
             Dispatcher.Invoke(new ThreadStart(delegate
             {
-                cpu_temp.Content = float.IsNaN(ResourceMonitor.CPU_Temp) ? "--" : string.Format("{0:0}℃", ResourceMonitor.CPU_Temp);
-                cpu_value.Content = float.IsNaN(ResourceMonitor.CPU_Usage) ? "--" : string.Format("{0:0}%", ResourceMonitor.CPU_Usage * 100);
-                gpu_temp.Content = float.IsNaN(ResourceMonitor.GPU_Temp) ? "--" : string.Format("{0:0}℃", ResourceMonitor.GPU_Temp);
-                gpu_value.Content = float.IsNaN(ResourceMonitor.GPU_Usage) ? "--" : string.Format("{0:0}%", ResourceMonitor.GPU_Usage * 100);
-                ram_value.Content = float.IsNaN(ResourceMonitor.RAM_Usage) ? "--" : string.Format("{0:0}%", ResourceMonitor.RAM_Usage * 100);
-                net_sent_value.Content = float.IsNaN(ResourceMonitor.NET_Sent) ? "--" : string.Format("↑ {0}", util.FormatBytes((ulong)ResourceMonitor.NET_Sent, 1).TrimEnd('B'));
-                net_recv_value.Content = float.IsNaN(ResourceMonitor.NET_Recv) ? "--" : string.Format("↓ {0}", util.FormatBytes((ulong)ResourceMonitor.NET_Recv, 1).TrimEnd('B'));
-                disk_read_value.Content = float.IsNaN(ResourceMonitor.DISK_Read) ? "--" : string.Format("↑ {0}", util.FormatBytes((ulong)ResourceMonitor.DISK_Read, 1).TrimEnd('B'));
-                disk_write_value.Content = float.IsNaN(ResourceMonitor.DISK_Write) ? "--" : string.Format("↓ {0}", util.FormatBytes((ulong)ResourceMonitor.DISK_Write, 1).TrimEnd('B'));
+                cpu_temp.Content = float.IsNaN(ResourceMonitor.CPU_Temp) ? "--℃" : string.Format("{0:0}℃", ResourceMonitor.CPU_Temp);
+                cpu_value.Content = float.IsNaN(ResourceMonitor.CPU_Usage) ? "--%" : string.Format("{0:0}%", ResourceMonitor.CPU_Usage * 100);
+                gpu_temp.Content = float.IsNaN(ResourceMonitor.GPU_Temp) ? "--℃" : string.Format("{0:0}℃", ResourceMonitor.GPU_Temp);
+                gpu_value.Content = float.IsNaN(ResourceMonitor.GPU_Usage) ? "--%" : string.Format("{0:0}%", ResourceMonitor.GPU_Usage * 100);
+                ram_value.Content = float.IsNaN(ResourceMonitor.RAM_Usage) ? "--%" : string.Format("{0:0}%", ResourceMonitor.RAM_Usage * 100);
+                net_sent_value.Content = float.IsNaN(ResourceMonitor.NET_Sent) ? "↑ --" : string.Format("↑ {0}", util.FormatBytes((ulong)ResourceMonitor.NET_Sent, 1).TrimEnd('B'));
+                net_recv_value.Content = float.IsNaN(ResourceMonitor.NET_Recv) ? "↓ --" : string.Format("↓ {0}", util.FormatBytes((ulong)ResourceMonitor.NET_Recv, 1).TrimEnd('B'));
+                disk_read_value.Content = float.IsNaN(ResourceMonitor.DISK_Read) ? "↑ --" : string.Format("↑ {0}", util.FormatBytes((ulong)ResourceMonitor.DISK_Read, 1).TrimEnd('B'));
+                disk_write_value.Content = float.IsNaN(ResourceMonitor.DISK_Write) ? "↓ --" : string.Format("↓ {0}", util.FormatBytes((ulong)ResourceMonitor.DISK_Write, 1).TrimEnd('B'));
+
+                _cpu_history.AddValue(ResourceMonitor.CPU_Usage);
+                _ram_history.AddValue(ResourceMonitor.RAM_Usage);
+                _gpu_history.AddValue(ResourceMonitor.GPU_Usage);
+                _net_history.AddValue(ResourceMonitor.NET_Sent, ResourceMonitor.NET_Recv);
+                _disk_history.AddValue(ResourceMonitor.DISK_Read, ResourceMonitor.DISK_Write);
+                _cpu_temp_history.AddValue(ResourceMonitor.CPU_Temp);
+                _gpu_temp_history.AddValue(ResourceMonitor.GPU_Temp);
             }));
+        }
+
+        private class history_wrapper
+        {
+            private Canvas _parent;
+            private int _timescale { get { return (int)Math.Floor(_parent.ActualWidth); } }
+            private List<Tuple<float, float>> _values;
+            private float _min, _max;
+
+            public Brush brush1, brush2;
+            public bool auto_scale;
+            public float min, max;
+            public history_wrapper(Canvas parent, Brush brush1 = null, bool autoscale = true)
+            {
+                _parent = parent;
+                _values = new List<Tuple<float, float>>();
+                _min = float.NaN;
+                _max = float.NaN;
+                min = float.NaN;
+                max = float.NaN;
+                if (brush1 == null)
+                    brush1 = Brushes.Black;
+                this.brush1 = brush1;
+                brush2 = Brushes.Transparent;
+                auto_scale = autoscale;
+            }
+            public void AddValue(float value1, float value2 = float.NaN)
+            {
+                if (float.IsNaN(_min))
+                    _min = value1;
+                if (float.IsNaN(_max))
+                    _max = value1;
+                _min = Math.Min(_min, value1);
+                if (!float.IsNaN(value2))
+                    _min = Math.Min(_min, value2);
+                _max = Math.Max(_max, value1);
+                if (!float.IsNaN(value2))
+                    _max = Math.Max(_max, value2);
+                _values.Add(new Tuple<float, float>(value1, value2));
+                if (_values.Count > _timescale)
+                    _remove_first();
+                _update_canvas();
+            }
+            private void _remove_first()
+            {
+                var first = _values[0];
+                _values.RemoveAt(0);
+                var first_args = _find_min_max(first);
+
+                if (first_args.Item1 == _min)
+                {
+                    _min = _find_min_max(_values[0]).Item1;
+                    for (int i = 0; i < _values.Count; i++)
+                        _min = Math.Min(_min, _find_min_max(_values[i]).Item1);
+                }
+                if (first_args.Item2 == _max)
+                {
+                    _max = _find_min_max(_values[0]).Item2;
+                    for (int i = 0; i < _values.Count; i++)
+                        _max = Math.Max(_max, _find_min_max(_values[i]).Item2);
+                }
+            }
+            private Tuple<float, float> _find_min_max(Tuple<float, float> input)
+            {
+                if (float.IsNaN(input.Item2))
+                    return new Tuple<float, float>(input.Item1, input.Item1);
+                else if (float.IsNaN(input.Item1))
+                    return new Tuple<float, float>(input.Item2, input.Item2);
+                else
+                    return new Tuple<float, float>(Math.Min(input.Item1, input.Item2), Math.Max(input.Item1, input.Item2));
+            }
+            private void _update_canvas()
+            {
+                var poly1 = new Polygon();
+                poly1.Fill = brush1;
+                poly1.Stroke = brush1;
+                poly1.StrokeThickness = 1;
+                poly1.HorizontalAlignment = HorizontalAlignment.Left;
+                poly1.VerticalAlignment = VerticalAlignment.Top;
+                poly1.Opacity = 0.5;
+                var poly2 = new Polygon();
+                poly2.Fill = brush2;
+                poly2.Stroke = brush2;
+                poly2.StrokeThickness = 1;
+                poly2.HorizontalAlignment = HorizontalAlignment.Left;
+                poly2.VerticalAlignment = VerticalAlignment.Top;
+                poly2.Opacity = 0.5;
+
+                var points1 = new PointCollection();
+                var points2 = new PointCollection();
+                var control_width = _values.Count;
+                var control_height = (int)Math.Floor(_parent.ActualHeight);
+                points1.Add(new Point(control_width - 1, control_height - 1));
+                points1.Add(new Point(0, control_height - 1));
+                points2.Add(new Point(control_width - 1, control_height - 1));
+                points2.Add(new Point(0, control_height - 1));
+
+                var t_min = auto_scale ? _min : min;
+                var t_max = auto_scale ? _max : max;
+                if (t_min != t_max && !float.IsNaN(t_min) && !float.IsNaN(t_max))
+                {
+                    for (int i = 0; i < _values.Count; i++)
+                    {
+                        if (float.IsNaN(_values[i].Item1))
+                            points1.Add(new Point(i, control_height - 1));
+                        else
+                        {
+                            var normalized = (_values[i].Item1 - t_min) / (t_max - t_min);
+                            var rev_norm = 1 - normalized;
+                            var rev_scaled = rev_norm * control_height;
+                            points1.Add(new Point(i, rev_scaled));
+                        }
+                        if (float.IsNaN(_values[i].Item2))
+                            points2.Add(new Point(i, control_height - 1));
+                        else
+                        {
+                            var normalized = (_values[i].Item2 - t_min) / (t_max - t_min);
+                            var rev_norm = 1 - normalized;
+                            var rev_scaled = rev_norm * control_height;
+                            points2.Add(new Point(i, rev_scaled));
+                        }
+                    }
+                }
+                poly1.Points = points1;
+                poly2.Points = points2;
+                _parent.Children.Clear();
+                _parent.Children.Add(poly2);
+                _parent.Children.Add(poly1);
+            }
         }
     }
 }
