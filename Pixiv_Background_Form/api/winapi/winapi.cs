@@ -604,7 +604,7 @@ namespace Pixiv_Background_Form
             }
             catch (Exception)
             {
-                throw new InvalidOperationException("开启管理员权限进程失败");
+                //throw new InvalidOperationException("开启管理员权限进程失败");
             }
         }
         #endregion

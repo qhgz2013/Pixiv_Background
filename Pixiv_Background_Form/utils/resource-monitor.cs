@@ -70,12 +70,12 @@ namespace Pixiv_Background_Form
                             {
                                 if (computer.Hardware[i].Sensors[j].SensorType == SensorType.Temperature)
                                 {
-                                    if (computer.Hardware[i].HardwareType == HardwareType.CPU && computer.Hardware[i].Sensors[j].Name.Contains("CPU Core"))
+                                    if (computer.Hardware[i].HardwareType == HardwareType.CPU && computer.Hardware[i].Sensors[j].Name.Contains("Core"))
                                     {
                                         if (computer.Hardware[i].Sensors[j].Value.HasValue)
                                             temp_cpu_cores.Add(computer.Hardware[i].Sensors[j].Value.Value);
                                     }
-                                    else if ((computer.Hardware[i].HardwareType == HardwareType.GpuAti || computer.Hardware[i].HardwareType == HardwareType.GpuNvidia) && computer.Hardware[i].Sensors[j].Name.Contains("GPU Core"))
+                                    else if ((computer.Hardware[i].HardwareType == HardwareType.GpuAti || computer.Hardware[i].HardwareType == HardwareType.GpuNvidia) && computer.Hardware[i].Sensors[j].Name.Contains("Core"))
                                     {
                                         GPU_Temp = computer.Hardware[i].Sensors[j].Value.HasValue ?
                                             computer.Hardware[i].Sensors[j].Value.Value : float.NaN;
@@ -83,7 +83,7 @@ namespace Pixiv_Background_Form
                                 }
                                 else if (computer.Hardware[i].Sensors[j].SensorType == SensorType.Load)
                                 {
-                                    if ((computer.Hardware[i].HardwareType == HardwareType.GpuAti || computer.Hardware[i].HardwareType == HardwareType.GpuNvidia) && computer.Hardware[i].Sensors[j].Name.Contains("GPU Core"))
+                                    if ((computer.Hardware[i].HardwareType == HardwareType.GpuAti || computer.Hardware[i].HardwareType == HardwareType.GpuNvidia) && computer.Hardware[i].Sensors[j].Name.Contains("Core"))
                                     {
                                         GPU_Usage = computer.Hardware[i].Sensors[j].Value.HasValue ?
                                             computer.Hardware[i].Sensors[j].Value.Value / 100 : float.NaN;

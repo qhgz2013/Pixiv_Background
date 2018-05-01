@@ -103,8 +103,7 @@ namespace Pixiv_Background_Form
 
             cDisableWaifu2xWhileFullScreen.IsChecked = Settings.DisableWaifu2xWhileFullScreen;
             cEnableCustomDesktop.IsChecked = Settings.EnableCustomDesktop;
-            cRunAsAdmin.IsChecked = WinAPI.IsRunAsAdmin();
-            cRunAsAdmin.IsEnabled = !cRunAsAdmin.IsChecked.Value;
+            cRunAsAdmin.IsChecked = Settings.RunAsAdmin;
 
             _form_loaded = true;
         }
@@ -307,6 +306,8 @@ namespace Pixiv_Background_Form
                 Settings.DisableWaifu2xWhileFullScreen = (bool)cDisableWaifu2xWhileFullScreen.IsChecked;
             if (Settings.EnableCustomDesktop != cEnableCustomDesktop.IsChecked)
                 Settings.EnableCustomDesktop = (bool)cEnableCustomDesktop.IsChecked;
+            if (Settings.RunAsAdmin != cRunAsAdmin.IsChecked)
+                Settings.RunAsAdmin = (bool)cRunAsAdmin.IsChecked;
         }
 
         private void bConfirm_Click(object sender, RoutedEventArgs e)
@@ -427,15 +428,7 @@ namespace Pixiv_Background_Form
         private void cRunAsAdmin_Click(object sender, RoutedEventArgs e)
         {
             if (!_form_loaded) return;
-            if (cRunAsAdmin.IsChecked.Value)
-            {
-                if (bApply.IsEnabled)
-                {
-                    System.Windows.Forms.MessageBox.Show("请应用所有设置，再以管理员权限运行");
-                    return;
-                }
-                WinAPI.RunAsAdmin();
-            }
+            bApply.IsEnabled = true;
         }
     }
 }
