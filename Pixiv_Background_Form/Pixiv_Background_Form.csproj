@@ -138,19 +138,7 @@
     <Compile Include="form\wallpaper.xaml.cs">
       <DependentUpon>wallpaper.xaml</DependentUpon>
     </Compile>
-    <Compile Include="service\ProjectInstaller.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="service\ProjectInstaller.Designer.cs">
-      <DependentUpon>ProjectInstaller.cs</DependentUpon>
-    </Compile>
     <Compile Include="settings.cs" />
-    <Compile Include="service\startup_srv.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="service\startup_srv.Designer.cs">
-      <DependentUpon>startup_srv.cs</DependentUpon>
-    </Compile>
     <Compile Include="utils\net-util.cs" />
     <Compile Include="utils\resource-monitor.cs" />
     <Compile Include="utils\tracer.cs" />
@@ -221,15 +209,9 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EmbeddedResource Include="service\ProjectInstaller.resx">
-      <DependentUpon>ProjectInstaller.cs</DependentUpon>
-    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="service\startup_srv.resx">
-      <DependentUpon>startup_srv.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="App.config" />
     <None Include="packages.config" />

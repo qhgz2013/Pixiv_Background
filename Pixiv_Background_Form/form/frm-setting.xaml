@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Pixiv_Background_Form"
         mc:Ignorable="d"
-        Title="设置" Height="450" Width="500" Loaded="Window_Loaded" Icon="/Resources/icon.32x32.ico">
+        Title="设置" Height="470" Width="500" Loaded="Window_Loaded" Icon="/Resources/icon.32x32.ico">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="10"/>
